@@ -173,3 +173,17 @@ input[type=date]::-webkit-calendar-picker-indicator, input[type=time]::-webkit-c
 .legal p, .legal ul { margin: 0; color: #2A313B; }
 .legal ul { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
 .legal a { color: var(--green-ink); text-decoration: underline; }
+
+/* Responsiveness: no double-tap zoom delay, and every tap gets instant visual feedback. */
+a, button, label, input { touch-action: manipulation; }
+.btn, .btn-2, .chip-btn, .pill-btn, .icon-btn, .link-btn, .seg button, a.card, button.card, .tab {
+  transition: transform .08s ease, opacity .08s ease, filter .08s ease;
+}
+.btn:active, .btn-2:active, .chip-btn:active, .pill-btn:active, .icon-btn:active, .seg button:active, a.card:active, button.card:active {
+  transform: scale(.97); filter: brightness(.94);
+}
+.link-btn:active, .tab:active { opacity: .55; }
+
+.bone { background: linear-gradient(90deg, #ECEFF3 0%, #F4F6F9 50%, #ECEFF3 100%); background-size: 200% 100%; animation: bone 1.1s ease-in-out infinite; }
+@keyframes bone { from { background-position: 100% 0 } to { background-position: -100% 0 } }
+@media (prefers-reduced-motion: reduce) { .bone { animation: none; } }

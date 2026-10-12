@@ -18,10 +18,17 @@ export async function createClient() {
   })
 }
 
+/**
+ * The signed-in user, checked from the session token. With Supabase's signing keys
+ * this is verified locally, so it doesn't cost a round trip to the auth server.
+ */
 export async function getUser() {
   const supabase = await createClient()
-  const { data } = await supabase.auth.getUser()
-  return { supabase, user: data.user }
+  const { data } = await supabase.auth.getClaims()
+  const c = data?.claims
+  const meta = (c?.user_metadata ?? {}) as { full_name?: string; name?: string }
+  const user = c?.sub ? { id: c.sub, email: (c.email as string | undefined) ?? '', name: meta.full_name ?? meta.name ?? (c.email as string | undefined) ?? '' } : null
+  return { supabase, user }
 }
 
 /** Public origin of this request, for share links. */
