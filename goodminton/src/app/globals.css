@@ -168,3 +168,8 @@ input[type=date]::-webkit-calendar-picker-indicator, input[type=time]::-webkit-c
 }
 
 .sheet-backdrop { position: fixed; inset: 0; background: rgba(18,22,28,.35); backdrop-filter: blur(4px); display: flex; align-items: flex-end; justify-content: center; z-index: 10; }
+
+.legal h2 { font-family: var(--display); font-size: 17px; font-weight: 700; margin: 10px 0 0; }
+.legal p, .legal ul { margin: 0; color: #2A313B; }
+.legal ul { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.legal a { color: var(--green-ink); text-decoration: underline; }

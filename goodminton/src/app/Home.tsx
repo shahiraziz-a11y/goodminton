@@ -31,7 +31,10 @@ export function SignIn({ failed }: { failed?: boolean }) {
           const { error } = await signInWithGoogle('/')
           if (error) { setBusy(false); flash(error.message) }
         }} />
-        <span className="note" style={{ textAlign: 'center' }}>Your Google name is used, so there&apos;s nothing to type.</span>
+        <span className="note" style={{ textAlign: 'center' }}>
+          Your Google name is used, so there&apos;s nothing to type.<br />
+          <a href="/privacy" style={{ textDecoration: 'underline' }}>Privacy</a> · <a href="/terms" style={{ textDecoration: 'underline' }}>Terms</a>
+        </span>
       </div>
     </Frame>
   )
