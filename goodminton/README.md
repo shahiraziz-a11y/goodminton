@@ -18,6 +18,9 @@ Built from the Claude Design handoff (`../project/Courtside Light.dc.html`; the 
 - **Cost split:** anyone confirmed can add expenses. The app works out who pays whom, and each payment can be marked paid. Nudge opens WhatsApp with a reminder.
 - **Balances:** your total across all matches, a balance per friend, and the payment history.
 - **For confirmed players:** Directions (Google Maps) and Add to calendar (an `.ics` file).
+- **Installable (PWA):** it opens full screen from a home-screen icon.
+  - The home screen shows an "Add to Home Screen" card: a one-tap Install on Android and Chrome, and Share-sheet steps on iPhone. It disappears once installed or dismissed.
+  - A service worker caches only static files and shows an offline page when there's no signal. Match data is always fetched live.
 
 Not built yet (they're in the design): the leaderboard and result logging, the "Still in?" check-in, weekly repeat, regulars first, and late-drop tags.
 
@@ -64,4 +67,5 @@ The SQL tests need a local Postgres 15+ and stub Supabase's `auth` schema (`supa
 - No push or email alerts yet. Waitlisted players see their new status when they open the link (the page refreshes every 20 s while open).
 - Pay, Settle and Mark paid only record a payment. No money moves.
 - WhatsApp caches link previews, so the "spots left" in an old preview can be out of date.
+- **Installed app on iPhone:** test Google sign-in from the home-screen app early. iOS runs home-screen apps with their own cookie storage, separate from Safari. Google sign-in leaves the app and comes back, so check it on a real phone after deploying.
 - Organisers can't edit or cancel a match, or delete an expense, from the app yet.

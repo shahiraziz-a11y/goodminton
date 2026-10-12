@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { Bars, Frame, GoogleButton } from '@/components/Chrome'
 import { useFeedback } from '@/components/Feedback'
+import { InstallCard } from '@/components/Pwa'
 import { fmtDate, fmtTime, money } from '@/lib/format'
 import { person } from '@/lib/people'
 import { balancesFor } from '@/lib/split'
@@ -49,6 +50,7 @@ export function Home({ meId, meName, matches, ledger }: { meId: string; meName: 
           </div>
           <Link href="/new" aria-label="New match" style={{ width: 52, height: 52, borderRadius: 18, background: '#0E9F7E', color: '#fff', fontSize: 28, fontWeight: 600, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</Link>
         </div>
+        <InstallCard />
         <BalanceCard total={bal.total} currency={ledger[0]?.currency ?? CURRENCY} />
         <div className="stack" style={{ gap: 16 }}>
           <span className="eyebrow">Matches</span>
