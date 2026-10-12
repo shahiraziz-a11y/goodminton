@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E7E4DB;font-family:'Archivo',system-ui,sans-serif;color:#15181B;-webkit-font-smoothing:antialiased}
+a{color:#1E5C3A}a:hover{color:#15181B}
+input,button,select{font-family:inherit}
+input:focus,select:focus{outline:2px solid #15181B;outline-offset:1px}
+</style>
+</helmet>
+
+<div style="min-height:100vh;display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start;justify-content:center;padding:40px 20px;box-sizing:border-box">
+
+  <sc-if value="{{ showDemo }}" hint-placeholder-val="{{ true }}">
+  <aside style="width:280px;max-width:100%;display:flex;flex-direction:column;gap:16px;padding-top:12px">
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#5E636B">Prototype controls</div>
+      <div style="font-size:30px;font-weight:850;font-stretch:70%;line-height:1;letter-spacing:-.01em">Courtside</div>
+      <div style="font-size:14px;line-height:1.45;color:#3F444B;text-wrap:pretty">Matches are fixed at 4 or 8. First in are confirmed, the rest wait. When 4 are waiting, the organiser can book a second court and everyone plays.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#5E636B">View as</div>
+      <sc-for list="{{ viewAs }}" as="v" hint-placeholder-count="4">
+        <button onClick="{{ v.pick }}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;border:1px solid #D6D1C4;background:#F6F4EE;cursor:pointer;text-align:left" style-hover="background:#fff">
+          <span style="width:28px;height:28px;border-radius:50%;background:{{ v.color }};color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">{{ v.initials }}</span>
+          <span style="flex:1;display:flex;flex-direction:column;min-width:0">
+            <span style="font-size:14px;font-weight:600">{{ v.label }}</span>
+            <span style="font-size:12px;color:#5E636B">{{ v.sub }}</span>
+          </span>
+          <sc-if value="{{ v.active }}"><span style="width:8px;height:8px;border-radius:50%;background:#15181B"></span></sc-if>
+        </button>
+      </sc-for>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button onClick="{{ simulateJoin }}" style="height:44px;border-radius:12px;border:none;background:#15181B;color:#fff;font-weight:700;font-size:14px;cursor:pointer">Simulate: next friend taps link</button>
+      <button onClick="{{ reset }}" style="height:40px;border-radius:12px;border:1px solid #D6D1C4;background:transparent;color:#15181B;font-weight:600;font-size:13px;cursor:pointer">Reset demo</button>
+    </div>
+  </aside>
+  </sc-if>
+
+  <div style="width:390px;max-width:100%;height:820px;border-radius:46px;border:10px solid #15181B;background:#F3F1EA;overflow:hidden;position:relative;display:flex;flex-direction:column;box-shadow:0 30px 60px -30px rgba(21,24,27,.45);flex:none">
+
+    <div style="height:56px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid #E2DED3;background:#F3F1EA">
+      <div style="display:flex;align-items:center;gap:10px">
+        <sc-if value="{{ showBack }}">
+          <button onClick="{{ back }}" style="width:36px;height:36px;border-radius:50%;border:1px solid #D6D1C4;background:#fff;cursor:pointer;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center">‹</button>
+        </sc-if>
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="width:10px;height:10px;border-radius:50%;background:#CFF24A;border:2px solid #15181B"></span>
+          <span style="font-weight:850;font-stretch:70%;font-size:20px;letter-spacing:.02em">COURTSIDE</span>
+        </div>
+      </div>
+      <sc-if value="{{ signedIn }}">
+        <span style="width:32px;height:32px;border-radius:50%;background:{{ me.color }};color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ me.initials }}</span>
+      </sc-if>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;overflow-x:hidden">
+
+      <sc-if value="{{ isHome }}">
+      <div style="padding:20px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:14px;color:#5E636B">Hi {{ me.first }}</div>
+          <div style="font-size:34px;font-weight:850;font-stretch:70%;line-height:1">Your matches</div>
+        </div>
+        <button onClick="{{ goCreate }}" style="height:56px;border-radius:16px;border:none;background:#CFF24A;color:#15181B;font-weight:800;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;border:2px solid #15181B">+ New match</button>
+        <button onClick="{{ goBalances }}" style="display:flex;align-items:center;justify-content:space-between;padding:16px;border-radius:18px;background:#15181B;color:#fff;border:none;cursor:pointer;text-align:left">
+          <span style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#B9BDC2">{{ bal.headline }}</span>
+            <span style="font-size:28px;font-weight:850;font-stretch:75%">{{ bal.totalStr }}</span>
+          </span>
+          <span style="font-size:13px;font-weight:600;color:#CFF24A">Settle up ›</span>
+        </button>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <sc-for list="{{ homeMatches }}" as="hm" hint-placeholder-count="2">
+            <button onClick="{{ hm.open }}" style="display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:18px;background:#fff;border:1px solid #E2DED3;cursor:pointer;text-align:left">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;width:100%">
+                <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                  <span style="font-size:17px;font-weight:750">{{ hm.title }}</span>
+                  <span style="font-size:13px;color:#5E636B">{{ hm.when }} · {{ hm.venue }}</span>
+                </div>
+                <sc-if value="{{ hm.isOpen }}"><span style="flex:none;font-size:11px;font-weight:700;padding:5px 9px;border-radius:99px;background:#CFF24A;color:#15181B">{{ hm.status }}</span></sc-if>
+                <sc-if value="{{ hm.isFull }}"><span style="flex:none;font-size:11px;font-weight:700;padding:5px 9px;border-radius:99px;background:#15181B;color:#fff">{{ hm.status }}</span></sc-if>
+                <sc-if value="{{ hm.isPast }}"><span style="flex:none;font-size:11px;font-weight:700;padding:5px 9px;border-radius:99px;background:#E7E4DB;color:#3F444B">{{ hm.status }}</span></sc-if>
+              </div>
+              <div style="display:flex;gap:4px;width:100%">
+                <sc-for list="{{ hm.bars }}" as="b" hint-placeholder-count="4">
+                  <sc-if value="{{ b.on }}"><span style="flex:1;height:6px;border-radius:3px;background:#15181B"></span></sc-if>
+                  <sc-if value="{{ b.off }}"><span style="flex:1;height:6px;border-radius:3px;background:#E2DED3"></span></sc-if>
+                </sc-for>
+              </div>
+            </button>
+          </sc-for>
+          <sc-if value="{{ homeEmpty }}">
+            <div style="padding:24px;text-align:center;color:#5E636B;font-size:14px;border:1px dashed #D6D1C4;border-radius:18px">No matches yet. Open a link from a friend to join one.</div>
+          </sc-if>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isCreate }}">
+      <div style="padding:20px;display:flex;flex-direction:column;gap:20px">
+        <div style="font-size:34px;font-weight:850;font-stretch:70%;line-height:1">New match</div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#5E636B">Players</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <sc-for list="{{ sizeOpts }}" as="o" hint-placeholder-count="2">
+              <sc-if value="{{ o.sel }}">
+                <button onClick="{{ o.pick }}" style="padding:14px;border-radius:16px;border:2px solid #15181B;background:#15181B;color:#fff;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:36px;font-weight:850;font-stretch:70%;line-height:1;color:#CFF24A">{{ o.n }}</span>
+                  <span style="font-size:13px;font-weight:600">{{ o.sub }}</span>
+                </button>
+              </sc-if>
+              <sc-if value="{{ o.unsel }}">
+                <button onClick="{{ o.pick }}" style="padding:14px;border-radius:16px;border:2px solid #D6D1C4;background:#fff;color:#15181B;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-size:36px;font-weight:850;font-stretch:70%;line-height:1">{{ o.n }}</span>
+                  <span style="font-size:13px;font-weight:600;color:#5E636B">{{ o.sub }}</span>
+                </button>
+              </sc-if>
+            </sc-for>
+          </div>
+          <div style="font-size:12px;color:#5E636B">No in-between counts, so nobody sits out on rotation.</div>
+        </div>
+
+        <label style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#5E636B">Match name</span>
+          <input value="{{ form.title }}" onChange="{{ on.title }}" style="height:48px;border-radius:12px;border:1px solid #D6D1C4;background:#fff;padding:0 14px;font-size:16px;box-sizing:border-box">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#5E636B">Venue</span>
+          <input value="{{ form.venue }}" onChange="{{ on.venue }}" style="height:48px;border-radius:12px;border:1px solid #D6D1C4;background:#fff;padding:0 14px;font-size:16px;box-sizing:border-box">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#5E636B">Court numbers</span>
+          <input value="{{ form.courts }}" onChange="{{ on.courts }}" placeholder="e.g. Court 3" style="height:48px;border-radius:12px;border:1px solid #D6D1C4;background:#fff;padding:0 14px;font-size:16px;box-sizing:border-box">
+          <span style="font-size:12px;color:#5E636B">Only confirmed players see this.</span>
+        </label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+            <span style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#5E636B">Date</span>
+            <input type="date" value="{{ form.date }}" onChange="{{ on.date }}" style="height:48px;border-radius:12px;border:1px solid #D6D1C4;background:#fff;padding:0 10px;font-size:15px;box-sizing:border-box;width:100%">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+            <span style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#5E636B">Start</span>
+            <input type="time" value="{{ form.time }}" onChange="{{ on.time }}" style="height:48px;border-radius:12px;border:1px solid #D6D1C4;background:#fff;padding:0 10px;font-size:15px;box-sizing:border-box;width:100%">
+          </label>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#5E636B">Duration</div>
+          <div style="display:flex;gap:8px">
+            <sc-for list="{{ durOpts }}" as="o" hint-placeholder-count="3">
+              <sc-if value="{{ o.sel }}"><button onClick="{{ o.pick }}" style="flex:1;height:44px;border-radius:99px;border:2px solid #15181B;background:#15181B;color:#fff;font-weight:700;font-size:14px;cursor:pointer">{{ o.label }}</button></sc-if>
+              <sc-if value="{{ o.unsel }}"><button onClick="{{ o.pick }}" style="flex:1;height:44px;border-radius:99px;border:1px solid #D6D1C4;background:#fff;color:#15181B;font-weight:600;font-size:14px;cursor:pointer">{{ o.label }}</button></sc-if>
+            </sc-for>
+          </div>
+        </div>
+        <label style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#5E636B">Court cost (per court)</span>
+          <div style="display:flex;align-items:center;height:48px;border-radius:12px;border:1px solid #D6D1C4;background:#fff;padding:0 14px;gap:8px">
+            <span style="font-weight:700;color:#5E636B;font-size:14px">{{ cur }}</span>
+            <input type="number" value="{{ form.cost }}" onChange="{{ on.cost }}" style="flex:1;border:none;font-size:16px;background:transparent;min-width:0;outline:none">
+          </div>
+          <span style="font-size:12px;color:#5E636B">{{ formPerHead }}</span>
+        </label>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#5E636B">RSVPs close</div>
+          <div style="display:flex;gap:8px">
+            <sc-for list="{{ closeOpts }}" as="o" hint-placeholder-count="3">
+              <sc-if value="{{ o.sel }}"><button onClick="{{ o.pick }}" style="flex:1;height:44px;border-radius:99px;border:2px solid #15181B;background:#15181B;color:#fff;font-weight:700;font-size:13px;cursor:pointer">{{ o.label }}</button></sc-if>
+              <sc-if value="{{ o.unsel }}"><button onClick="{{ o.pick }}" style="flex:1;height:44px;border-radius:99px;border:1px solid #D6D1C4;background:#fff;color:#15181B;font-weight:600;font-size:13px;cursor:pointer">{{ o.label }}</button></sc-if>
+            </sc-for>
+          </div>
+          <span style="font-size:12px;color:#5E636B">You get the final count at this time, in time to book.</span>
+        </div>
+        <button onClick="{{ createMatch }}" style="height:56px;border-radius:16px;border:none;background:#15181B;color:#fff;font-weight:800;font-size:16px;cursor:pointer;margin-bottom:8px">Create &amp; get link</button>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isShare }}">
+      <div style="padding:20px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#1E5C3A">Match created</div>
+          <div style="font-size:34px;font-weight:850;font-stretch:70%;line-height:1">Share it with the group</div>
+        </div>
+        <div style="background:#DCF8C6;border-radius:14px 14px 14px 4px;padding:6px;display:flex;flex-direction:column;gap:6px;max-width:300px;align-self:flex-end;box-shadow:0 1px 1px rgba(0,0,0,.08)">
+          <div style="background:#15181B;border-radius:10px;overflow:hidden;display:flex;flex-direction:column">
+            <div style="padding:14px;display:flex;flex-direction:column;gap:8px;background:#1E5C3A">
+              <div style="display:flex;gap:4px">
+                <sc-for list="{{ m.bars }}" as="b" hint-placeholder-count="4">
+                  <sc-if value="{{ b.on }}"><span style="flex:1;height:22px;border-radius:5px;background:#CFF24A"></span></sc-if>
+                  <sc-if value="{{ b.off }}"><span style="flex:1;height:22px;border-radius:5px;border:1.5px dashed rgba(255,255,255,.6)"></span></sc-if>
+                </sc-for>
+              </div>
+              <div style="font-size:22px;font-weight:850;font-stretch:70%;color:#fff;line-height:1.05">{{ m.title }}</div>
+            </div>
+            <div style="padding:10px 12px;background:#F0F0F0;display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:13px;font-weight:700;color:#15181B">{{ m.spotsLine }}</span>
+              <span style="font-size:12px;color:#3F444B">{{ m.when }} · {{ m.venue }}</span>
+              <span style="font-size:11px;color:#5E636B">courtside.app</span>
+            </div>
+          </div>
+          <div style="font-size:14px;line-height:1.4;padding:2px 6px 4px;color:#15181B">Badminton {{ m.whenShort }}. {{ m.size }} spots, first in get them. Tap to join: <span style="color:#1E5C3A;text-decoration:underline">{{ link }}</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #E2DED3;border-radius:14px;padding:6px 6px 6px 14px">
+          <span style="flex:1;font-family:'IBM Plex Mono',monospace;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ link }}</span>
+          <button onClick="{{ copyLink }}" style="height:40px;padding:0 16px;border-radius:10px;border:none;background:#E7E4DB;font-weight:700;font-size:13px;cursor:pointer">Copy</button>
+        </div>
+        <button onClick="{{ shareWhatsApp }}" style="height:56px;border-radius:16px;border:none;background:#25D366;color:#0B3D1E;font-weight:800;font-size:16px;cursor:pointer">Share to WhatsApp</button>
+        <div style="display:flex;gap:10px">
+          <button onClick="{{ openMatch }}" style="flex:1;height:48px;border-radius:14px;border:1px solid #D6D1C4;background:#fff;font-weight:700;font-size:14px;cursor:pointer">View match</button>
+          <button onClick="{{ openAsFriend }}" style="flex:1;height:48px;border-radius:14px;border:1px solid #D6D1C4;background:#fff;font-weight:700;font-size:14px;cursor:pointer">Open as a friend</button>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isLanding }}">
+      <div style="padding:20px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="width:36px;height:36px;border-radius:50%;background:{{ m.orgColor }};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ m.orgInitials }}</span>
+          <span style="font-size:14px;color:#3F444B"><b style="color:#15181B">{{ m.orgFirst }}</b> invited you to play</span>
+        </div>
+        <div style="background:#1E5C3A;border-radius:22px;padding:20px;color:#fff;display:flex;flex-direction:column;gap:16px">
+          <div style="font-size:40px;font-weight:850;font-stretch:68%;line-height:.95">{{ m.title }}</div>
+          <div style="display:flex;flex-direction:column;gap:4px;font-size:15px">
+            <span style="font-weight:700">{{ m.when }}</span>
+            <span style="color:#D4E4D9">{{ m.venue }} · {{ m.durationLabel }}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+            <sc-for list="{{ m.bars }}" as="b" hint-placeholder-count="4">
+              <sc-if value="{{ b.on }}"><span style="height:44px;border-radius:10px;background:#CFF24A"></span></sc-if>
+              <sc-if value="{{ b.off }}"><span style="height:44px;border-radius:10px;border:1.5px dashed rgba(255,255,255,.55)"></span></sc-if>
+            </sc-for>
+          </div>
+          <div style="font-size:15px;font-weight:700">{{ m.spotsLine }}</div>
+        </div>
+        <button onClick="{{ startGoogle }}" style="height:56px;border-radius:16px;border:1px solid #D6D1C4;background:#fff;color:#15181B;font-weight:700;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px">
+          <span style="width:24px;height:24px;border-radius:50%;border:1px solid #E2DED3;display:flex;align-items:center;justify-content:center;font-weight:900;color:#4285F4;font-size:15px">G</span>
+          {{ landingCta }}
+        </button>
+        <div style="font-size:13px;line-height:1.45;color:#5E636B;text-align:center;text-wrap:pretty">We use your Google name so nobody types it. Player names and court details unlock once you're confirmed.</div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isMatch }}">
+      <div style="padding:20px;display:flex;flex-direction:column;gap:16px">
+
+        <div style="background:#1E5C3A;border-radius:22px;padding:20px;color:#fff;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#CFF24A">{{ m.sizeLabel }}</span>
+            <span style="font-size:12px;color:#D4E4D9">{{ m.closesLabel }}</span>
+          </div>
+          <div style="font-size:36px;font-weight:850;font-stretch:68%;line-height:.95">{{ m.title }}</div>
+          <div style="display:flex;flex-direction:column;gap:3px;font-size:15px">
+            <span style="font-weight:700">{{ m.when }}</span>
+            <span style="color:#D4E4D9">{{ m.venue }} · {{ m.durationLabel }}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px">
+            <sc-for list="{{ m.slots }}" as="s" hint-placeholder-count="4">
+              <sc-if value="{{ s.named }}"><span style="height:44px;border-radius:10px;background:#CFF24A;color:#15181B;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;padding:0 8px;text-align:center;line-height:1.1;overflow:hidden">{{ s.name }}</span></sc-if>
+              <sc-if value="{{ s.anon }}"><span style="height:44px;border-radius:10px;background:#CFF24A"></span></sc-if>
+              <sc-if value="{{ s.empty }}"><span style="height:44px;border-radius:10px;border:1.5px dashed rgba(255,255,255,.55)"></span></sc-if>
+            </sc-for>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:14px">
+            <span style="font-weight:700">{{ m.countLabel }}</span>
+            <span style="color:#D4E4D9">{{ m.waitLabel }}</span>
+          </div>
+        </div>
+
+        <sc-if value="{{ v.outsiderOpen }}">
+          <button onClick="{{ doJoin }}" style="height:56px;border-radius:16px;border:2px solid #15181B;background:#CFF24A;color:#15181B;font-weight:800;font-size:17px;cursor:pointer">I'm in</button>
+        </sc-if>
+        <sc-if value="{{ v.outsiderFull }}">
+          <div style="background:#fff;border:1px solid #E2DED3;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font-size:18px;font-weight:750">This match is full</span>
+              <span style="font-size:14px;color:#5E636B;line-height:1.4">Join the waitlist. You'll move up if someone drops out, or play on a second court once 4 are waiting.</span>
+            </div>
+            <button onClick="{{ doJoin }}" style="height:52px;border-radius:14px;border:none;background:#15181B;color:#fff;font-weight:700;font-size:16px;cursor:pointer">Join waitlist</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ v.confirmed }}">
+          <div style="background:#CFF24A;border:2px solid #15181B;border-radius:18px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:18px;font-weight:800">You're confirmed</span>
+              <span style="font-size:13px;color:#2C3136">{{ m.courts }} · see you there</span>
+            </div>
+            <sc-if value="{{ v.canLeave }}">
+              <button onClick="{{ doLeave }}" style="height:40px;padding:0 14px;border-radius:10px;border:1px solid #15181B;background:transparent;font-weight:700;font-size:13px;cursor:pointer;flex:none">Drop out</button>
+            </sc-if>
+          </div>
+        </sc-if>
+        <sc-if value="{{ v.waiting }}">
+          <div style="background:#fff;border:1px solid #E2DED3;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;align-items:center;gap:14px">
+              <span style="font-size:44px;font-weight:850;font-stretch:68%;line-height:1;color:#B4462F">#{{ v.waitPos }}</span>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:17px;font-weight:750">You're on the waitlist</span>
+                <span style="font-size:13px;color:#5E636B">We'll notify you on email if a spot opens.</span>
+              </div>
+            </div>
+            <sc-if value="{{ m.showCourt2 }}">
+              <div style="display:flex;flex-direction:column;gap:6px;padding-top:12px;border-top:1px solid #EEEAE0">
+                <div style="display:flex;justify-content:space-between;font-size:13px"><span style="font-weight:600">Second court</span><span style="color:#5E636B">{{ m.court2Label }}</span></div>
+                <div style="display:flex;gap:4px">
+                  <sc-for list="{{ m.court2Bars }}" as="b" hint-placeholder-count="4">
+                    <sc-if value="{{ b.on }}"><span style="flex:1;height:6px;border-radius:3px;background:#B4462F"></span></sc-if>
+                    <sc-if value="{{ b.off }}"><span style="flex:1;height:6px;border-radius:3px;background:#E2DED3"></span></sc-if>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+            <button onClick="{{ doLeave }}" style="height:44px;border-radius:12px;border:1px solid #D6D1C4;background:transparent;font-weight:600;font-size:14px;cursor:pointer">Leave waitlist</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ v.locked }}">
+          <div style="border:1px dashed #C9C3B4;border-radius:18px;padding:16px;display:flex;gap:12px;align-items:center">
+            <span style="width:36px;height:36px;border-radius:10px;background:#E7E4DB;display:flex;align-items:center;justify-content:center;flex:none;font-size:16px;font-weight:800;color:#5E636B">–</span>
+            <span style="font-size:14px;color:#3F444B;line-height:1.4;text-wrap:pretty">Player names, court number and cost split are visible to confirmed players only.</span>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ v.isOrg }}">
+          <sc-if value="{{ m.upgradeReady }}">
+            <div style="background:#15181B;color:#fff;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <span style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#CFF24A">4 waiting · even numbers</span>
+                <span style="font-size:18px;font-weight:750">Book a second court and make it 8</span>
+                <span style="font-size:13px;color:#B9BDC2">All 4 on the waitlist get confirmed. Court cost is added to the split.</span>
+              </div>
+              <button onClick="{{ doUpgrade }}" style="height:48px;border-radius:12px;border:none;background:#CFF24A;color:#15181B;font-weight:800;font-size:15px;cursor:pointer">I've booked court 2</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ m.orgCourt2Pending }}">
+            <div style="background:#fff;border:1px solid #E2DED3;border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;font-size:14px"><span style="font-weight:700">Second court</span><span style="color:#5E636B">{{ m.court2Label }}</span></div>
+              <div style="display:flex;gap:4px">
+                <sc-for list="{{ m.court2Bars }}" as="b" hint-placeholder-count="4">
+                  <sc-if value="{{ b.on }}"><span style="flex:1;height:6px;border-radius:3px;background:#15181B"></span></sc-if>
+                  <sc-if value="{{ b.off }}"><span style="flex:1;height:6px;border-radius:3px;background:#E2DED3"></span></sc-if>
+                </sc-for>
+              </div>
+              <span style="font-size:12px;color:#5E636B">Don't book yet. With fewer than 4 waiting, someone would sit out.</span>
+            </div>
+          </sc-if>
+        </sc-if>
+
+        <sc-if value="{{ v.canSee }}">
+          <div style="background:#fff;border:1px solid #E2DED3;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#5E636B">Playing</span>
+              <span style="font-size:13px;font-weight:600">{{ m.courts }}</span>
+            </div>
+            <sc-for list="{{ m.players }}" as="p" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="width:36px;height:36px;border-radius:50%;background:{{ p.color }};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">{{ p.initials }}</span>
+                <span style="flex:1;display:flex;flex-direction:column;min-width:0">
+                  <span style="font-size:15px;font-weight:600">{{ p.name }}</span>
+                  <span style="font-size:12px;color:#5E636B">{{ p.tag }}</span>
+                </span>
+                <span style="font-size:12px;color:#5E636B">{{ p.joined }}</span>
+              </div>
+            </sc-for>
+            <sc-if value="{{ m.hasWait }}">
+              <div style="border-top:1px solid #EEEAE0;padding-top:12px;display:flex;flex-direction:column;gap:10px">
+                <span style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#B4462F">Waitlist · {{ m.waitCount }}</span>
+                <sc-if value="{{ v.isOrg }}">
+                  <sc-for list="{{ m.waiters }}" as="p" hint-placeholder-count="2">
+                    <div style="display:flex;align-items:center;gap:12px">
+                      <span style="width:28px;text-align:center;font-size:13px;font-weight:700;color:#B4462F">{{ p.pos }}</span>
+                      <span style="flex:1;font-size:14px;font-weight:500">{{ p.name }}</span>
+                    </div>
+                  </sc-for>
+                </sc-if>
+              </div>
+            </sc-if>
+          </div>
+
+          <div style="background:#fff;border:1px solid #E2DED3;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#5E636B">Cost split</span>
+              <span style="font-size:13px;color:#5E636B">{{ cost.perHead }} each</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <sc-for list="{{ cost.expenses }}" as="e" hint-placeholder-count="1">
+                <div style="display:flex;justify-content:space-between;gap:10px;font-size:14px">
+                  <span style="display:flex;flex-direction:column;min-width:0"><span style="font-weight:600">{{ e.label }}</span><span style="font-size:12px;color:#5E636B">Paid by {{ e.by }}</span></span>
+                  <span style="font-weight:700;flex:none">{{ e.amount }}</span>
+                </div>
+              </sc-for>
+              <div style="display:flex;justify-content:space-between;font-size:14px;border-top:1px solid #EEEAE0;padding-top:10px"><span style="font-weight:700">Total</span><span style="font-weight:800">{{ cost.total }}</span></div>
+            </div>
+            <sc-if value="{{ expOpen }}">
+              <div style="display:flex;flex-direction:column;gap:8px;background:#F6F4EE;border-radius:12px;padding:12px">
+                <input value="{{ exp.label }}" onChange="{{ on.expLabel }}" placeholder="What for? e.g. Shuttles" style="height:44px;border-radius:10px;border:1px solid #D6D1C4;background:#fff;padding:0 12px;font-size:15px">
+                <div style="display:flex;gap:8px">
+                  <input type="number" value="{{ exp.amount }}" onChange="{{ on.expAmount }}" placeholder="Amount" style="flex:1;min-width:0;height:44px;border-radius:10px;border:1px solid #D6D1C4;background:#fff;padding:0 12px;font-size:15px">
+                  <button onClick="{{ addExpense }}" style="height:44px;padding:0 16px;border-radius:10px;border:none;background:#15181B;color:#fff;font-weight:700;font-size:14px;cursor:pointer">Add</button>
+                </div>
+                <span style="font-size:12px;color:#5E636B">Paid by you, split across confirmed players.</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{ expClosed }}">
+              <button onClick="{{ toggleExp }}" style="height:44px;border-radius:12px;border:1px dashed #C9C3B4;background:transparent;font-weight:600;font-size:14px;cursor:pointer">+ Add an expense</button>
+            </sc-if>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#5E636B">Who pays whom</span>
+              <sc-for list="{{ cost.transfers }}" as="t" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:#F6F4EE">
+                  <span style="flex:1;font-size:14px;min-width:0"><b>{{ t.from }}</b> → {{ t.to }}</span>
+                  <span style="font-size:14px;font-weight:800">{{ t.amount }}</span>
+                  <sc-if value="{{ t.settled }}"><button onClick="{{ t.toggle }}" style="height:32px;padding:0 10px;border-radius:99px;border:none;background:#1E5C3A;color:#fff;font-size:12px;font-weight:700;cursor:pointer">Paid ✓</button></sc-if>
+                  <sc-if value="{{ t.openMine }}"><button onClick="{{ t.toggle }}" style="height:32px;padding:0 10px;border-radius:99px;border:1px solid #15181B;background:#fff;font-size:12px;font-weight:700;cursor:pointer">Mark paid</button></sc-if>
+                  <sc-if value="{{ t.openOther }}"><span style="font-size:12px;color:#B4462F;font-weight:700">Pending</span></sc-if>
+                </div>
+              </sc-for>
+              <sc-if value="{{ cost.none }}"><span style="font-size:13px;color:#5E636B">All square.</span></sc-if>
+            </div>
+          </div>
+
+          <button onClick="{{ goShare }}" style="height:48px;border-radius:14px;border:1px solid #D6D1C4;background:#fff;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:8px">Share match link</button>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isBalances }}">
+      <div style="padding:20px;display:flex;flex-direction:column;gap:18px">
+        <div style="font-size:34px;font-weight:850;font-stretch:70%;line-height:1">Balances</div>
+        <div style="background:#15181B;color:#fff;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:4px">
+          <span style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#B9BDC2">{{ bal.headline }}</span>
+          <span style="font-size:44px;font-weight:850;font-stretch:72%;line-height:1;color:#CFF24A">{{ bal.totalStr }}</span>
+          <span style="font-size:13px;color:#B9BDC2">Across all matches, unsettled only</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <sc-for list="{{ bal.list }}" as="b" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;border:1px solid #E2DED3;border-radius:16px">
+              <span style="width:36px;height:36px;border-radius:50%;background:{{ b.color }};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">{{ b.initials }}</span>
+              <span style="flex:1;display:flex;flex-direction:column;min-width:0">
+                <span style="font-size:15px;font-weight:600">{{ b.name }}</span>
+                <span style="font-size:12px;color:#5E636B">{{ b.label }}</span>
+              </span>
+              <sc-if value="{{ b.pos }}"><span style="font-size:16px;font-weight:800;color:#1E5C3A">{{ b.amount }}</span></sc-if>
+              <sc-if value="{{ b.neg }}"><span style="font-size:16px;font-weight:800;color:#B4462F">{{ b.amount }}</span></sc-if>
+            </div>
+          </sc-for>
+          <sc-if value="{{ bal.empty }}"><div style="padding:24px;text-align:center;color:#5E636B;font-size:14px;border:1px dashed #D6D1C4;border-radius:18px">All square with everyone.</div></sc-if>
+        </div>
+      </div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{ showTabs }}">
+      <div style="height:64px;flex:none;border-top:1px solid #E2DED3;background:#F3F1EA;display:grid;grid-template-columns:1fr 1fr">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2">
+          <sc-if value="{{ t.sel }}"><button onClick="{{ t.go }}" style="border:none;background:transparent;font-weight:800;font-size:14px;color:#15181B;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px"><span style="width:22px;height:4px;border-radius:2px;background:#15181B"></span>{{ t.label }}</button></sc-if>
+          <sc-if value="{{ t.unsel }}"><button onClick="{{ t.go }}" style="border:none;background:transparent;font-weight:600;font-size:14px;color:#5E636B;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px"><span style="width:22px;height:4px;border-radius:2px;background:transparent"></span>{{ t.label }}</button></sc-if>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ sheetGoogle }}">
+      <div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(21,24,27,.45);display:flex;align-items:flex-end;z-index:5">
+        <div onClick="{{ stop }}" style="width:100%;background:#fff;border-radius:24px 24px 0 0;padding:20px 20px 28px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:28px;height:28px;border-radius:50%;border:1px solid #E2DED3;display:flex;align-items:center;justify-content:center;font-weight:900;color:#4285F4;font-size:16px">G</span>
+            <span style="font-size:14px;color:#3F444B">Sign in with Google</span>
+          </div>
+          <div style="font-size:22px;font-weight:600;line-height:1.2">Choose an account<br><span style="font-size:15px;font-weight:400;color:#5E636B">to continue to Courtside</span></div>
+          <div style="display:flex;flex-direction:column;border-top:1px solid #EEE">
+            <sc-for list="{{ accounts }}" as="a" hint-placeholder-count="3">
+              <button onClick="{{ a.pick }}" style="display:flex;align-items:center;gap:12px;padding:12px 4px;border:none;border-bottom:1px solid #EEE;background:#fff;cursor:pointer;text-align:left" style-hover="background:#F6F6F6">
+                <span style="width:36px;height:36px;border-radius:50%;background:{{ a.color }};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none">{{ a.initials }}</span>
+                <span style="display:flex;flex-direction:column;min-width:0"><span style="font-size:15px;font-weight:600">{{ a.name }}</span><span style="font-size:13px;color:#5E636B">{{ a.email }}</span></span>
+              </button>
+            </sc-for>
+          </div>
+          <div style="font-size:12px;color:#5E636B;line-height:1.45">Google will share your name, email address and profile picture with Courtside.</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ hasToast }}">
+      <div style="position:absolute;left:16px;right:16px;bottom:80px;background:#15181B;color:#fff;border-radius:14px;padding:14px 16px;font-size:14px;font-weight:600;z-index:6;box-shadow:0 10px 30px rgba(0,0,0,.25)">{{ toast }}</div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;currency&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;AED&quot;,&quot;₹&quot;,&quot;£&quot;,&quot;$&quot;,&quot;€&quot;],&quot;default&quot;:&quot;AED&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;showDemoPanel&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const P = {
+  rohan: ['Rohan Kapoor', '#1E5C3A'], priya: ['Priya Nair', '#B4462F'], samir: ['Samir Haddad', '#3B5BA9'],
+  meera: ['Meera Iyer', '#8A5A12'], dev: ['Dev Patel', '#6B3FA0'], aisha: ['Aisha Khan', '#0F6E73'],
+  jon: ['Jonathan Lee', '#9C2F5E'], kabir: ['Kabir Singh', '#4A5A1E'], nina: ['Nina Fernandes', '#A0461E']
+};
+const ORDER = ['meera', 'dev', 'aisha', 'jon', 'kabir', 'nina', 'priya', 'samir'];
+const person = id => { const [name, color] = P[id]; return { id, name, color, first: name.split(' ')[0], initials: name.split(' ').map(w => w[0]).join(''), email: name.toLowerCase().replace(' ', '.') + '@gmail.com' }; };
+const fmtDate = d => { const [y, m, dd] = d.split('-').map(Number); return new Date(y, m - 1, dd).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); };
+const fmtTime = t => { let [h, mi] = t.split(':').map(Number); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${h}:${String(mi).padStart(2, '0')} ${ap}`; };
+const defaultForm = () => ({ size: 4, title: 'Saturday Doubles', venue: 'Al Quoz Sports Hall', courts: 'Court 2', date: '2026-10-17', time: '19:00', duration: 90, cost: '180', closes: '6h before' });
+const seed = () => ({
+  viewer: 'rohan', signedIn: true, screen: 'home', cur: 'm1', prev: 'home', sheet: false, toast: null, form: defaultForm(), expOpen: false, exp: { label: '', amount: '' },
+  matches: [
+    { id: 'm1', slug: 'thu-doubles-7k2', org: 'rohan', title: 'Thursday Night Doubles', size: 4, venue: 'Al Quoz Sports Hall', courts: 'Court 3', date: '2026-10-15', time: '20:00', duration: 90, closes: '6h before', cost: 180,
+      players: ['rohan', 'priya', 'samir'], joinedAt: { rohan: 'Created', priya: '2m after', samir: '14m after' }, waitlist: [], expenses: [{ label: 'Court booking', amount: 180, by: 'rohan' }], settled: {} },
+    { id: 'm0', slug: 'sun-doubles-a91', org: 'rohan', title: 'Sunday Morning Doubles', size: 4, venue: 'Sports City Hall B', courts: 'Court 1', date: '2026-10-11', time: '09:00', duration: 60, closes: '24h before', cost: 160, past: true,
+      players: ['rohan', 'meera', 'dev', 'aisha'], joinedAt: {}, waitlist: ['jon'], expenses: [{ label: 'Court booking', amount: 160, by: 'rohan' }, { label: 'Shuttles (tube of 12)', amount: 48, by: 'dev' }], settled: { 'aisha>rohan': true } }
+  ]
+});
+const transfersOf = m => {
+  const n = m.players.length || 1, total = m.expenses.reduce((s, e) => s + e.amount, 0), share = total / n, net = {};
+  m.players.forEach(p => net[p] = -share);
+  m.expenses.forEach(e => net[e.by] = (net[e.by] || 0) + e.amount);
+  const deb = Object.entries(net).filter(([, v]) => v < -0.005).map(([k, v]) => ({ k, v: -v }));
+  const cre = Object.entries(net).filter(([, v]) => v > 0.005).map(([k, v]) => ({ k, v }));
+  const out = []; let i = 0, j = 0;
+  while (i < deb.length && j < cre.length) {
+    const a = Math.min(deb[i].v, cre[j].v);
+    out.push({ from: deb[i].k, to: cre[j].k, amount: Math.round(a * 100) / 100, key: deb[i].k + '>' + cre[j].k });
+    deb[i].v -= a; cre[j].v -= a; if (deb[i].v < 0.005) i++; if (cre[j].v < 0.005) j++;
+  }
+  return { out, total, share };
+};
+
+class Component extends DCLogic {
+  state = seed();
+  cur() { return this.props.currency ?? 'AED'; }
+  money(n) { const r = Math.round(n * 100) / 100; return `${this.cur()} ${r % 1 ? r.toFixed(2) : r}`; }
+  flash(t) { clearTimeout(this._t); this.setState({ toast: t }); this._t = setTimeout(() => this.setState({ toast: null }), 2400); }
+  updM(fn) { this.setState(s => ({ matches: s.matches.map(m => m.id === s.cur ? fn({ ...m, players: [...m.players], waitlist: [...m.waitlist], expenses: [...m.expenses], settled: { ...m.settled }, joinedAt: { ...m.joinedAt } }) : m) })); }
+  curM() { return this.state.matches.find(m => m.id === this.state.cur); }
+  join(id) {
+    const m = this.curM(); if (m.players.includes(id) || m.waitlist.includes(id)) return null;
+    const conf = m.players.length < m.size;
+    this.updM(x => { conf ? x.players.push(id) : x.waitlist.push(id); x.joinedAt[id] = 'Just now'; return x; });
+    return conf ? 'confirmed' : '#' + (m.waitlist.length + 1);
+  }
+  go(screen) { this.setState(s => ({ prev: s.screen, screen, expOpen: false })); }
+
+  renderVals() {
+    const s = this.state, m = this.curM(), me = s.viewer ? person(s.viewer) : { first: '', initials: '', color: '#999' };
+    const bars = (n, size) => Array.from({ length: size }, (_, i) => ({ on: i < n, off: i >= n }));
+    const isOrg = s.viewer === m.org, conf = m.players.includes(s.viewer), waitIdx = m.waitlist.indexOf(s.viewer);
+    const full = m.players.length >= m.size, canSee = isOrg || conf, outsider = s.signedIn && !conf && waitIdx < 0;
+    const left = m.size - m.players.length, wc = m.waitlist.length;
+    const when = `${fmtDate(m.date)}, ${fmtTime(m.time)}`;
+    const tr = transfersOf(m);
+    const org = person(m.org);
+
+    const mv = {
+      title: m.title, size: m.size, venue: m.venue, courts: m.courts, when, whenShort: when, durationLabel: `${m.duration} min`,
+      sizeLabel: m.size === 4 ? 'Doubles · 1 court · 4 players' : 'Doubles · 2 courts · 8 players',
+      closesLabel: m.past ? 'Played' : `RSVPs close ${m.closes}`,
+      bars: bars(m.players.length, m.size),
+      spotsLine: left > 0 ? `${left} of ${m.size} spots left` : `Full · ${wc} on waitlist`,
+      slots: Array.from({ length: m.size }, (_, i) => { const id = m.players[i]; return { named: !!id && canSee, anon: !!id && !canSee, empty: !id, initials: id ? person(id).initials : '', name: id ? person(id).name : '' }; }),
+      countLabel: `${m.players.length}/${m.size} confirmed`, waitLabel: wc ? `${wc} waiting` : 'No waitlist',
+      orgFirst: org.first, orgInitials: org.initials, orgColor: org.color,
+      players: m.players.map(id => { const p = person(id); return { ...p, tag: [id === m.org ? 'Organiser' : '', id === s.viewer ? 'You' : ''].filter(Boolean).join(' · ') || p.email, joined: m.joinedAt[id] || '' }; }),
+      waiters: m.waitlist.map((id, i) => ({ name: person(id).name, pos: i + 1 })), hasWait: wc > 0, waitCount: wc,
+      showCourt2: m.size === 4 && full, upgradeReady: m.size === 4 && wc >= 4, orgCourt2Pending: m.size === 4 && full && wc > 0 && wc < 4,
+      court2Label: `${Math.min(wc, 4)}/4 waiting`, court2Bars: bars(Math.min(wc, 4), 4)
+    };
+
+    const bal = {}; s.matches.forEach(mm => transfersOf(mm).out.forEach(t => {
+      if (mm.settled[t.key]) return;
+      if (t.to === s.viewer) bal[t.from] = (bal[t.from] || 0) + t.amount;
+      if (t.from === s.viewer) bal[t.to] = (bal[t.to] || 0) - t.amount;
+    }));
+    const balList = Object.entries(bal).filter(([, v]) => Math.abs(v) > 0.005).map(([id, v]) => { const p = person(id); return { ...p, pos: v > 0, neg: v < 0, amount: this.money(Math.abs(v)), label: v > 0 ? `owes you` : 'you owe' }; });
+    const balTotal = Object.values(bal).reduce((a, b) => a + b, 0);
+
+    const setF = k => e => { const val = e.target.value; this.setState(st => ({ form: { ...st.form, [k]: val } })); };
+    const setE = k => e => { const val = e.target.value; this.setState(st => ({ exp: { ...st.exp, [k]: val } })); };
+    const f = s.form, perHead = Number(f.cost || 0) / 4;
+
+    const viewAs = [{ id: 'rohan', sub: 'Organiser' }, ...m.players.filter(p => p !== 'rohan').map(p => ({ id: p, sub: 'Confirmed' })), ...m.waitlist.map((p, i) => ({ id: p, sub: `Waitlist #${i + 1}` }))]
+      .map(o => { const p = person(o.id); return { label: p.name, sub: o.sub, color: p.color, initials: p.initials, active: s.signedIn && s.viewer === o.id, pick: () => this.setState({ viewer: o.id, signedIn: true, screen: o.id === 'rohan' && s.screen === 'landing' ? 'match' : (s.screen === 'landing' ? 'match' : s.screen), sheet: false, expOpen: false }) }; });
+    viewAs.push({ label: 'New friend via link', sub: 'Signed out', color: '#9A9EA4', initials: '?', active: !s.signedIn, pick: () => this.setState({ signedIn: false, viewer: null, screen: 'landing', sheet: false }) });
+
+    const accounts = ORDER.filter(id => !m.players.includes(id) && !m.waitlist.includes(id)).slice(0, 3).map(id => { const p = person(id); return { ...p, pick: () => {
+      this.setState({ viewer: id, signedIn: true, sheet: false, screen: 'match' });
+      const r = this.join(id); this.flash(r === 'confirmed' ? `Signed in as ${p.first}. You're confirmed.` : `Signed in as ${p.first}. You're ${r} on the waitlist.`);
+    } }; });
+
+    const screen = s.screen;
+    return {
+      showDemo: this.props.showDemoPanel ?? true, viewAs, cur: this.cur(),
+      simulateJoin: () => { const nxt = ORDER.find(id => !m.players.includes(id) && !m.waitlist.includes(id)); if (!nxt) return this.flash('Everyone in the group has responded'); const r = this.join(nxt); this.flash(`${person(nxt).first} joined · ${r === 'confirmed' ? 'confirmed' : 'waitlist ' + r}`); },
+      reset: () => this.setState(seed()),
+      me, signedIn: s.signedIn, toast: s.toast, hasToast: !!s.toast,
+      isHome: screen === 'home', isCreate: screen === 'create', isShare: screen === 'share', isMatch: screen === 'match', isLanding: screen === 'landing', isBalances: screen === 'balances',
+      showTabs: s.signedIn && (screen === 'home' || screen === 'balances'),
+      showBack: s.signedIn && ['create', 'share', 'match', 'balances'].includes(screen),
+      back: () => this.go(screen === 'match' && s.prev === 'share' ? 'home' : 'home'),
+      tabs: [['Matches', 'home'], ['Balances', 'balances']].map(([label, k]) => ({ label, sel: screen === k, unsel: screen !== k, go: () => this.go(k) })),
+      goCreate: () => this.setState({ form: defaultForm(), screen: 'create' }), goBalances: () => this.go('balances'), goShare: () => this.go('share'), openMatch: () => this.go('match'),
+      homeMatches: s.matches.filter(x => x.org === s.viewer || x.players.includes(s.viewer) || x.waitlist.includes(s.viewer)).map(x => {
+        const fl = x.players.length >= x.size;
+        return { title: x.title, when: `${fmtDate(x.date)}, ${fmtTime(x.time)}`, venue: x.venue, isPast: !!x.past, isFull: !x.past && fl, isOpen: !x.past && !fl,
+          status: x.past ? 'Played' : fl ? `Full${x.waitlist.length ? ' · +' + x.waitlist.length : ''}` : `${x.players.length}/${x.size} in`, bars: bars(x.players.length, x.size),
+          open: () => this.setState({ cur: x.id, screen: 'match', prev: 'home', expOpen: false }) };
+      }),
+      homeEmpty: !s.matches.some(x => x.org === s.viewer || x.players.includes(s.viewer) || x.waitlist.includes(s.viewer)),
+      bal: { list: balList, empty: balList.length === 0, totalStr: this.money(Math.abs(balTotal)), headline: balTotal >= 0 ? 'You are owed' : 'You owe' },
+      form: f, on: { title: setF('title'), venue: setF('venue'), courts: setF('courts'), date: setF('date'), time: setF('time'), cost: setF('cost'), expLabel: setE('label'), expAmount: setE('amount') },
+      sizeOpts: [[4, '1 court · doubles'], [8, '2 courts · doubles']].map(([n, sub]) => ({ n, sub, sel: f.size === n, unsel: f.size !== n, pick: () => this.setState(st => ({ form: { ...st.form, size: n } })) })),
+      durOpts: [60, 90, 120].map(d => ({ label: `${d} min`, sel: f.duration === d, unsel: f.duration !== d, pick: () => this.setState(st => ({ form: { ...st.form, duration: d } })) })),
+      closeOpts: ['2h before', '6h before', '24h before'].map(c => ({ label: c, sel: f.closes === c, unsel: f.closes !== c, pick: () => this.setState(st => ({ form: { ...st.form, closes: c } })) })),
+      formPerHead: `${this.money(perHead)} per player`,
+      createMatch: () => {
+        const id = 'm' + Date.now(), cost = Number(f.cost || 0), courts = f.size === 8 ? (f.courts.includes('&') ? f.courts : f.courts + ' & next') : f.courts;
+        const nm = { id, slug: f.title.toLowerCase().split(' ')[0].slice(0, 3) + '-doubles-' + Math.random().toString(36).slice(2, 5), org: s.viewer, title: f.title, size: f.size, venue: f.venue, courts, date: f.date, time: f.time, duration: f.duration, closes: f.closes, cost,
+          players: [s.viewer], joinedAt: { [s.viewer]: 'Created' }, waitlist: [], expenses: [{ label: f.size === 8 ? 'Court booking (2 courts)' : 'Court booking', amount: f.size === 8 ? cost * 2 : cost, by: s.viewer }], settled: {} };
+        this.setState(st => ({ matches: [nm, ...st.matches], cur: id, screen: 'share', prev: 'create' }));
+      },
+      link: `courtside.app/m/${m.slug}`,
+      copyLink: () => this.flash('Link copied'), shareWhatsApp: () => this.flash('Opening WhatsApp…'),
+      openAsFriend: () => this.setState({ signedIn: false, viewer: null, screen: 'landing' }),
+      landingCta: full ? 'Join waitlist with Google' : 'Join with Google',
+      startGoogle: () => this.setState({ sheet: true }), sheetGoogle: s.sheet, closeSheet: () => this.setState({ sheet: false }), stop: e => e.stopPropagation(), accounts,
+      m: mv,
+      v: { isOrg, confirmed: conf, waiting: waitIdx >= 0, waitPos: waitIdx + 1, canSee, canLeave: conf && !isOrg && !m.past, outsiderOpen: outsider && !full && !m.past, outsiderFull: outsider && full && !m.past, locked: !canSee && s.signedIn },
+      doJoin: () => { const r = this.join(s.viewer); if (r) this.flash(r === 'confirmed' ? "You're confirmed" : `You're ${r} on the waitlist`); },
+      doLeave: () => {
+        const promoted = conf ? m.waitlist[0] : null;
+        this.updM(x => { if (conf) { x.players = x.players.filter(p => p !== s.viewer); if (x.waitlist.length) x.players.push(x.waitlist.shift()); } else x.waitlist = x.waitlist.filter(p => p !== s.viewer); return x; });
+        this.flash(promoted ? `Spot passed to ${person(promoted).first}` : conf ? 'You dropped out' : 'Left the waitlist');
+      },
+      doUpgrade: () => { this.updM(x => { x.size = 8; x.players.push(...x.waitlist.splice(0, 4)); x.courts = x.courts + ' & ' + x.courts.replace(/\d+/, d => Number(d) + 1); x.expenses.push({ label: 'Court booking (2nd court)', amount: x.cost, by: x.org }); return x; }); this.flash('Now 8 players on 2 courts. Waitlist notified.'); },
+      expOpen: s.expOpen, expClosed: !s.expOpen, exp: s.exp, toggleExp: () => this.setState({ expOpen: true, exp: { label: '', amount: '' } }),
+      addExpense: () => { const amt = Number(s.exp.amount); if (!amt || !s.exp.label.trim()) return this.flash('Add a label and amount'); this.updM(x => { x.expenses.push({ label: s.exp.label.trim(), amount: amt, by: s.viewer }); return x; }); this.setState({ expOpen: false }); this.flash('Expense added and split'); },
+      cost: {
+        total: this.money(tr.total), perHead: this.money(tr.share), none: tr.out.length === 0,
+        expenses: m.expenses.map(e => ({ label: e.label, amount: this.money(e.amount), by: e.by === s.viewer ? 'you' : person(e.by).first })),
+        transfers: tr.out.map(t => { const settled = !!m.settled[t.key], mine = t.from === s.viewer || t.to === s.viewer || isOrg;
+          return { from: t.from === s.viewer ? 'You' : person(t.from).first, to: t.to === s.viewer ? 'you' : person(t.to).first, amount: this.money(t.amount), settled, openMine: !settled && mine, openOther: !settled && !mine,
+            toggle: () => this.updM(x => { x.settled[t.key] = !x.settled[t.key]; return x; }) }; })
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

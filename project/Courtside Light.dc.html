@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+@keyframes csFall{0%{transform:translateY(0) rotate(0deg)}100%{transform:translateY(900px) rotate(600deg);opacity:.3}}
+@keyframes csPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}14%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}22%{transform:translate(-50%,-50%) scale(1)}82%{opacity:1}100%{opacity:0;transform:translate(-50%,-56%) scale(1)}}
+body{margin:0;background:#E9ECF0;font-family:'Manrope',system-ui,sans-serif;color:#12161C;-webkit-font-smoothing:antialiased}
+a{color:#00977A}a:hover{color:#0E7F66}
+input,button,select{font-family:inherit}
+input::placeholder{color:#8A94A3}
+input[type=date]::-webkit-calendar-picker-indicator,input[type=time]::-webkit-calendar-picker-indicator{opacity:.6}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-wrap:wrap;gap:56px;align-items:center;justify-content:center;padding:48px 20px;box-sizing:border-box;background:#E9ECF0">
+
+  <sc-if value="{{ showDemo }}" hint-placeholder-val="{{ true }}">
+  <aside style="width:290px;max-width:100%;display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Prototype</span>
+      <div style="font-family:'Unbounded',system-ui,sans-serif;font-size:36px;font-weight:800;letter-spacing:-.03em;line-height:1;color:#0B8A6B">Courtside</div>
+      <div style="font-size:15px;line-height:1.5;color:#5B6573;text-wrap:pretty">Games of 4 or 8, never in between. First in are confirmed. When 4 are waiting, a second court opens.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">View as</span>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <sc-for list="{{ viewAs }}" as="v" hint-placeholder-count="4">
+          <button onClick="{{ v.pick }}" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:16px;border:1px solid rgba(0,0,0,.07);background:#F4F6F9;color:#12161C;cursor:pointer;text-align:left" style-hover="background:#F7F8FA">
+            <span style="width:28px;height:28px;border-radius:50%;background:{{ v.color }};color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:none">{{ v.initials }}</span>
+            <span style="flex:1;display:flex;flex-direction:column;min-width:0">
+              <span style="font-size:14px;font-weight:700">{{ v.label }}</span>
+              <span style="font-size:12px;color:#5B6573">{{ v.sub }}</span>
+            </span>
+            <sc-if value="{{ v.active }}"><span style="width:8px;height:8px;border-radius:50%;background:#1FB57A;box-shadow:0 0 10px rgba(31,181,122,.5)"></span></sc-if>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onClick="{{ simulateDeadline }}" style="height:38px;padding:0 12px;border-radius:12px;border:none;background:#F1F3F6;box-shadow:none;color:#12161C;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;flex:none;height:40px">Deadline passes</button><button onClick="{{ simulateExpiry }}" style="height:38px;padding:0 12px;border-radius:12px;border:none;background:#F1F3F6;box-shadow:none;color:#12161C;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;flex:none;height:40px">Check-in expires</button></div>
+      <button onClick="{{ simulateJoin }}" style="height:56px;border-radius:18px;border:none;background:#0E9F7E;color:#FFFFFF;font-weight:800;font-size:16px;letter-spacing:.01em;cursor:pointer;box-shadow:none;height:48px;font-size:14px">Simulate a friend joining</button>
+      <button onClick="{{ reset }}" style="height:36px;border:none;background:transparent;color:#5B6573;font-weight:600;font-size:13px;cursor:pointer">Reset demo</button>
+    </div>
+  </aside>
+  </sc-if>
+
+  <div style="width:393px;max-width:100%;height:852px;border-radius:58px;padding:11px;background:#000;box-shadow:0 0 0 1.5px #2A2E35,0 40px 80px -40px rgba(18,22,28,.35);flex:none;box-sizing:content-box">
+  <div style="width:100%;height:100%;border-radius:47px;background:#F7F8FA;overflow:hidden;position:relative;display:flex;flex-direction:column">
+
+    <div style="position:absolute;top:0;left:0;right:0;z-index:4;background:rgba(247,248,250,.88);backdrop-filter:saturate(160%) blur(20px);-webkit-backdrop-filter:saturate(160%) blur(20px)">
+      <div style="height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 30px 0 34px;position:relative">
+        <span style="font-size:16px;font-weight:700">9:41</span>
+        <span style="position:absolute;left:50%;top:11px;transform:translateX(-50%);width:122px;height:36px;border-radius:20px;background:#000"></span>
+        <span style="width:24px;height:11px;border-radius:3.5px;border:1px solid rgba(0,0,0,.4);padding:1px;box-sizing:border-box;display:flex"><span style="flex:1;border-radius:2px;background:#12161C"></span></span>
+      </div>
+      <div style="height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 18px">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0">
+          <sc-if value="{{ showBack }}">
+            <button onClick="{{ back }}" style="width:38px;height:38px;border-radius:50%;border:none;background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;color:#12161C;cursor:pointer;display:flex;align-items:center;justify-content:center">
+              <svg width="9" height="15" viewBox="0 0 11 19" fill="none"><path d="M9.5 1.5 2 9.5l7.5 8" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </button>
+          </sc-if>
+          <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:15px;font-weight:800;letter-spacing:.04em;color:#0B8A6B">COURTSIDE</span>
+        </div>
+        <sc-if value="{{ signedIn }}"><span style="width:32px;height:32px;border-radius:50%;background:{{ me.color }};color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:none">{{ me.initials }}</span></sc-if>
+      </div>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;overflow-x:hidden;padding-top:102px">
+
+      <sc-if value="{{ isHome }}">
+      <div style="padding:8px 18px 30px;display:flex;flex-direction:column;gap:22px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:14px;color:#5B6573;font-weight:600">Hey {{ me.first }}</span>
+            <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.05">Game on.</span>
+          </div>
+          <button onClick="{{ goCreate }}" style="width:52px;height:52px;border-radius:18px;border:none;background:#0E9F7E;color:#FFFFFF;font-size:28px;font-weight:600;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:none">+</button>
+        </div>
+        <button onClick="{{ goBalances }}" style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;border:none;padding:20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;text-align:left;color:#12161C">
+          <span style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">{{ bal.headline }}</span>
+            <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:28px;font-weight:700;letter-spacing:-.02em">{{ bal.totalStr }}</span>
+          </span>
+          <span style="width:42px;height:42px;border-radius:14px;background:#F1F3F6;box-shadow:none;display:flex;align-items:center;justify-content:center;color:#0E7F66;font-size:20px">›</span>
+        </button>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Matches</span>
+          <sc-for list="{{ homeMatches }}" as="hm" hint-placeholder-count="2">
+            <button onClick="{{ hm.open }}" style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;border:none;padding:20px;display:flex;flex-direction:column;gap:16px;cursor:pointer;text-align:left;color:#12161C" style-active="transform:scale(.985)">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;width:100%">
+                <div style="display:flex;flex-direction:column;gap:5px;min-width:0">
+                  <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:16px;font-weight:700;letter-spacing:-.01em;line-height:1.2">{{ hm.title }}</span>
+                  <span style="font-size:13px;color:#5B6573">{{ hm.when }} · {{ hm.venue }}</span><div style="display:flex;gap:6px;flex-wrap:wrap"><sc-if value="{{ hm.recurring }}"><span style="font-size:10px;font-weight:800;letter-spacing:.08em;color:#0E7F66">↻ WEEKLY</span></sc-if><sc-if value="{{ hm.locked }}"><span style="font-size:10px;font-weight:800;letter-spacing:.08em;color:#D9622B">LOCKED</span></sc-if></div>
+                </div>
+                <sc-if value="{{ hm.isOpen }}"><span style="flex:none;font-size:11px;font-weight:800;padding:6px 10px;border-radius:99px;background:#0E9F7E;color:#FFFFFF">{{ hm.status }}</span></sc-if>
+                <sc-if value="{{ hm.isFull }}"><span style="flex:none;font-size:11px;font-weight:800;padding:6px 10px;border-radius:99px;background:#E5484D;color:#fff">{{ hm.status }}</span></sc-if>
+                <sc-if value="{{ hm.isPast }}"><span style="flex:none;font-size:11px;font-weight:700;padding:6px 10px;border-radius:99px;background:#F1F3F6;box-shadow:none;color:#5B6573">{{ hm.status }}</span></sc-if>
+              </div>
+              <div style="display:flex;gap:5px;width:100%;padding:5px;border-radius:99px;background:#F1F3F6;box-shadow:none;box-sizing:border-box">
+                <sc-for list="{{ hm.bars }}" as="b" hint-placeholder-count="4">
+                  <sc-if value="{{ b.on }}"><span style="flex:1;height:6px;border-radius:3px;background:#0E9F7E;box-shadow:0 0 8px rgba(255,255,255,.5)"></span></sc-if>
+                  <sc-if value="{{ b.off }}"><span style="flex:1;height:6px;border-radius:3px;background:#D8DEE6"></span></sc-if>
+                </sc-for>
+              </div>
+            </button>
+          </sc-for>
+          <sc-if value="{{ homeEmpty }}">
+            <div style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;padding:28px;text-align:center;color:#5B6573;font-size:14px">No matches yet. Open a link from a friend to join one.</div>
+          </sc-if>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isCreate }}">
+      <div style="padding:8px 18px 30px;display:flex;flex-direction:column;gap:24px">
+        <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.05">New match</span>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Players</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <sc-for list="{{ sizeOpts }}" as="o" hint-placeholder-count="2">
+              <sc-if value="{{ o.sel }}">
+                <button onClick="{{ o.pick }}" style="border-radius:22px;border:none;background:#0E9F7E;padding:18px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:6px;box-shadow:none">
+                  <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:44px;font-weight:800;letter-spacing:-.04em;line-height:1;color:#FFFFFF">{{ o.n }}</span>
+                  <span style="font-size:12px;font-weight:800;color:#FFFFFF">{{ o.sub }}</span>
+                </button>
+              </sc-if>
+              <sc-if value="{{ o.unsel }}">
+                <button onClick="{{ o.pick }}" style="border-radius:22px;border:none;background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;padding:18px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:6px">
+                  <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:44px;font-weight:800;letter-spacing:-.04em;line-height:1;color:#12161C">{{ o.n }}</span>
+                  <span style="font-size:12px;font-weight:700;color:#5B6573">{{ o.sub }}</span>
+                </button>
+              </sc-if>
+            </sc-for>
+          </div>
+          <span style="font-size:13px;color:#5B6573">Fixed sizes, so nobody sits out on rotation.</span>
+        </div>
+        <label style="display:flex;flex-direction:column;gap:10px"><span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Match name</span><input value="{{ form.title }}" onChange="{{ on.title }}" style="height:52px;border-radius:16px;border:none;background:#F1F3F6;box-shadow:none;color:#12161C;padding:0 16px;font-size:16px;box-sizing:border-box;width:100%;outline:none;font-family:inherit"></label>
+        <label style="display:flex;flex-direction:column;gap:10px"><span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Venue</span><input value="{{ form.venue }}" onChange="{{ on.venue }}" style="height:52px;border-radius:16px;border:none;background:#F1F3F6;box-shadow:none;color:#12161C;padding:0 16px;font-size:16px;box-sizing:border-box;width:100%;outline:none;font-family:inherit"></label>
+        <label style="display:flex;flex-direction:column;gap:10px"><span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Court numbers</span><input value="{{ form.courts }}" onChange="{{ on.courts }}" placeholder="e.g. Court 3" style="height:52px;border-radius:16px;border:none;background:#F1F3F6;box-shadow:none;color:#12161C;padding:0 16px;font-size:16px;box-sizing:border-box;width:100%;outline:none;font-family:inherit"><span style="font-size:13px;color:#5B6573">Revealed to confirmed players only.</span></label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <label style="display:flex;flex-direction:column;gap:10px;min-width:0"><span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Date</span><input type="date" value="{{ form.date }}" onChange="{{ on.date }}" style="height:52px;border-radius:16px;border:none;background:#F1F3F6;box-shadow:none;color:#12161C;padding:0 16px;font-size:16px;box-sizing:border-box;width:100%;outline:none;font-family:inherit;padding:0 12px;font-size:15px"></label>
+          <label style="display:flex;flex-direction:column;gap:10px;min-width:0"><span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Start</span><input type="time" value="{{ form.time }}" onChange="{{ on.time }}" style="height:52px;border-radius:16px;border:none;background:#F1F3F6;box-shadow:none;color:#12161C;padding:0 16px;font-size:16px;box-sizing:border-box;width:100%;outline:none;font-family:inherit;padding:0 12px;font-size:15px"></label>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Duration</span>
+          <div style="display:flex;gap:4px;padding:4px;border-radius:18px;background:#F1F3F6;box-shadow:none">
+            <sc-for list="{{ durOpts }}" as="o" hint-placeholder-count="3">
+              <sc-if value="{{ o.sel }}"><button onClick="{{ o.pick }}" style="flex:1;height:44px;border-radius:14px;border:none;background:#0E9F7E;color:#FFFFFF;font-weight:800;font-size:13px;cursor:pointer;box-shadow:none">{{ o.label }}</button></sc-if>
+              <sc-if value="{{ o.unsel }}"><button onClick="{{ o.pick }}" style="flex:1;height:44px;border-radius:14px;border:none;background:transparent;color:#5B6573;font-weight:600;font-size:13px;cursor:pointer">{{ o.label }}</button></sc-if>
+            </sc-for>
+          </div>
+        </div>
+        <label style="display:flex;flex-direction:column;gap:10px">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Court cost · per court</span>
+          <div style="display:flex;align-items:center;gap:10px;height:52px;border-radius:16px;background:#F1F3F6;box-shadow:none;padding:0 16px">
+            <span style="font-weight:800;color:#0E7F66;font-size:14px">{{ cur }}</span>
+            <input type="number" value="{{ form.cost }}" onChange="{{ on.cost }}" style="flex:1;min-width:0;border:none;background:transparent;color:#12161C;font-size:16px;outline:none">
+          </div>
+          <span style="font-size:13px;color:#5B6573">{{ formPerHead }}</span>
+        </label>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">RSVPs close</span>
+          <div style="display:flex;gap:4px;padding:4px;border-radius:18px;background:#F1F3F6;box-shadow:none">
+            <sc-for list="{{ closeOpts }}" as="o" hint-placeholder-count="3">
+              <sc-if value="{{ o.sel }}"><button onClick="{{ o.pick }}" style="flex:1;height:44px;border-radius:14px;border:none;background:#0E9F7E;color:#FFFFFF;font-weight:800;font-size:13px;cursor:pointer;box-shadow:none">{{ o.label }}</button></sc-if>
+              <sc-if value="{{ o.unsel }}"><button onClick="{{ o.pick }}" style="flex:1;height:44px;border-radius:14px;border:none;background:transparent;color:#5B6573;font-weight:600;font-size:13px;cursor:pointer">{{ o.label }}</button></sc-if>
+            </sc-for>
+          </div>
+          <span style="font-size:13px;color:#5B6573">You'll have the final count in time to book.</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px"><span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Extras</span><button onClick="{{ toggleRecur }}" style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:20px;border:none;background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;cursor:pointer;text-align:left;color:#12161C">
+  <span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:700">Repeat weekly</span><span style="font-size:12px;color:#5B6573;line-height:1.4">Next week's match and link are created automatically.</span></span>
+  <sc-if value="{{ recurOn }}"><span style="width:50px;height:30px;border-radius:99px;background:#0E9F7E;position:relative;flex:none;box-shadow:none"><span style="position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2)"></span></span></sc-if>
+  <sc-if value="{{ recurOff }}"><span style="width:50px;height:30px;border-radius:99px;background:#F1F3F6;box-shadow:none;position:relative;flex:none"><span style="position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2)"></span></span></sc-if>
+</button><button onClick="{{ toggleEarly }}" style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:20px;border:none;background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;cursor:pointer;text-align:left;color:#12161C">
+  <span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:700">Regulars get first dibs</span><span style="font-size:12px;color:#5B6573;line-height:1.4">Your regulars get the link 1 hour before the wider group.</span></span>
+  <sc-if value="{{ earlyOn }}"><span style="width:50px;height:30px;border-radius:99px;background:#0E9F7E;position:relative;flex:none;box-shadow:none"><span style="position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2)"></span></span></sc-if>
+  <sc-if value="{{ earlyOff }}"><span style="width:50px;height:30px;border-radius:99px;background:#F1F3F6;box-shadow:none;position:relative;flex:none"><span style="position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2)"></span></span></sc-if>
+</button></div>
+        <button onClick="{{ createMatch }}" style="height:56px;border-radius:18px;border:none;background:#0E9F7E;color:#FFFFFF;font-weight:800;font-size:16px;letter-spacing:.01em;cursor:pointer;box-shadow:none">Create match &amp; get link</button>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isShare }}">
+      <div style="padding:8px 18px 30px;display:flex;flex-direction:column;gap:22px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:13px;font-weight:800;letter-spacing:.12em;color:#0B8A6B">MATCH CREATED</span>
+          <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.05">Rally the group.</span>
+        </div>
+        <div style="background:#EFEAE2;border-radius:24px;padding:18px 14px;display:flex;flex-direction:column;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)">
+          <div style="background:#D9FDD3;border-radius:12px 12px 4px 12px;padding:4px;display:flex;flex-direction:column;gap:6px;max-width:290px;align-self:flex-end">
+            <div style="border-radius:9px;overflow:hidden;display:flex;flex-direction:column">
+              <div style="padding:16px 14px;display:flex;flex-direction:column;gap:10px;background:#0F3D35">
+                <div style="display:flex;gap:4px">
+                  <sc-for list="{{ m.bars }}" as="b" hint-placeholder-count="4">
+                    <sc-if value="{{ b.on }}"><span style="flex:1;height:6px;border-radius:3px;background:#0E9F7E"></span></sc-if>
+                    <sc-if value="{{ b.off }}"><span style="flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.18)"></span></sc-if>
+                  </sc-for>
+                </div>
+                <div style="font-family:'Unbounded',system-ui,sans-serif;font-size:18px;font-weight:700;letter-spacing:-.02em;color:#fff;line-height:1.15">{{ m.title }}</div>
+                <div style="font-family:'Unbounded',system-ui,sans-serif;font-size:12px;font-weight:600;color:#0E7F66">{{ m.timeRange }}</div>
+              </div>
+              <div style="padding:9px 12px;background:#F0F2F5;display:flex;flex-direction:column;gap:1px">
+                <span style="font-size:14px;font-weight:700;color:#111B21">{{ m.spotsLine }}</span>
+                <span style="font-size:12px;color:#54656F">{{ m.dateLabel }} · {{ m.venue }}</span>
+                <span style="font-size:12px;color:#8696A0">courtside.app</span>
+              </div>
+            </div>
+            <div style="font-size:14.5px;line-height:1.35;padding:2px 6px 4px;color:#111B21">Badminton, {{ m.whenShort }}. {{ m.size }} spots, first in get them. Tap to join: <span style="color:#027EB5">{{ link }}</span></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 6px 6px 16px;border-radius:18px;background:#F1F3F6;box-shadow:none">
+          <span style="flex:1;font-family:ui-monospace,Menlo,monospace;font-size:13px;color:#5B6573;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ link }}</span>
+          <button onClick="{{ copyLink }}" style="height:42px;padding:0 18px;border-radius:14px;border:none;background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;color:#0E7F66;font-weight:800;font-size:13px;cursor:pointer">Copy</button>
+        </div>
+        <sc-if value="{{ m.early }}"><div style="display:flex;gap:12px;align-items:flex-start;padding:16px 18px;border-radius:20px;background:#F1F3F6;box-shadow:none"><span style="font-size:10px;font-weight:800;letter-spacing:.1em;padding:5px 8px;border-radius:99px;background:#0E9F7E;color:#fff;flex:none">EARLY</span><span style="font-size:13px;color:#12161C;line-height:1.45">{{ m.regularsLine }}</span></div></sc-if>
+        <button onClick="{{ shareWhatsApp }}" style="height:56px;border-radius:18px;border:none;background:#0E9F7E;color:#FFFFFF;font-weight:800;font-size:16px;letter-spacing:.01em;cursor:pointer;box-shadow:none;background:#1DAA61;box-shadow:none">Share to WhatsApp</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <button onClick="{{ openMatch }}" style="height:52px;border-radius:18px;border:none;background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;color:#12161C;font-weight:700;font-size:15px;cursor:pointer">View match</button>
+          <button onClick="{{ openAsFriend }}" style="height:52px;border-radius:18px;border:none;background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;color:#12161C;font-weight:700;font-size:15px;cursor:pointer">Open as friend</button>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isLanding }}">
+      <div style="padding:8px 18px 30px;display:flex;flex-direction:column;gap:20px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="width:40px;height:40px;border-radius:50%;background:{{ m.orgColor }};color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:none">{{ m.orgInitials }}</span>
+          <span style="font-size:14px;color:#5B6573"><b style="color:#12161C">{{ m.orgFirst }}</b> invited you to play</span><sc-if value="{{ m.early }}"><span style="margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.1em;padding:5px 9px;border-radius:99px;background:#0E9F7E;color:#fff">REGULARS FIRST</span></sc-if>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1.02">{{ m.title }}</span>
+          <span style="font-size:15px;color:#5B6573">{{ m.venue }} · {{ m.durationLabel }}</span>
+        </div>
+        
+<sc-for list="{{ m.courtList }}" as="c" hint-placeholder-count="1">
+  <div style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">{{ c.idx }}</span>
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:12px;font-weight:600;color:#5B6573">COURT</span>
+          <sc-if value="{{ c.open }}"><span style="font-family:'Unbounded',system-ui,sans-serif;font-size:32px;font-weight:700;line-height:1;letter-spacing:-.02em;color:#12161C">{{ c.num }}</span></sc-if>
+          <sc-if value="{{ c.locked }}"><span style="display:flex;align-items:center;gap:6px;color:#8A94A3;font-family:'Unbounded',system-ui,sans-serif;font-size:26px;font-weight:700;line-height:1"><svg width="13" height="15" viewBox="0 0 14 16" fill="none"><rect x="1" y="7" width="12" height="8.5" rx="2" fill="currentColor"></rect><path d="M4 7V4.5a3 3 0 0 1 6 0V7" stroke="currentColor" stroke-width="1.6"></path></svg>?</span></sc-if>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;padding:8px 12px;border-radius:14px;background:#F1F3F6;box-shadow:none">
+        <span style="font-size:10px;font-weight:700;letter-spacing:.12em;color:#5B6573">{{ m.dateLabel }}</span>
+        <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:13px;font-weight:700;color:#12161C;white-space:nowrap">{{ m.start }}</span>
+        <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:13px;font-weight:700;color:#5B6573;white-space:nowrap">→ {{ m.end }}</span>
+      </div>
+    </div>
+    <div style="height:150px;border-radius:12px;background:linear-gradient(160deg,#0F3D35 0%,#0A2622 100%);border:1.5px solid rgba(255,255,255,.5);display:flex;position:relative;overflow:hidden;box-shadow:inset 0 0 40px rgba(0,0,0,.4)">
+      <div style="flex:1;display:flex;flex-direction:column;position:relative;min-width:0">
+  <span style="position:absolute;top:0;bottom:0;right:22%;width:1.5px;background:rgba(255,255,255,.28)"></span>
+  <sc-for list="{{ c.left }}" as="s" hint-placeholder-count="2"><div style="flex:1;display:flex;border-bottom:1.5px solid rgba(255,255,255,.28);position:relative;z-index:1;min-height:0">
+  <sc-if value="{{ s.named }}"><div style="flex:1;display:flex;align-items:center;gap:8px;padding:0 10px;min-width:0"><span style="width:26px;height:26px;border-radius:50%;background:{{ s.color }};color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:none">{{ s.initials }}</span><span style="font-size:12px;font-weight:700;color:#FFFFFF;line-height:1.15;overflow:hidden">{{ s.name }}</span></div></sc-if>
+  <sc-if value="{{ s.anon }}"><div style="flex:1;display:flex;align-items:center;justify-content:center"><span style="width:26px;height:26px;border-radius:50%;background:#0E9F7E;box-shadow:0 0 14px rgba(255,255,255,.45)"></span></div></sc-if>
+  <sc-if value="{{ s.wait }}"><div style="flex:1;display:flex;align-items:center;justify-content:center;padding:0 8px"><span style="font-size:11px;font-weight:800;padding:5px 9px;border-radius:99px;background:#E5484D;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">{{ s.name }}</span></div></sc-if>
+  <sc-if value="{{ s.empty }}"><div style="flex:1;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;font-weight:700;letter-spacing:.14em;color:rgba(255,255,255,.45)">OPEN</span></div></sc-if></div></sc-for>
+</div>
+      <div style="width:4px;flex:none;background:repeating-linear-gradient(180deg,#FFFFFF 0 3px,transparent 3px 6px);opacity:.85;box-shadow:0 0 12px rgba(255,255,255,.35)"></div>
+      <div style="flex:1;display:flex;flex-direction:column;position:relative;min-width:0">
+  <span style="position:absolute;top:0;bottom:0;left:22%;width:1.5px;background:rgba(255,255,255,.28)"></span>
+  <sc-for list="{{ c.right }}" as="s" hint-placeholder-count="2"><div style="flex:1;display:flex;border-bottom:1.5px solid rgba(255,255,255,.28);position:relative;z-index:1;min-height:0">
+  <sc-if value="{{ s.named }}"><div style="flex:1;display:flex;align-items:center;gap:8px;padding:0 10px;min-width:0"><span style="width:26px;height:26px;border-radius:50%;background:{{ s.color }};color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:none">{{ s.initials }}</span><span style="font-size:12px;font-weight:700;color:#FFFFFF;line-height:1.15;overflow:hidden">{{ s.name }}</span></div></sc-if>
+  <sc-if value="{{ s.anon }}"><div style="flex:1;display:flex;align-items:center;justify-content:center"><span style="width:26px;height:26px;border-radius:50%;background:#0E9F7E;box-shadow:0 0 14px rgba(255,255,255,.45)"></span></div></sc-if>
+  <sc-if value="{{ s.wait }}"><div style="flex:1;display:flex;align-items:center;justify-content:center;padding:0 8px"><span style="font-size:11px;font-weight:800;padding:5px 9px;border-radius:99px;background:#E5484D;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">{{ s.name }}</span></div></sc-if>
+  <sc-if value="{{ s.empty }}"><div style="flex:1;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;font-weight:700;letter-spacing:.14em;color:rgba(255,255,255,.45)">OPEN</span></div></sc-if></div></sc-for>
+</div>
+    </div>
+    
+  </div>
+</sc-for>
+        <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:15px;font-weight:700;text-align:center;color:#0B8A6B">{{ m.spotsLine }}</span>
+        <button onClick="{{ startGoogle }}" style="height:56px;border-radius:18px;border:none;background:#12161C;color:#FFFFFF;font-weight:800;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:none">
+          <span style="width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 0 0 1px #DADCE0;display:flex;align-items:center;justify-content:center;font-weight:900;color:#4285F4;font-size:14px">G</span>
+          {{ landingCta }}
+        </button>
+        <span style="font-size:13px;line-height:1.5;color:#5B6573;text-align:center;text-wrap:pretty">Your Google name is used, so there's nothing to type. You can see who's playing while spots are open. The court number unlocks once you're confirmed.</span>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isMatch }}">
+      <div style="padding:8px 18px 30px;display:flex;flex-direction:column;gap:20px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;gap:8px">
+            <span style="font-size:11px;font-weight:800;letter-spacing:.12em;color:#0B8A6B">{{ m.sizeLabel }}</span>
+            <span style="font-size:12px;color:#5B6573;font-weight:600">{{ m.closesLabel }}</span>
+          </div>
+          <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1.02">{{ m.title }}</span>
+          <span style="font-size:14px;color:#5B6573">{{ m.venue }} · {{ m.durationLabel }}</span><div style="display:flex;gap:8px;flex-wrap:wrap"><sc-if value="{{ m.recurring }}"><span style="font-size:11px;font-weight:800;padding:6px 10px;border-radius:99px;background:#F1F3F6;box-shadow:none;color:#0E7F66">↻ Every week</span></sc-if><sc-if value="{{ m.locked }}"><span style="font-size:11px;font-weight:800;padding:6px 10px;border-radius:99px;background:#E5484D;color:#fff">Sign-ups closed</span></sc-if></div>
+        </div>
+
+        
+<sc-for list="{{ m.courtList }}" as="c" hint-placeholder-count="1">
+  <div style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">{{ c.idx }}</span>
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:12px;font-weight:600;color:#5B6573">COURT</span>
+          <sc-if value="{{ c.open }}"><span style="font-family:'Unbounded',system-ui,sans-serif;font-size:32px;font-weight:700;line-height:1;letter-spacing:-.02em;color:#12161C">{{ c.num }}</span></sc-if>
+          <sc-if value="{{ c.locked }}"><span style="display:flex;align-items:center;gap:6px;color:#8A94A3;font-family:'Unbounded',system-ui,sans-serif;font-size:26px;font-weight:700;line-height:1"><svg width="13" height="15" viewBox="0 0 14 16" fill="none"><rect x="1" y="7" width="12" height="8.5" rx="2" fill="currentColor"></rect><path d="M4 7V4.5a3 3 0 0 1 6 0V7" stroke="currentColor" stroke-width="1.6"></path></svg>?</span></sc-if>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;padding:8px 12px;border-radius:14px;background:#F1F3F6;box-shadow:none">
+        <span style="font-size:10px;font-weight:700;letter-spacing:.12em;color:#5B6573">{{ m.dateLabel }}</span>
+        <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:13px;font-weight:700;color:#12161C;white-space:nowrap">{{ m.start }}</span>
+        <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:13px;font-weight:700;color:#5B6573;white-space:nowrap">→ {{ m.end }}</span>
+      </div>
+    </div>
+    <div style="height:150px;border-radius:12px;background:linear-gradient(160deg,#0F3D35 0%,#0A2622 100%);border:1.5px solid rgba(255,255,255,.5);display:flex;position:relative;overflow:hidden;box-shadow:inset 0 0 40px rgba(0,0,0,.4)">
+      <div style="flex:1;display:flex;flex-direction:column;position:relative;min-width:0">
+  <span style="position:absolute;top:0;bottom:0;right:22%;width:1.5px;background:rgba(255,255,255,.28)"></span>
+  <sc-for list="{{ c.left }}" as="s" hint-placeholder-count="2"><div style="flex:1;display:flex;border-bottom:1.5px solid rgba(255,255,255,.28);position:relative;z-index:1;min-height:0">
+  <sc-if value="{{ s.named }}"><div style="flex:1;display:flex;align-items:center;gap:8px;padding:0 10px;min-width:0"><span style="width:26px;height:26px;border-radius:50%;background:{{ s.color }};color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:none">{{ s.initials }}</span><span style="font-size:12px;font-weight:700;color:#FFFFFF;line-height:1.15;overflow:hidden">{{ s.name }}</span></div></sc-if>
+  <sc-if value="{{ s.anon }}"><div style="flex:1;display:flex;align-items:center;justify-content:center"><span style="width:26px;height:26px;border-radius:50%;background:#0E9F7E;box-shadow:0 0 14px rgba(255,255,255,.45)"></span></div></sc-if>
+  <sc-if value="{{ s.wait }}"><div style="flex:1;display:flex;align-items:center;justify-content:center;padding:0 8px"><span style="font-size:11px;font-weight:800;padding:5px 9px;border-radius:99px;background:#E5484D;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">{{ s.name }}</span></div></sc-if>
+  <sc-if value="{{ s.empty }}"><div style="flex:1;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;font-weight:700;letter-spacing:.14em;color:rgba(255,255,255,.45)">OPEN</span></div></sc-if></div></sc-for>
+</div>
+      <div style="width:4px;flex:none;background:repeating-linear-gradient(180deg,#FFFFFF 0 3px,transparent 3px 6px);opacity:.85;box-shadow:0 0 12px rgba(255,255,255,.35)"></div>
+      <div style="flex:1;display:flex;flex-direction:column;position:relative;min-width:0">
+  <span style="position:absolute;top:0;bottom:0;left:22%;width:1.5px;background:rgba(255,255,255,.28)"></span>
+  <sc-for list="{{ c.right }}" as="s" hint-placeholder-count="2"><div style="flex:1;display:flex;border-bottom:1.5px solid rgba(255,255,255,.28);position:relative;z-index:1;min-height:0">
+  <sc-if value="{{ s.named }}"><div style="flex:1;display:flex;align-items:center;gap:8px;padding:0 10px;min-width:0"><span style="width:26px;height:26px;border-radius:50%;background:{{ s.color }};color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:none">{{ s.initials }}</span><span style="font-size:12px;font-weight:700;color:#FFFFFF;line-height:1.15;overflow:hidden">{{ s.name }}</span></div></sc-if>
+  <sc-if value="{{ s.anon }}"><div style="flex:1;display:flex;align-items:center;justify-content:center"><span style="width:26px;height:26px;border-radius:50%;background:#0E9F7E;box-shadow:0 0 14px rgba(255,255,255,.45)"></span></div></sc-if>
+  <sc-if value="{{ s.wait }}"><div style="flex:1;display:flex;align-items:center;justify-content:center;padding:0 8px"><span style="font-size:11px;font-weight:800;padding:5px 9px;border-radius:99px;background:#E5484D;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">{{ s.name }}</span></div></sc-if>
+  <sc-if value="{{ s.empty }}"><div style="flex:1;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;font-weight:700;letter-spacing:.14em;color:rgba(255,255,255,.45)">OPEN</span></div></sc-if></div></sc-for>
+</div>
+    </div>
+    
+  </div>
+</sc-for>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:0 4px">
+          <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:14px;font-weight:700">{{ m.countLabel }}</span>
+          <span style="font-size:13px;color:#5B6573;font-weight:600">{{ m.waitLabel }}</span>
+        </div>
+
+        <sc-if value="{{ v.outsiderClosed }}">
+          <div style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:6px">
+            <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:17px;font-weight:700">Sign-ups are closed</span>
+            <span style="font-size:14px;color:#5B6573;line-height:1.45">{{ m.orgFirst }} has locked the final count. Keep an eye on the group in case a spot opens.</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{ v.checkPrompt }}">
+          <div style="border-radius:20px;padding:22px;background:#F7F8FA;box-shadow:0 0 0 1px #E6E9EE;display:flex;flex-direction:column;gap:14px">
+            <span style="font-size:11px;font-weight:800;letter-spacing:.14em;color:#D9622B">CHECK-IN · REPLY TO KEEP YOUR SPOT</span>
+            <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:20px;font-weight:700;letter-spacing:-.02em;line-height:1.2">Still in for {{ m.start }}?</span>
+            <span style="font-size:14px;color:#5B6573;line-height:1.45">No reply by 2 hours before start and your spot goes to the waitlist.</span>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <button onClick="{{ checkYes }}" style="height:56px;border-radius:18px;border:none;background:#0E9F7E;color:#FFFFFF;font-weight:800;font-size:16px;letter-spacing:.01em;cursor:pointer;box-shadow:none;height:50px;font-size:15px">Yes, I'm in</button>
+              <button onClick="{{ doLeave }}" style="height:52px;border-radius:18px;border:none;background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;color:#12161C;font-weight:700;font-size:15px;cursor:pointer;height:50px;color:#E0245E">Release spot</button>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ v.checkedIn }}"><div style="display:flex;align-items:center;gap:8px;padding:0 4px;font-size:13px;font-weight:800;color:#0E7F66">✓ Checked in · your spot is held</div></sc-if>
+        <sc-if value="{{ v.outsiderOpen }}">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <span style="font-size:14px;color:#5B6573;text-align:center">Signed in as <b style="color:#12161C">{{ me.name }}</b></span>
+            <button onClick="{{ doJoin }}" style="height:56px;border-radius:18px;border:none;background:#0E9F7E;color:#FFFFFF;font-weight:800;font-size:16px;letter-spacing:.01em;cursor:pointer;box-shadow:none">Confirm I'm playing</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ v.outsiderFull }}">
+          <div style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:17px;font-weight:700">Match is full</span>
+              <span style="font-size:14px;color:#5B6573;line-height:1.45">Join the waitlist. You'll move up if someone drops out, or play on a second court once 4 are waiting.</span>
+            </div>
+            <button onClick="{{ doJoin }}" style="height:56px;border-radius:18px;border:none;background:#0E9F7E;color:#FFFFFF;font-weight:800;font-size:16px;letter-spacing:.01em;cursor:pointer;box-shadow:none;background:#E5484D;color:#fff;box-shadow:none">Join waitlist</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ v.confirmed }}">
+          <div style="border-radius:22px;padding:2px;background:#0E9F7E;box-shadow:none">
+            <div style="border-radius:20px;background:#E6EAF0;padding:16px 18px;display:flex;align-items:center;gap:14px">
+              <span style="width:40px;height:40px;border-radius:50%;background:#0E9F7E;color:#FFFFFF;font-size:18px;font-weight:900;display:flex;align-items:center;justify-content:center;flex:none">✓</span>
+              <div style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0">
+                <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:16px;font-weight:700">You're in</span>
+                <span style="font-size:13px;color:#5B6573">{{ m.timeRange }}</span>
+              </div>
+              <sc-if value="{{ v.canLeave }}">
+                <button onClick="{{ doLeave }}" style="border:none;background:transparent;color:#E0245E;font-weight:700;font-size:14px;cursor:pointer;flex:none;padding:0">Drop out</button>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ v.waiting }}">
+          <div style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;align-items:center;gap:16px">
+              <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:48px;font-weight:800;letter-spacing:-.04em;line-height:1;color:#E5484D">#{{ v.waitPos }}</span>
+              <div style="display:flex;flex-direction:column;gap:3px">
+                <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:16px;font-weight:700">On the waitlist</span>
+                <span style="font-size:13px;color:#5B6573">We'll email you if a spot opens.</span>
+              </div>
+            </div>
+            <button onClick="{{ doLeave }}" style="border:none;background:transparent;color:#E0245E;font-weight:700;font-size:14px;cursor:pointer;padding:0;align-self:flex-start">Leave waitlist</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ m.showGhost }}">
+          
+<sc-for list="{{ ghostList }}" as="c" hint-placeholder-count="1">
+  <div style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:14px;opacity:.85">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Second court</span>
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:12px;font-weight:600;color:#5B6573">COURT</span>
+          <sc-if value="{{ c.open }}"><span style="font-family:'Unbounded',system-ui,sans-serif;font-size:32px;font-weight:700;line-height:1;letter-spacing:-.02em;color:#5B6573">{{ c.num }}</span></sc-if>
+          <sc-if value="{{ c.locked }}"><span style="display:flex;align-items:center;gap:6px;color:#8A94A3;font-family:'Unbounded',system-ui,sans-serif;font-size:26px;font-weight:700;line-height:1"><svg width="13" height="15" viewBox="0 0 14 16" fill="none"><rect x="1" y="7" width="12" height="8.5" rx="2" fill="currentColor"></rect><path d="M4 7V4.5a3 3 0 0 1 6 0V7" stroke="currentColor" stroke-width="1.6"></path></svg>?</span></sc-if>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;padding:8px 12px;border-radius:14px;background:#F1F3F6;box-shadow:none">
+        <span style="font-size:10px;font-weight:700;letter-spacing:.12em;color:#5B6573">{{ m.dateLabel }}</span>
+        <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:13px;font-weight:700;color:#12161C;white-space:nowrap">{{ m.start }}</span>
+        <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:13px;font-weight:700;color:#5B6573;white-space:nowrap">→ {{ m.end }}</span>
+      </div>
+    </div>
+    <div style="height:150px;border-radius:12px;background:linear-gradient(160deg,#2A1A22 0%,#1A1015 100%);border:1.5px solid rgba(255,255,255,.5);display:flex;position:relative;overflow:hidden;box-shadow:inset 0 0 40px rgba(0,0,0,.4)">
+      <div style="flex:1;display:flex;flex-direction:column;position:relative;min-width:0">
+  <span style="position:absolute;top:0;bottom:0;right:22%;width:1.5px;background:rgba(255,255,255,.28)"></span>
+  <sc-for list="{{ c.left }}" as="s" hint-placeholder-count="2"><div style="flex:1;display:flex;border-bottom:1.5px solid rgba(255,255,255,.28);position:relative;z-index:1;min-height:0">
+  <sc-if value="{{ s.named }}"><div style="flex:1;display:flex;align-items:center;gap:8px;padding:0 10px;min-width:0"><span style="width:26px;height:26px;border-radius:50%;background:{{ s.color }};color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:none">{{ s.initials }}</span><span style="font-size:12px;font-weight:700;color:#FFFFFF;line-height:1.15;overflow:hidden">{{ s.name }}</span></div></sc-if>
+  <sc-if value="{{ s.anon }}"><div style="flex:1;display:flex;align-items:center;justify-content:center"><span style="width:26px;height:26px;border-radius:50%;background:#0E9F7E;box-shadow:0 0 14px rgba(255,255,255,.45)"></span></div></sc-if>
+  <sc-if value="{{ s.wait }}"><div style="flex:1;display:flex;align-items:center;justify-content:center;padding:0 8px"><span style="font-size:11px;font-weight:800;padding:5px 9px;border-radius:99px;background:#E5484D;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">{{ s.name }}</span></div></sc-if>
+  <sc-if value="{{ s.empty }}"><div style="flex:1;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;font-weight:700;letter-spacing:.14em;color:rgba(255,255,255,.45)">OPEN</span></div></sc-if></div></sc-for>
+</div>
+      <div style="width:4px;flex:none;background:repeating-linear-gradient(180deg,#FFFFFF 0 3px,transparent 3px 6px);opacity:.85;box-shadow:0 0 12px rgba(255,255,255,.35)"></div>
+      <div style="flex:1;display:flex;flex-direction:column;position:relative;min-width:0">
+  <span style="position:absolute;top:0;bottom:0;left:22%;width:1.5px;background:rgba(255,255,255,.28)"></span>
+  <sc-for list="{{ c.right }}" as="s" hint-placeholder-count="2"><div style="flex:1;display:flex;border-bottom:1.5px solid rgba(255,255,255,.28);position:relative;z-index:1;min-height:0">
+  <sc-if value="{{ s.named }}"><div style="flex:1;display:flex;align-items:center;gap:8px;padding:0 10px;min-width:0"><span style="width:26px;height:26px;border-radius:50%;background:{{ s.color }};color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:none">{{ s.initials }}</span><span style="font-size:12px;font-weight:700;color:#FFFFFF;line-height:1.15;overflow:hidden">{{ s.name }}</span></div></sc-if>
+  <sc-if value="{{ s.anon }}"><div style="flex:1;display:flex;align-items:center;justify-content:center"><span style="width:26px;height:26px;border-radius:50%;background:#0E9F7E;box-shadow:0 0 14px rgba(255,255,255,.45)"></span></div></sc-if>
+  <sc-if value="{{ s.wait }}"><div style="flex:1;display:flex;align-items:center;justify-content:center;padding:0 8px"><span style="font-size:11px;font-weight:800;padding:5px 9px;border-radius:99px;background:#E5484D;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">{{ s.name }}</span></div></sc-if>
+  <sc-if value="{{ s.empty }}"><div style="flex:1;display:flex;align-items:center;justify-content:center"><span style="font-size:10px;font-weight:700;letter-spacing:.14em;color:rgba(255,255,255,.45)">OPEN</span></div></sc-if></div></sc-for>
+</div>
+    </div>
+    <span style="font-size:13px;color:#D9622B;font-weight:600">{{ m.ghostLabel }}</span>
+  </div>
+</sc-for>
+        </sc-if>
+
+        <sc-if value="{{ v.locked }}">
+          <div style="display:flex;gap:10px;align-items:center;padding:0 4px;color:#8A94A3">
+            <svg width="13" height="15" viewBox="0 0 14 16" fill="none"><rect x="1" y="7" width="12" height="8.5" rx="2" fill="currentColor"></rect><path d="M4 7V4.5a3 3 0 0 1 6 0V7" stroke="currentColor" stroke-width="1.6"></path></svg>
+            <span style="font-size:13px;line-height:1.4;color:#5B6573;text-wrap:pretty">Court number and costs are visible to confirmed players only. Player names are hidden once the match is full.</span>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ v.isOrg }}">
+          <div style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px">
+            <span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Organiser tools</span>
+            <sc-if value="{{ m.open }}"><div style="display:flex;align-items:center;gap:10px"><span style="flex:1;font-size:14px;color:#5B6573;line-height:1.35">Sign-ups auto-lock {{ m.closesShort }}</span><button onClick="{{ lockNow }}" style="height:38px;padding:0 12px;border-radius:12px;border:none;background:#F1F3F6;box-shadow:none;color:#12161C;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;flex:none">Lock now</button></div></sc-if>
+            <sc-if value="{{ m.locked }}"><div style="display:flex;align-items:center;gap:10px"><span style="flex:1;font-size:14px;font-weight:800">{{ m.finalLine }}</span><button onClick="{{ reopen }}" style="height:38px;padding:0 12px;border-radius:12px;border:none;background:#F1F3F6;box-shadow:none;color:#12161C;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;flex:none">Reopen</button></div></sc-if>
+            <div style="display:flex;align-items:center;gap:10px;border-top:1px solid rgba(0,0,0,.06);padding-top:14px"><span style="flex:1;font-size:14px;color:#5B6573;line-height:1.35">{{ m.checkLine }}</span>
+              <sc-if value="{{ m.notCheckSent }}"><button onClick="{{ sendCheck }}" style="height:38px;padding:0 12px;border-radius:12px;border:none;background:#0E9F7E;color:#FFFFFF;font-weight:800;font-size:12px;cursor:pointer;white-space:nowrap;flex:none;box-shadow:none">Send "Still in?"</button></sc-if>
+              <sc-if value="{{ m.checkSent }}"><button onClick="{{ releaseNoReply }}" style="height:38px;padding:0 12px;border-radius:12px;border:none;background:#F1F3F6;box-shadow:none;color:#12161C;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;flex:none;color:#E0245E">{{ m.noReplyLabel }}</button></sc-if>
+            </div>
+            <div style="border-top:1px solid rgba(0,0,0,.06);padding-top:14px;display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:12px;color:#5B6573;font-weight:700">Status update for the group</span>
+              <div style="border-radius:16px;background:#F1F3F6;box-shadow:none;padding:12px 14px;font-size:13px;color:#12161C;line-height:1.45;word-break:break-word">{{ m.statusMsg }}</div>
+              <button onClick="{{ postStatus }}" style="height:52px;border-radius:18px;border:none;background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;color:#12161C;font-weight:700;font-size:15px;cursor:pointer;height:46px;color:#128A5C">Post to WhatsApp</button>
+            </div>
+          </div>
+          <sc-if value="{{ m.upgradeReady }}">
+            <div style="border-radius:20px;padding:22px;background:#F7F8FA;box-shadow:0 0 0 1px #E6E9EE;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:11px;font-weight:800;letter-spacing:.14em;color:#D9622B">4 WAITING · EVEN NUMBERS</span>
+                <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:20px;font-weight:700;letter-spacing:-.02em;line-height:1.2">Make it 8 on two courts</span>
+                <span style="font-size:14px;color:#4A5462;line-height:1.45">Book a second court and all 4 waiting players are confirmed. Its cost joins the split.</span>
+              </div>
+              <button onClick="{{ doUpgrade }}" style="height:56px;border-radius:18px;border:none;background:#0E9F7E;color:#FFFFFF;font-weight:800;font-size:16px;letter-spacing:.01em;cursor:pointer;box-shadow:none;background:#E5484D;color:#fff;box-shadow:none">I've booked court 2</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ m.orgCourt2Pending }}">
+            <span style="font-size:13px;color:#5B6573;padding:0 4px;line-height:1.45">Hold off booking court 2. With fewer than 4 waiting, someone would sit out.</span>
+          </sc-if>
+        </sc-if>
+
+        <sc-if value="{{ v.canSee }}">
+          <sc-if value="{{ m.locked }}">
+            <div style="border-radius:22px;padding:16px 20px;background:#0E9F7E;color:#fff;display:flex;flex-direction:column;gap:4px;box-shadow:none">
+              <span style="font-size:11px;font-weight:800;letter-spacing:.14em">SIGN-UPS CLOSED</span>
+              <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:18px;font-weight:700">{{ m.finalLine }}</span>
+            </div>
+          </sc-if>
+          <div style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;padding:18px 20px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Venue</span><span style="font-size:16px;font-weight:700">{{ m.venue }}</span><span style="font-size:13px;color:#5B6573">{{ m.parking }}</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <button onClick="{{ openDirections }}" style="height:38px;padding:0 12px;border-radius:12px;border:none;background:#F1F3F6;box-shadow:none;color:#12161C;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;flex:none;height:44px;font-size:13px">Directions</button>
+              <button onClick="{{ addCalendar }}" style="height:38px;padding:0 12px;border-radius:12px;border:none;background:#F1F3F6;box-shadow:none;color:#12161C;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;flex:none;height:44px;font-size:13px">Add to calendar</button>
+            </div>
+          </div>
+          <div style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;padding:18px 20px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Doubles pairs</span><span style="font-size:12px;color:#5B6573">Left pair vs right pair</span></div>
+            <sc-for list="{{ m.courtActions }}" as="ca" hint-placeholder-count="1">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="flex:1;font-size:13px;font-weight:800;min-width:0">{{ ca.label }}</span>
+                <button onClick="{{ ca.shuffle }}" style="height:38px;padding:0 12px;border-radius:12px;border:none;background:#F1F3F6;box-shadow:none;color:#12161C;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;flex:none">Shuffle</button>
+                <button onClick="{{ ca.balance }}" style="height:38px;padding:0 12px;border-radius:12px;border:none;background:#F1F3F6;box-shadow:none;color:#12161C;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;flex:none">Balance</button>
+                <button onClick="{{ ca.log }}" style="height:38px;padding:0 12px;border-radius:12px;border:none;background:#0E9F7E;color:#FFFFFF;font-weight:800;font-size:12px;cursor:pointer;white-space:nowrap;flex:none;box-shadow:none">Log result</button>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ v.canSee }}">
+          <div style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;padding:8px 20px;display:flex;flex-direction:column">
+            <div style="display:flex;justify-content:space-between;padding:12px 0 4px"><span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Squad</span><span style="font-size:12px;font-weight:700;color:#0E7F66">{{ m.courts }}</span></div>
+            <sc-for list="{{ m.players }}" as="p" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 0">
+                <span style="width:36px;height:36px;border-radius:50%;background:{{ p.color }};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:none">{{ p.initials }}</span>
+                <span style="flex:1;display:flex;flex-direction:column;min-width:0;gap:1px">
+                  <span style="font-size:15px;font-weight:700">{{ p.name }}</span>
+                  <span style="font-size:12px;color:#5B6573">{{ p.tag }}</span><sc-if value="{{ p.hasFlake }}"><span style="font-size:11px;font-weight:800;color:#D6336C">{{ p.flake }}</span></sc-if>
+                </span>
+                <span style="font-size:12px;color:#8A94A3;font-weight:600">{{ p.joined }}</span>
+              </div>
+            </sc-for>
+            <sc-if value="{{ m.hasWait }}">
+              <div style="border-top:1px solid rgba(0,0,0,.07);padding:14px 0 8px;display:flex;flex-direction:column;gap:10px">
+                <span style="font-size:11px;font-weight:800;letter-spacing:.14em;color:#D6336C">WAITLIST · {{ m.waitCount }}</span>
+                <sc-if value="{{ v.isOrg }}">
+                  <sc-for list="{{ m.waiters }}" as="p" hint-placeholder-count="2">
+                    <div style="display:flex;align-items:center;gap:12px">
+                      <span style="width:26px;font-family:'Unbounded',system-ui,sans-serif;font-size:13px;font-weight:700;color:#D6336C">{{ p.pos }}</span>
+                      <span style="flex:1;font-size:14px;font-weight:600">{{ p.name }}</span>
+                    </div>
+                  </sc-for>
+                </sc-if>
+              </div>
+            </sc-if>
+          </div>
+
+          <div style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-end">
+              <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Cost split</span><span style="font-family:'Unbounded',system-ui,sans-serif;font-size:26px;font-weight:800;letter-spacing:-.02em;color:#0B8A6B">{{ cost.perHead }}</span></div>
+              <span style="font-size:12px;color:#5B6573;font-weight:600;padding-bottom:4px">each · {{ cost.total }} total</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <sc-for list="{{ cost.expenses }}" as="e" hint-placeholder-count="1">
+                <div style="display:flex;justify-content:space-between;gap:10px">
+                  <span style="display:flex;flex-direction:column;min-width:0;gap:1px"><span style="font-size:14px;font-weight:700">{{ e.label }}</span><span style="font-size:12px;color:#5B6573">Paid by {{ e.by }}</span></span>
+                  <span style="font-size:14px;font-weight:800;flex:none">{{ e.amount }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ expOpen }}">
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <input value="{{ exp.label }}" onChange="{{ on.expLabel }}" placeholder="What for? e.g. Shuttles" style="height:52px;border-radius:16px;border:none;background:#F1F3F6;box-shadow:none;color:#12161C;padding:0 16px;font-size:16px;box-sizing:border-box;width:100%;outline:none;font-family:inherit;height:46px">
+                <div style="display:flex;gap:10px">
+                  <input type="number" value="{{ exp.amount }}" onChange="{{ on.expAmount }}" placeholder="Amount" style="height:52px;border-radius:16px;border:none;background:#F1F3F6;box-shadow:none;color:#12161C;padding:0 16px;font-size:16px;box-sizing:border-box;width:100%;outline:none;font-family:inherit;height:46px;flex:1;min-width:0;width:auto">
+                  <button onClick="{{ addExpense }}" style="height:46px;padding:0 20px;border-radius:16px;border:none;background:#0E9F7E;color:#FFFFFF;font-weight:800;font-size:14px;cursor:pointer">Add</button>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ expClosed }}">
+              <button onClick="{{ toggleExp }}" style="height:46px;border-radius:16px;border:none;background:#F1F3F6;box-shadow:none;color:#0E7F66;font-weight:700;font-size:14px;cursor:pointer">+ Add expense</button>
+            </sc-if>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Settle up</span>
+              <sc-for list="{{ cost.transfers }}" as="t" hint-placeholder-count="2">
+                <div style="display:flex;flex-direction:column;gap:10px;padding:12px 14px;border-radius:16px;background:#F1F3F6;box-shadow:none">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="flex:1;font-size:14px;min-width:0;font-weight:600">{{ t.from }} <span style="color:#8A94A3">→</span> {{ t.to }}</span>
+                    <span style="font-size:14px;font-weight:800">{{ t.amount }}</span>
+                  </div>
+                  <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px">
+                    <sc-if value="{{ t.settled }}"><button onClick="{{ t.toggle }}" style="height:30px;padding:0 12px;border-radius:99px;font-size:12px;font-weight:800;cursor:pointer;border:none;background:#0E9F7E;color:#FFFFFF">Paid ✓</button></sc-if>
+                    <sc-if value="{{ t.canRemind }}"><button onClick="{{ t.remind }}" style="height:30px;padding:0 12px;border-radius:99px;font-size:12px;font-weight:800;cursor:pointer;border:none;background:#F1F3F6;box-shadow:none;color:#12161C">Nudge</button></sc-if>
+                    <sc-if value="{{ t.canMark }}"><button onClick="{{ t.toggle }}" style="height:30px;padding:0 12px;border-radius:99px;font-size:12px;font-weight:800;cursor:pointer;border:1px solid rgba(14,127,102,.45);background:transparent;color:#0E7F66">Mark paid</button></sc-if>
+                    <sc-if value="{{ t.canPay }}"><button onClick="{{ t.pay }}" style="height:30px;padding:0 12px;border-radius:99px;font-size:12px;font-weight:800;cursor:pointer;border:none;background:#0E9F7E;color:#FFFFFF;box-shadow:none">Pay {{ t.amount }}</button></sc-if>
+                    <sc-if value="{{ t.openOther }}"><span style="font-size:12px;color:#D6336C;font-weight:700">Pending</span></sc-if>
+                  </div>
+                </div>
+              </sc-for>
+              <sc-if value="{{ cost.none }}"><span style="font-size:13px;color:#5B6573">All square.</span></sc-if>
+            </div>
+          </div>
+
+          <button onClick="{{ goShare }}" style="height:52px;border-radius:18px;border:none;background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;color:#12161C;font-weight:700;font-size:15px;cursor:pointer">Share match link</button>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isBoard }}">
+      <div style="padding:8px 18px 30px;display:flex;flex-direction:column;gap:24px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px">
+          <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.05">Leaderboard</span>
+          <button onClick="{{ openResultBoard }}" style="height:38px;padding:0 12px;border-radius:12px;border:none;background:#0E9F7E;color:#FFFFFF;font-weight:800;font-size:12px;cursor:pointer;white-space:nowrap;flex:none;box-shadow:none;height:40px">+ Log result</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:end;padding-top:6px">
+          <sc-for list="{{ board.podium }}" as="p" hint-placeholder-count="3">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0">
+              <span style="width:48px;height:48px;border-radius:50%;background:{{ p.color }};color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:none">{{ p.initials }}</span>
+              <span style="font-size:13px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ p.first }}</span>
+              <sc-if value="{{ p.isFirst }}"><div style="width:100%;height:128px;border-radius:18px 18px 8px 8px;background:#0E9F7E;box-shadow:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span style="font-family:'Unbounded',system-ui,sans-serif;font-size:36px;font-weight:800;line-height:1;color:#FFFFFF">1</span><span style="font-size:12px;font-weight:800;color:#FFFFFF">{{ p.record }}</span></div></sc-if>
+              <sc-if value="{{ p.isSecond }}"><div style="width:100%;height:98px;border-radius:18px 18px 8px 8px;background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span style="font-family:'Unbounded',system-ui,sans-serif;font-size:28px;font-weight:800;line-height:1;color:#0B8A6B">2</span><span style="font-size:12px;font-weight:800;color:#5B6573">{{ p.record }}</span></div></sc-if>
+              <sc-if value="{{ p.isThird }}"><div style="width:100%;height:76px;border-radius:18px 18px 8px 8px;background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span style="font-family:'Unbounded',system-ui,sans-serif;font-size:28px;font-weight:800;line-height:1;color:#B07A3E">3</span><span style="font-size:12px;font-weight:800;color:#5B6573">{{ p.record }}</span></div></sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between"><span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Standings</span><span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Win %</span></div>
+          <div style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;padding:4px 18px">
+            <sc-for list="{{ board.table }}" as="r" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(0,0,0,.06)">
+                <span style="width:20px;font-family:'Unbounded',system-ui,sans-serif;font-size:13px;font-weight:700;color:#8A94A3">{{ r.rank }}</span>
+                <span style="width:34px;height:34px;border-radius:50%;background:{{ r.color }};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:none">{{ r.initials }}</span>
+                <span style="flex:1;display:flex;flex-direction:column;min-width:0;gap:1px"><span style="font-size:14px;font-weight:700">{{ r.name }}</span><span style="font-size:12px;color:#5B6573">{{ r.sub }}</span></span>
+                <sc-if value="{{ r.hot }}"><span style="font-size:10px;font-weight:800;padding:4px 7px;border-radius:99px;background:#E5484D;color:#fff">{{ r.streak }}</span></sc-if>
+                <sc-if value="{{ r.cold }}"><span style="font-size:10px;font-weight:800;padding:4px 7px;border-radius:99px;background:#F1F3F6;box-shadow:none;color:#5B6573">{{ r.streak }}</span></sc-if>
+                <span style="width:42px;text-align:right;font-family:'Unbounded',system-ui,sans-serif;font-size:13px;font-weight:700">{{ r.pct }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Best pairs</span>
+          <sc-for list="{{ board.pairs }}" as="pr" hint-placeholder-count="3">
+            <div style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;border-radius:20px;padding:14px 16px;display:flex;align-items:center;gap:12px">
+              <span style="display:flex;flex:none"><span style="width:34px;height:34px;border-radius:50%;background:{{ pr.c1 }};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:none">{{ pr.i1 }}</span><span style="margin-left:-10px;display:flex"><span style="width:34px;height:34px;border-radius:50%;background:{{ pr.c2 }};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:none">{{ pr.i2 }}</span></span></span>
+              <span style="flex:1;display:flex;flex-direction:column;min-width:0;gap:1px"><span style="font-size:14px;font-weight:700">{{ pr.names }}</span><span style="font-size:12px;color:#5B6573">{{ pr.sub }}</span></span>
+              <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:16px;font-weight:800;color:#0B8A6B">{{ pr.record }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">Recent games</span>
+          <div style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;padding:4px 18px">
+            <sc-for list="{{ board.recent }}" as="g" hint-placeholder-count="4">
+              <div style="display:flex;flex-direction:column;gap:8px;padding:14px 0;border-bottom:1px solid rgba(0,0,0,.06)">
+                <span style="font-size:11px;font-weight:700;color:#8A94A3">{{ g.meta }}</span>
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:center">
+                  <sc-if value="{{ g.aWin }}"><span style="font-size:14px;font-weight:800">{{ g.aName }}</span></sc-if><sc-if value="{{ g.bWin }}"><span style="font-size:14px;font-weight:500;color:#5B6573">{{ g.aName }}</span></sc-if>
+                  <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:13px;font-weight:800;padding:6px 10px;border-radius:10px;background:#F1F3F6;box-shadow:none;white-space:nowrap;font-size:11px">{{ g.score }}</span>
+                  <sc-if value="{{ g.bWin }}"><span style="font-size:14px;font-weight:800;text-align:right">{{ g.bName }}</span></sc-if><sc-if value="{{ g.aWin }}"><span style="font-size:14px;font-weight:500;color:#5B6573;text-align:right">{{ g.bName }}</span></sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isBalances }}">
+      <div style="padding:8px 18px 30px;display:flex;flex-direction:column;gap:22px">
+        <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.05">Balances</span>
+        <div style="border-radius:28px;padding:26px 22px;background:#F7F8FA;box-shadow:0 0 0 1px #E6E9EE;display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">{{ bal.headline }}</span>
+          <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:44px;font-weight:800;letter-spacing:-.04em;line-height:1;color:#0B8A6B">{{ bal.totalStr }}</span>
+          <span style="font-size:13px;color:#5B6573">Across all matches, unsettled</span>
+        </div>
+        <sc-if value="{{ bal.empty }}"><div style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;padding:24px;text-align:center;color:#5B6573;font-size:14px">All square with everyone.</div></sc-if>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <sc-for list="{{ bal.list }}" as="b" hint-placeholder-count="3">
+            <div style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;border-radius:20px;padding:14px 16px;display:flex;align-items:center;gap:12px">
+              <span style="width:38px;height:38px;border-radius:50%;background:{{ b.color }};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:none">{{ b.initials }}</span>
+              <span style="flex:1;display:flex;flex-direction:column;min-width:0;gap:1px">
+                <span style="font-size:15px;font-weight:700">{{ b.name }}</span>
+                <span style="font-size:12px;color:#5B6573">{{ b.label }}</span>
+              </span>
+              <sc-if value="{{ b.pos }}"><span style="font-family:'Unbounded',system-ui,sans-serif;font-size:15px;font-weight:700;color:#00977A">{{ b.amount }}</span></sc-if>
+              <sc-if value="{{ b.neg }}"><span style="font-family:'Unbounded',system-ui,sans-serif;font-size:15px;font-weight:700;color:#E0245E">{{ b.amount }}</span></sc-if><button onClick="{{ b.act }}" style="height:38px;padding:0 12px;border-radius:12px;border:none;background:#F1F3F6;box-shadow:none;color:#12161C;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;flex:none;height:34px;margin-left:4px">{{ b.actLabel }}</button>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5B6573">History</span>
+          <sc-if value="{{ ledgerEmpty }}"><span style="font-size:13px;color:#5B6573">No payments yet.</span></sc-if>
+          <div style="background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;border-radius:20px;padding:4px 18px">
+            <sc-for list="{{ ledger }}" as="l" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(0,0,0,.06)">
+                <span style="flex:1;display:flex;flex-direction:column;min-width:0;gap:1px"><span style="font-size:14px;font-weight:700">{{ l.line }}</span><span style="font-size:12px;color:#5B6573">{{ l.meta }}</span></span>
+                <span style="font-size:14px;font-weight:800">{{ l.amount }}</span>
+                <sc-if value="{{ l.settled }}"><span style="font-size:10px;font-weight:800;letter-spacing:.08em;color:#0E7F66;width:36px;text-align:right">PAID</span></sc-if>
+                <sc-if value="{{ l.open }}"><span style="font-size:10px;font-weight:800;letter-spacing:.08em;color:#D6336C;width:36px;text-align:right">OPEN</span></sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{ showTabs }}">
+      <div style="flex:none;background:rgba(244,246,249,.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(0,0,0,.06);display:grid;grid-template-columns:1fr 1fr 1fr;padding:10px 0 30px">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2">
+          <sc-if value="{{ t.sel }}"><button onClick="{{ t.go }}" style="border:none;background:transparent;font-weight:800;font-size:11px;color:#0E7F66;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;"><sc-if value="{{ t.isM }}"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3.5" y="5" width="19" height="17" rx="3.5"></rect><path d="M3.5 10.5h19M8.5 3v4M17.5 3v4"></path></svg></sc-if><sc-if value="{{ t.isL }}"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h10v6a5 5 0 0 1-10 0V4Z"></path><path d="M8 6H4.5a3.5 3.5 0 0 0 4 4M18 6h3.5a3.5 3.5 0 0 1-4 4M13 15v4M9 22h8"></path></svg></sc-if><sc-if value="{{ t.isB }}"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="6.5" width="20" height="14" rx="3"></rect><path d="M3 11h20M7.5 16h4"></path></svg></sc-if>{{ t.label }}</button></sc-if>
+          <sc-if value="{{ t.unsel }}"><button onClick="{{ t.go }}" style="border:none;background:transparent;font-weight:600;font-size:11px;color:#8A94A3;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px"><sc-if value="{{ t.isM }}"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3.5" y="5" width="19" height="17" rx="3.5"></rect><path d="M3.5 10.5h19M8.5 3v4M17.5 3v4"></path></svg></sc-if><sc-if value="{{ t.isL }}"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h10v6a5 5 0 0 1-10 0V4Z"></path><path d="M8 6H4.5a3.5 3.5 0 0 0 4 4M18 6h3.5a3.5 3.5 0 0 1-4 4M13 15v4M9 22h8"></path></svg></sc-if><sc-if value="{{ t.isB }}"><svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="6.5" width="20" height="14" rx="3"></rect><path d="M3 11h20M7.5 16h4"></path></svg></sc-if>{{ t.label }}</button></sc-if>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ sheetGoogle }}">
+      <div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:flex;align-items:flex-end;z-index:5">
+        <div onClick="{{ stop }}" style="width:100%;background:#fff;color:#1F1F1F;border-radius:28px 28px 0 0;padding:8px 20px 36px;display:flex;flex-direction:column;gap:16px;box-sizing:border-box;font-family:system-ui,sans-serif">
+          <span style="width:36px;height:5px;border-radius:3px;background:#D1D1D6;align-self:center"></span>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding-top:4px">
+            <span style="width:40px;height:40px;border-radius:50%;box-shadow:0 0 0 1px #DADCE0;display:flex;align-items:center;justify-content:center;font-weight:800;color:#4285F4;font-size:20px">G</span>
+            <span style="font-size:20px;font-weight:500">Choose an account</span>
+            <span style="font-size:14px;color:#5F6368">to continue to Courtside</span>
+          </div>
+          <div style="display:flex;flex-direction:column;border-top:1px solid #E8EAED">
+            <sc-for list="{{ accounts }}" as="a" hint-placeholder-count="3">
+              <button onClick="{{ a.pick }}" style="display:flex;align-items:center;gap:12px;padding:12px 4px;border:none;border-bottom:1px solid #E8EAED;background:#fff;cursor:pointer;text-align:left" style-hover="background:#F8F9FA">
+                <span style="width:34px;height:34px;border-radius:50%;background:{{ a.color }};color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:none">{{ a.initials }}</span>
+                <span style="display:flex;flex-direction:column;min-width:0"><span style="font-size:15px;font-weight:500;color:#1F1F1F">{{ a.name }}</span><span style="font-size:13px;color:#5F6368">{{ a.email }}</span></span>
+              </button>
+            </sc-for>
+          </div>
+          <div style="font-size:12px;color:#5F6368;line-height:1.45;text-align:center">Google will share your name, email address and profile picture with Courtside.</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ resultOpen }}">
+      <div onClick="{{ closeResult }}" style="position:absolute;inset:0;background:rgba(18,22,28,.35);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:flex-end;z-index:5">
+        <div onClick="{{ stop }}" style="width:100%;background:#F7F8FA;border-radius:30px 30px 0 0;padding:10px 20px 34px;display:flex;flex-direction:column;gap:18px;box-sizing:border-box">
+          <span style="width:36px;height:5px;border-radius:3px;background:#C5CDD8;align-self:center"></span>
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'Unbounded',system-ui,sans-serif;font-size:22px;font-weight:800;letter-spacing:-.02em">Log result</span><span style="font-size:13px;color:#5B6573">{{ rs.matchTitle }}</span></div>
+          <sc-if value="{{ rs.multi }}">
+            <div style="display:flex;gap:4px;padding:4px;border-radius:18px;background:#F1F3F6;box-shadow:none">
+              <sc-for list="{{ rs.courtOpts }}" as="o" hint-placeholder-count="2">
+                <sc-if value="{{ o.sel }}"><button onClick="{{ o.pick }}" style="flex:1;height:40px;border-radius:14px;border:none;background:#0E9F7E;color:#FFFFFF;font-weight:800;font-size:13px;cursor:pointer">{{ o.label }}</button></sc-if>
+                <sc-if value="{{ o.unsel }}"><button onClick="{{ o.pick }}" style="flex:1;height:40px;border-radius:14px;border:none;background:transparent;color:#5B6573;font-weight:600;font-size:13px;cursor:pointer">{{ o.label }}</button></sc-if>
+              </sc-for>
+            </div>
+          </sc-if>
+          <span style="font-size:13px;color:#5B6573;margin-top:-8px">Tap the pair that won.</span>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:center">
+            <sc-if value="{{ rs.aSel }}"><button onClick="{{ rs.pick_a }}" style="border-radius:20px;padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0;cursor:pointer;font-family:inherit;color:#12161C;border:none;background:#E7F6F1;box-shadow:0 0 0 2px #0E9F7E"><div style="display:flex"><sc-for list="{{ rs.a }}" as="tp" hint-placeholder-count="2"><span style="margin:0 -4px;display:flex"><span style="width:36px;height:36px;border-radius:50%;background:{{ tp.color }};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 0 0 2px #FFFFFF">{{ tp.initials }}</span></span></sc-for></div>
+      <span style="font-size:14px;font-weight:800;text-align:center;line-height:1.2">{{ rs.aName }}</span><span style="font-size:10px;font-weight:800;letter-spacing:.12em;padding:5px 10px;border-radius:99px;background:#0E9F7E;color:#FFFFFF">WINNER</span></button></sc-if>
+    <sc-if value="{{ rs.aUnsel }}"><button onClick="{{ rs.pick_a }}" style="border-radius:20px;padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0;cursor:pointer;font-family:inherit;color:#12161C;border:none;background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE"><div style="display:flex"><sc-for list="{{ rs.a }}" as="tp" hint-placeholder-count="2"><span style="margin:0 -4px;display:flex"><span style="width:36px;height:36px;border-radius:50%;background:{{ tp.color }};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 0 0 2px #FFFFFF">{{ tp.initials }}</span></span></sc-for></div>
+      <span style="font-size:14px;font-weight:800;text-align:center;line-height:1.2">{{ rs.aName }}</span><span style="font-size:10px;font-weight:800;letter-spacing:.12em;padding:5px 10px;border-radius:99px;background:#F1F3F6;color:#5B6573">TAP IF WON</span></button></sc-if>
+            <span style="font-family:'Unbounded',system-ui,sans-serif;font-size:13px;font-weight:800;color:#8A94A3">VS</span>
+            <sc-if value="{{ rs.bSel }}"><button onClick="{{ rs.pick_b }}" style="border-radius:20px;padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0;cursor:pointer;font-family:inherit;color:#12161C;border:none;background:#E7F6F1;box-shadow:0 0 0 2px #0E9F7E"><div style="display:flex"><sc-for list="{{ rs.b }}" as="tp" hint-placeholder-count="2"><span style="margin:0 -4px;display:flex"><span style="width:36px;height:36px;border-radius:50%;background:{{ tp.color }};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 0 0 2px #FFFFFF">{{ tp.initials }}</span></span></sc-for></div>
+      <span style="font-size:14px;font-weight:800;text-align:center;line-height:1.2">{{ rs.bName }}</span><span style="font-size:10px;font-weight:800;letter-spacing:.12em;padding:5px 10px;border-radius:99px;background:#0E9F7E;color:#FFFFFF">WINNER</span></button></sc-if>
+    <sc-if value="{{ rs.bUnsel }}"><button onClick="{{ rs.pick_b }}" style="border-radius:20px;padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0;cursor:pointer;font-family:inherit;color:#12161C;border:none;background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE"><div style="display:flex"><sc-for list="{{ rs.b }}" as="tp" hint-placeholder-count="2"><span style="margin:0 -4px;display:flex"><span style="width:36px;height:36px;border-radius:50%;background:{{ tp.color }};color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 0 0 2px #FFFFFF">{{ tp.initials }}</span></span></sc-for></div>
+      <span style="font-size:14px;font-weight:800;text-align:center;line-height:1.2">{{ rs.bName }}</span><span style="font-size:10px;font-weight:800;letter-spacing:.12em;padding:5px 10px;border-radius:99px;background:#F1F3F6;color:#5B6573">TAP IF WON</span></button></sc-if>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px">
+            <button onClick="{{ rsShuffle }}" style="height:52px;border-radius:18px;border:none;background:#FFFFFF;box-shadow:0 0 0 1px #E6E9EE;color:#12161C;font-weight:700;font-size:15px;cursor:pointer;height:56px">Shuffle</button>
+            <button onClick="{{ saveResult }}" style="height:56px;border-radius:18px;border:none;background:#0E9F7E;color:#FFFFFF;font-weight:800;font-size:16px;letter-spacing:.01em;cursor:pointer;box-shadow:none">Save result</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+    {{ confetti }}
+    <sc-if value="{{ hasToast }}">
+      <div style="position:absolute;left:50%;top:11px;transform:translateX(-50%);min-width:122px;max-width:330px;box-sizing:border-box;background:#000;color:#FFFFFF;border-radius:22px;padding:11px 18px;font-size:13px;font-weight:700;z-index:6;text-align:center;line-height:1.3;box-shadow:0 0 0 1px rgba(255,255,255,.25),0 8px 30px rgba(14,143,158,.25)">{{ toast }}</div>
+    </sc-if>
+  </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;currency&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;AED&quot;,&quot;₹&quot;,&quot;£&quot;,&quot;$&quot;,&quot;€&quot;],&quot;default&quot;:&quot;AED&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;showDemoPanel&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const P = {
+  rohan: ['Rohan Kapoor', '#1E5C3A'], priya: ['Priya Nair', '#B4462F'], samir: ['Samir Haddad', '#3B5BA9'],
+  meera: ['Meera Iyer', '#8A5A12'], dev: ['Dev Patel', '#6B3FA0'], aisha: ['Aisha Khan', '#0F6E73'],
+  jon: ['Jonathan Lee', '#9C2F5E'], kabir: ['Kabir Singh', '#4A5A1E'], nina: ['Nina Fernandes', '#A0461E']
+};
+const ORDER = ['meera', 'dev', 'aisha', 'jon', 'kabir', 'nina', 'priya', 'samir'];
+const REGULARS = ['priya', 'samir', 'meera', 'dev'];
+const person = id => { const [name, color] = P[id]; return { id, name, color, first: name.split(' ')[0], initials: name.split(' ').map(w => w[0]).join(''), email: name.toLowerCase().replace(' ', '.') + '@gmail.com' }; };
+const fmtDate = d => { const [y, m, dd] = d.split('-').map(Number); return new Date(y, m - 1, dd).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); };
+const fmtTime = t => { let [h, mi] = t.split(':').map(Number); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${h}:${String(mi).padStart(2, '0')} ${ap}`; };
+const defaultForm = () => ({ size: 4, title: 'Saturday Doubles', venue: 'Al Quoz Sports Hall', courts: 'Court 2', date: '2026-10-17', time: '19:00', duration: 90, cost: '180', closes: '6h before', recurring: true, early: false });
+const G = (id, date, match, a, b, sa, sb) => ({ id, date, match, a, b, sa, sb });
+const seed = () => ({
+  viewer: 'rohan', signedIn: true, screen: 'home', cur: 'm1', prev: 'home', sheet: false, rs: null, toast: null, celebrate: 0, form: defaultForm(), expOpen: false, exp: { label: '', amount: '' },
+  lateDrops: { jon: 2, samir: 1 },
+  games: [
+    G('g7', 'Sun 11 Oct', 'Sunday Morning Doubles', ['rohan', 'aisha'], ['meera', 'dev'], 21, 15),
+    G('g6', 'Sun 11 Oct', 'Sunday Morning Doubles', ['rohan', 'dev'], ['meera', 'aisha'], 19, 21),
+    G('g5', 'Sun 11 Oct', 'Sunday Morning Doubles', ['rohan', 'meera'], ['dev', 'aisha'], 21, 17),
+    G('g4', 'Thu 8 Oct', 'Thursday Night Doubles', ['priya', 'rohan'], ['samir', 'jon'], 21, 12),
+    G('g3', 'Thu 8 Oct', 'Thursday Night Doubles', ['priya', 'jon'], ['rohan', 'samir'], 21, 23),
+    G('g2', 'Thu 8 Oct', 'Thursday Night Doubles', ['priya', 'samir'], ['rohan', 'jon'], 21, 18),
+    G('g1', 'Sun 4 Oct', 'Sunday Morning Doubles', ['meera', 'kabir'], ['dev', 'nina'], 21, 19)
+  ],
+  matches: [
+    { id: 'm1', slug: 'thu-doubles-7k2', org: 'rohan', title: 'Thursday Night Doubles', size: 4, venue: 'Al Quoz Sports Hall', courts: 'Court 3', date: '2026-10-15', time: '20:00', duration: 90, closes: '6h before', cost: 180,
+      players: ['rohan', 'priya', 'samir'], joinedAt: { rohan: 'Created', priya: '2m after', samir: '14m after' }, waitlist: [], expenses: [{ label: 'Court booking', amount: 180, by: 'rohan' }], settled: {},
+      locked: false, recurring: true, early: true, checkSent: false, checkIn: {}, parking: 'Free parking behind the hall · Gate B' },
+    { id: 'm0', slug: 'sun-doubles-a91', org: 'rohan', title: 'Sunday Morning Doubles', size: 4, venue: 'Sports City Hall B', courts: 'Court 1', date: '2026-10-11', time: '09:00', duration: 60, closes: '24h before', cost: 160, past: true,
+      players: ['rohan', 'meera', 'dev', 'aisha'], joinedAt: {}, waitlist: ['jon'], expenses: [{ label: 'Court booking', amount: 160, by: 'rohan' }, { label: 'Shuttles (tube of 12)', amount: 48, by: 'dev' }], settled: { 'aisha>rohan': true },
+      locked: true, recurring: false, early: false, checkSent: true, checkIn: { meera: true, dev: true, aisha: true }, parking: 'Basement parking P2' }
+  ]
+});
+const transfersOf = m => {
+  const n = m.players.length || 1, total = m.expenses.reduce((s, e) => s + e.amount, 0), share = total / n, net = {};
+  m.players.forEach(p => net[p] = -share);
+  m.expenses.forEach(e => net[e.by] = (net[e.by] || 0) + e.amount);
+  const deb = Object.entries(net).filter(([, v]) => v < -0.005).map(([k, v]) => ({ k, v: -v }));
+  const cre = Object.entries(net).filter(([, v]) => v > 0.005).map(([k, v]) => ({ k, v }));
+  const out = []; let i = 0, j = 0;
+  while (i < deb.length && j < cre.length) {
+    const a = Math.min(deb[i].v, cre[j].v);
+    out.push({ from: deb[i].k, to: cre[j].k, amount: Math.round(a * 100) / 100, key: deb[i].k + '>' + cre[j].k });
+    deb[i].v -= a; cre[j].v -= a; if (deb[i].v < 0.005) i++; if (cre[j].v < 0.005) j++;
+  }
+  return { out, total, share };
+};
+const statsOf = games => {
+  const st = {}; const add = id => (st[id] = st[id] || { id, w: 0, l: 0, diff: 0, form: [] });
+  games.forEach(g => {
+    const aWin = g.sa > g.sb;
+    g.a.forEach(id => { const x = add(id); aWin ? x.w++ : x.l++; x.diff += g.sa - g.sb; x.form.push(aWin ? 'W' : 'L'); });
+    g.b.forEach(id => { const x = add(id); aWin ? x.l++ : x.w++; x.diff += g.sb - g.sa; x.form.push(aWin ? 'L' : 'W'); });
+  });
+  return st;
+};
+
+class Component extends DCLogic {
+  state = seed();
+  cur() { return this.props.currency ?? 'AED'; }
+  money(n) { const r = Math.round(n * 100) / 100; return `${this.cur()} ${r % 1 ? r.toFixed(2) : r}`; }
+  flash(t) { clearTimeout(this._t); this.setState({ toast: t }); this._t = setTimeout(() => this.setState({ toast: null }), 2600); }
+  updM(fn) { this.setState(s => ({ matches: s.matches.map(m => m.id === s.cur ? fn({ ...m, players: [...m.players], waitlist: [...m.waitlist], expenses: [...m.expenses], settled: { ...m.settled }, joinedAt: { ...m.joinedAt }, checkIn: { ...m.checkIn } }) : m) })); }
+  curM() { return this.state.matches.find(m => m.id === this.state.cur); }
+  celebrate() { this.setState({ celebrate: Date.now() }); clearTimeout(this._c); this._c = setTimeout(() => this.setState({ celebrate: 0 }), 3000); }
+  join(id) {
+    const m = this.curM(); if (m.players.includes(id) || m.waitlist.includes(id)) return null;
+    if (m.locked) { this.flash('Sign-ups are closed'); return null; }
+    const conf = m.players.length < m.size;
+    this.updM(x => { conf ? x.players.push(id) : x.waitlist.push(id); x.joinedAt[id] = 'Just now'; return x; });
+    if (conf && m.players.length + 1 === m.size) setTimeout(() => this.celebrate(), 60);
+    return conf ? 'confirmed' : '#' + (m.waitlist.length + 1);
+  }
+  addLate(ids) { this.setState(s => { const ld = { ...s.lateDrops }; ids.forEach(i => ld[i] = (ld[i] || 0) + 1); return { lateDrops: ld }; }); }
+  leave() {
+    const s = this.state, m = this.curM(), v = s.viewer, conf = m.players.includes(v);
+    const promoted = conf ? m.waitlist[0] : null, late = conf && (m.locked || m.checkSent);
+    this.updM(x => { if (conf) { x.players = x.players.filter(p => p !== v); if (x.waitlist.length) { const p = x.waitlist.shift(); x.players.push(p); x.joinedAt[p] = 'Promoted'; } } else x.waitlist = x.waitlist.filter(p => p !== v); return x; });
+    if (late) this.addLate([v]);
+    this.flash(promoted ? `Spot passed to ${person(promoted).first} · notified by push & email` : conf ? 'You dropped out' : 'Left the waitlist');
+  }
+  release() {
+    const m = this.curM(); if (!m.checkSent) return this.flash('Send the "Still in?" check first');
+    const drop = m.players.filter(p => p !== m.org && !m.checkIn[p]); if (!drop.length) return this.flash('Everyone has replied');
+    const keep = m.players.filter(p => !drop.includes(p)), wl = [...m.waitlist], promoted = [];
+    while (keep.length < m.size && wl.length) { const p = wl.shift(); keep.push(p); promoted.push(p); }
+    this.updM(x => { x.players = keep; x.waitlist = wl; promoted.forEach(p => { x.joinedAt[p] = 'Promoted'; x.checkIn[p] = true; }); return x; });
+    this.addLate(drop);
+    this.flash(`Released ${drop.map(p => person(p).first).join(', ')}${promoted.length ? ` · ${promoted.map(p => person(p).first).join(', ')} promoted` : ''}`);
+  }
+  reorder(c, fn) { this.updM(x => { const g = x.players.slice(c * 4, c * 4 + 4); if (g.length < 4) return x; x.players.splice(c * 4, 4, ...fn(g)); return x; }); }
+  courtFull(c) { return this.curM().players.slice(c * 4, c * 4 + 4).length === 4; }
+  shuffle(c) { if (!this.courtFull(c)) return this.flash('Need 4 on the court to pair up'); this.reorder(c, g => { const a = [...g]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }); this.flash('Pairs shuffled'); }
+  balance(c) {
+    if (!this.courtFull(c)) return this.flash('Need 4 on the court to pair up');
+    const st = statsOf(this.state.games), r = id => { const x = st[id]; return x && (x.w + x.l) ? x.w / (x.w + x.l) : 0.5; };
+    this.reorder(c, g => { const o = [...g].sort((a, b) => r(b) - r(a)); return [o[0], o[3], o[1], o[2]]; }); this.flash('Balanced by win rate');
+  }
+  openResult(c) { if (!this.courtFull(c)) return this.flash('Need 4 players on the court to log a result'); this.setState({ rs: { c, win: null } }); }
+  saveResult() {
+    const s = this.state, m = this.curM(), { c, win } = s.rs;
+    if (!win) return this.flash('Tap the pair that won');
+    const a = win === 'a' ? 1 : 0, b = 1 - a;
+    const g = m.players.slice(c * 4, c * 4 + 4);
+    const game = { id: 'g' + Date.now(), date: fmtDate(m.date), match: m.title, a: [g[0], g[1]], b: [g[2], g[3]], sa: a, sb: b };
+    this.setState(st => ({ games: [game, ...st.games], rs: null }));
+    const w = a > b ? game.a : game.b;
+    this.flash(`${w.map(p => person(p).first).join(' & ')} win · leaderboard updated`);
+  }
+  settleWith(fid) {
+    const v = this.state.viewer;
+    this.setState(s => ({ matches: s.matches.map(mm => { const set = { ...mm.settled }; transfersOf(mm).out.forEach(t => { if ((t.from === v && t.to === fid) || (t.to === v && t.from === fid)) set[t.key] = true; }); return { ...mm, settled: set }; }) }));
+  }
+  go(screen) { this.setState(s => ({ prev: s.screen, screen, expOpen: false })); }
+
+  renderVals() {
+    const s = this.state, m = this.curM(), me = s.viewer ? person(s.viewer) : { first: '', initials: '', color: '#999', name: '' };
+    const bars = (n, size) => Array.from({ length: size }, (_, i) => ({ on: i < n, off: i >= n }));
+    const isOrg = s.viewer === m.org, conf = m.players.includes(s.viewer), waitIdx = m.waitlist.indexOf(s.viewer);
+    const full = m.players.length >= m.size, canSee = isOrg || conf, outsider = s.signedIn && !conf && waitIdx < 0;
+    const left = m.size - m.players.length, wc = m.waitlist.length;
+    const when = `${fmtDate(m.date)}, ${fmtTime(m.time)}`;
+    const tr = transfersOf(m), org = person(m.org), link = `courtside.app/m/${m.slug}`;
+    const [sh, smi] = m.time.split(':').map(Number), endMin = sh * 60 + smi + m.duration;
+    const endT = `${String(Math.floor(endMin / 60) % 24).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
+    const nums = m.courts.match(/\d+/g) || [];
+    const showNames = canSee || (!full && waitIdx < 0);
+    const slotOf = id => id ? { named: showNames, anon: !showNames, empty: false, wait: false, name: person(id).name, initials: person(id).initials, color: person(id).color } : { empty: true };
+    const mkCourt = (ids, c, ghost) => { const sl = [0, 1, 2, 3].map(i => ghost ? (ids[i] ? { wait: true, name: isOrg ? person(ids[i]).name : 'Waiting' } : { empty: true }) : slotOf(ids[i]));
+      return { num: canSee ? String(nums[c] ?? c + 1).padStart(2, '0') : '—', locked: !canSee, open: canSee, idx: `Court ${c + 1} of ${m.size / 4}`, left: [sl[0], sl[1]], right: [sl[2], sl[3]] }; };
+    const courtList = Array.from({ length: m.size / 4 }, (_, c) => mkCourt(m.players.slice(c * 4, c * 4 + 4), c, false));
+    const showGhost = m.size === 4 && full && wc > 0 && !m.past;
+    const courtsNeeded = n => n >= 8 ? 2 : n >= 4 ? 1 : 0, cn = courtsNeeded(m.players.length);
+    const noReply = m.players.filter(p => p !== m.org && !m.checkIn[p]);
+    const replied = m.players.length - 1 - noReply.length;
+    const lateTag = id => { const n = s.lateDrops[id] || 0; return n ? `${n} late drop${n > 1 ? 's' : ''}` : ''; };
+
+    const mv = {
+      title: m.title, size: m.size, venue: m.venue, courts: canSee ? m.courts : '', when, whenShort: when, durationLabel: `${m.duration} min`,
+      timeRange: `${fmtTime(m.time)} – ${fmtTime(endT)}`, start: fmtTime(m.time), end: fmtTime(endT), dateLabel: fmtDate(m.date),
+      courtList, showGhost, ghost: showGhost ? mkCourt(m.waitlist.slice(0, 4), 1, true) : null, ghostLabel: `${Math.min(wc, 4)}/4 waiting · opens at 4`,
+      sizeLabel: m.size === 4 ? 'Doubles · 1 court · 4 players' : 'Doubles · 2 courts · 8 players',
+      closesLabel: m.past ? 'Played' : m.locked ? 'Sign-ups closed' : `RSVPs close ${m.closes}`,
+      bars: bars(m.players.length, m.size),
+      spotsLine: left > 0 ? `${left} of ${m.size} spots left` : `Full · ${wc} on waitlist`,
+      countLabel: `${m.players.length}/${m.size} confirmed`, waitLabel: wc ? `${wc} waiting` : 'No waitlist',
+      orgFirst: org.first, orgInitials: org.initials, orgColor: org.color,
+      players: m.players.map(id => { const p = person(id); const chk = m.checkSent && id !== m.org && !m.past ? (m.checkIn[id] ? 'Checked in' : 'Awaiting reply') : '';
+        return { ...p, tag: [id === m.org ? 'Organiser' : '', id === s.viewer ? 'You' : '', chk].filter(Boolean).join(' · ') || p.email, joined: m.joinedAt[id] || '', flake: lateTag(id), hasFlake: !!lateTag(id) }; }),
+      waiters: m.waitlist.map((id, i) => ({ name: person(id).name, pos: i + 1 })), hasWait: wc > 0, waitCount: wc,
+      upgradeReady: m.size === 4 && wc >= 4 && !m.past, orgCourt2Pending: m.size === 4 && full && wc > 0 && wc < 4 && !m.past,
+      recurring: !!m.recurring, early: !!m.early && !m.past, locked: !!m.locked && !m.past, open: !m.locked && !m.past,
+      regularsLine: `${REGULARS.map(id => person(id).first).join(', ')} get the link first. Everyone else gets it 1 hour later.`,
+      finalLine: `Final: ${m.players.length} players · ${cn} court${cn === 1 ? '' : 's'}`,
+      parking: m.parking || 'No parking notes yet', closesShort: `${m.closes} start`,
+      checkSent: !!m.checkSent && !m.past, notCheckSent: !m.checkSent && !m.past,
+      checkLine: m.checkSent ? `${replied}/${m.players.length - 1} replied to "Still in?"` : 'Confirm everyone 2h before',
+      noReplyLabel: noReply.length ? `Release ${noReply.length}` : 'All replied',
+      statusMsg: `${m.title}: ${m.players.length}/${m.size} in${left > 0 ? `, ${left} spot${left > 1 ? 's' : ''} left` : ', full'}${wc ? ` · ${wc} waiting` : ''}. ${link}`,
+      courtActions: courtList.map((c, i) => ({ label: m.size === 8 ? `Court ${i + 1}` : 'Court', shuffle: () => this.shuffle(i), balance: () => this.balance(i), log: () => this.openResult(i) }))
+    };
+
+    const bal = {}; s.matches.forEach(mm => transfersOf(mm).out.forEach(t => {
+      if (mm.settled[t.key]) return;
+      if (t.to === s.viewer) bal[t.from] = (bal[t.from] || 0) + t.amount;
+      if (t.from === s.viewer) bal[t.to] = (bal[t.to] || 0) - t.amount;
+    }));
+    const balList = Object.entries(bal).filter(([, v]) => Math.abs(v) > 0.005).map(([id, v]) => { const p = person(id), amt = this.money(Math.abs(v));
+      return { ...p, pos: v > 0, neg: v < 0, amount: amt, label: v > 0 ? 'owes you' : 'you owe', actLabel: v > 0 ? 'Nudge' : 'Pay',
+        act: () => { if (v > 0) this.flash(`Reminder sent to ${p.first}`); else { this.settleWith(id); this.flash(`Paid ${p.first} ${amt}`); } } }; });
+    const balTotal = Object.values(bal).reduce((a, b) => a + b, 0);
+    const ledger = []; s.matches.forEach(mm => transfersOf(mm).out.forEach(t => {
+      if (t.from !== s.viewer && t.to !== s.viewer) return; const settled = !!mm.settled[t.key];
+      ledger.push({ line: t.to === s.viewer ? `${person(t.from).first} owes you` : `You owe ${person(t.to).first}`, meta: `${fmtDate(mm.date)} · ${mm.title}`, amount: this.money(t.amount), settled, open: !settled });
+    }));
+
+    const st = statsOf(s.games);
+    const ranked = Object.values(st).map(x => ({ ...x, p: x.w / (x.w + x.l) })).sort((a, b) => b.w - a.w || b.p - a.p);
+    const table = ranked.map((x, i) => { const p = person(x.id); let n = 0; for (const f of x.form) { if (f === x.form[0]) n++; else break; }
+      const hot = x.form[0] === 'W' && n >= 2;
+      return { ...p, rank: i + 1, sub: `${x.w}W · ${x.l}L${x.id === s.viewer ? ' · You' : ''}`, pct: Math.round(x.p * 100) + '%', streak: `${x.form[0]}${n}`, hot, cold: !hot, record: `${x.w}–${x.l}` }; });
+    const podium = [table[1], table[0], table[2]].filter(Boolean).map(t => ({ ...t, isFirst: t.rank === 1, isSecond: t.rank === 2, isThird: t.rank === 3 }));
+    const pm = {}; s.games.forEach(g => [[g.a, g.sa > g.sb], [g.b, g.sb > g.sa]].forEach(([pr, won]) => { const ids = [...pr].sort(), k = ids.join('|'); pm[k] = pm[k] || { ids, w: 0, l: 0 }; won ? pm[k].w++ : pm[k].l++; }));
+    const pairs = Object.values(pm).sort((a, b) => b.w - a.w || a.l - b.l).slice(0, 3).map(x => { const [p1, p2] = x.ids.map(person);
+      return { c1: p1.color, i1: p1.initials, c2: p2.color, i2: p2.initials, names: `${p1.first} & ${p2.first}`, sub: `${x.w + x.l} game${x.w + x.l > 1 ? 's' : ''} together`, record: `${x.w}–${x.l}` }; });
+    const nm = ids => ids.map(id => person(id).first).join(' & ');
+    const recent = s.games.slice(0, 6).map(g => ({ meta: `${g.date} · ${g.match}`, aName: nm(g.a), bName: nm(g.b), score: g.sa > g.sb ? 'BEAT' : 'LOST TO', aWin: g.sa > g.sb, bWin: g.sb > g.sa }));
+
+    let rsv = { a: [], b: [], courtOpts: [] };
+    if (s.rs) { const g = m.players.slice(s.rs.c * 4, s.rs.c * 4 + 4).map(person);
+      rsv = { matchTitle: m.title, multi: m.size === 8, a: g.slice(0, 2), b: g.slice(2, 4), aName: g.slice(0, 2).map(p => p.first).join(' & '), bName: g.slice(2, 4).map(p => p.first).join(' & '), aSel: s.rs.win === 'a', aUnsel: s.rs.win !== 'a', bSel: s.rs.win === 'b', bUnsel: s.rs.win !== 'b', pick_a: () => this.setState(x => ({ rs: { ...x.rs, win: 'a' } })), pick_b: () => this.setState(x => ({ rs: { ...x.rs, win: 'b' } })),
+        courtOpts: Array.from({ length: m.size / 4 }, (_, i) => ({ label: `Court ${i + 1}`, sel: s.rs.c === i, unsel: s.rs.c !== i, pick: () => { if (!this.courtFull(i)) return this.flash('That court isn\'t full'); this.setState(x => ({ rs: { ...x.rs, c: i, win: null } })); } })) }; }
+
+    let confetti = null;
+    if (s.celebrate) {
+      if (this._confId !== s.celebrate) { this._confId = s.celebrate; const cols = ['#1FB57A', '#0E8F9E', '#FF9A3D', '#FF3D7F', '#FFD23D'];
+        this._pieces = Array.from({ length: 40 }, (_, i) => ({ l: Math.random() * 100, d: Math.random() * 0.6, t: 1.6 + Math.random() * 1.2, c: cols[i % cols.length], r: Math.random() * 360, w: 6 + Math.random() * 6 })); }
+      const h = React.createElement;
+      confetti = h('div', { key: s.celebrate, style: { position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 7, overflow: 'hidden' } },
+        ...this._pieces.map((p, i) => h('span', { key: i, style: { position: 'absolute', top: -24, left: p.l + '%', width: p.w, height: p.w * 1.6, background: p.c, borderRadius: 2, transform: `rotate(${p.r}deg)`, animation: `csFall ${p.t}s ${p.d}s cubic-bezier(.25,.6,.4,1) forwards` } })),
+        h('div', { key: 'b', style: { position: 'absolute', top: '42%', left: '50%', transform: 'translate(-50%,-50%)', padding: '18px 26px', borderRadius: 24, background: '#0E9F7E', color: '#fff', fontFamily: "'Unbounded',sans-serif", fontWeight: 800, fontSize: 22, whiteSpace: 'nowrap', boxShadow: '0 20px 50px -10px rgba(14,143,158,.6)', animation: 'csPop 2.8s ease forwards' } }, 'Match full!'));
+    }
+
+    const setF = k => e => { const val = e.target.value; this.setState(x => ({ form: { ...x.form, [k]: val } })); };
+    const setE = k => e => { const val = e.target.value; this.setState(x => ({ exp: { ...x.exp, [k]: val } })); };
+    const setR = k => e => { const val = e.target.value; this.setState(x => ({ rs: { ...x.rs, [k]: val } })); };
+    const f = s.form, perHead = Number(f.cost || 0) / 4;
+
+    const viewAs = [{ id: 'rohan', sub: 'Organiser' }, ...m.players.filter(p => p !== 'rohan').map(p => ({ id: p, sub: 'Confirmed' })), ...m.waitlist.map((p, i) => ({ id: p, sub: `Waitlist #${i + 1}` }))]
+      .map(o => { const p = person(o.id); return { label: p.name, sub: o.sub, color: p.color, initials: p.initials, active: s.signedIn && s.viewer === o.id, pick: () => this.setState({ viewer: o.id, signedIn: true, screen: s.screen === 'landing' ? 'match' : s.screen, sheet: false, rs: null, expOpen: false }) }; });
+    viewAs.push({ label: 'New friend via link', sub: 'Signed out', color: '#9A9EA4', initials: '?', active: !s.signedIn, pick: () => this.setState({ signedIn: false, viewer: null, screen: 'landing', sheet: false, rs: null }) });
+
+    const accounts = ORDER.filter(id => !m.players.includes(id) && !m.waitlist.includes(id)).slice(0, 3).map(id => { const p = person(id); return { ...p, pick: () => {
+      this.setState({ viewer: id, signedIn: true, sheet: false, screen: 'match' }); this.flash(`Signed in as ${p.name}`); } }; });
+
+    const screen = s.screen;
+    return {
+      showDemo: this.props.showDemoPanel ?? true, viewAs, cur: this.cur(),
+      simulateJoin: () => { const nxt = ORDER.find(id => !m.players.includes(id) && !m.waitlist.includes(id)); if (!nxt) return this.flash('Everyone in the group has responded'); const r = this.join(nxt); if (r) this.flash(`${person(nxt).first} joined · ${r === 'confirmed' ? 'confirmed' : 'waitlist ' + r}`); },
+      simulateDeadline: () => { if (m.past) return; this.updM(x => { x.locked = true; return x; }); this.flash(`Sign-ups closed · ${mv.finalLine}`); },
+      simulateExpiry: () => this.release(),
+      reset: () => this.setState(seed()),
+      me, signedIn: s.signedIn, toast: s.toast, hasToast: !!s.toast, confetti,
+      isHome: screen === 'home', isCreate: screen === 'create', isShare: screen === 'share', isMatch: screen === 'match', isLanding: screen === 'landing', isBalances: screen === 'balances', isBoard: screen === 'board',
+      showTabs: s.signedIn && ['home', 'balances', 'board'].includes(screen),
+      showBack: s.signedIn && ['create', 'share', 'match'].includes(screen),
+      back: () => this.go('home'),
+      tabs: [['Matches', 'home'], ['Leaderboard', 'board'], ['Balances', 'balances']].map(([label, k]) => ({ label, isM: k === 'home', isL: k === 'board', isB: k === 'balances', sel: screen === k, unsel: screen !== k, go: () => this.go(k) })),
+      goCreate: () => this.setState({ form: defaultForm(), screen: 'create' }), goBalances: () => this.go('balances'), goShare: () => this.go('share'), openMatch: () => this.go('match'),
+      homeMatches: s.matches.filter(x => x.org === s.viewer || x.players.includes(s.viewer) || x.waitlist.includes(s.viewer)).map(x => {
+        const fl = x.players.length >= x.size;
+        return { title: x.title, when: `${fmtDate(x.date)}, ${fmtTime(x.time)}`, venue: x.venue, isPast: !!x.past, isFull: !x.past && fl, isOpen: !x.past && !fl, recurring: !!x.recurring && !x.past, locked: !!x.locked && !x.past,
+          status: x.past ? 'Played' : fl ? `Full${x.waitlist.length ? ' · +' + x.waitlist.length : ''}` : `${x.players.length}/${x.size} in`, bars: bars(x.players.length, x.size),
+          open: () => this.setState({ cur: x.id, screen: 'match', prev: 'home', expOpen: false }) };
+      }),
+      homeEmpty: !s.matches.some(x => x.org === s.viewer || x.players.includes(s.viewer) || x.waitlist.includes(s.viewer)),
+      bal: { list: balList, empty: balList.length === 0, totalStr: this.money(Math.abs(balTotal)), headline: balTotal >= 0 ? 'You are owed' : 'You owe' },
+      ledger, ledgerEmpty: ledger.length === 0,
+      board: { podium, table, pairs, recent, empty: table.length === 0 },
+      openResultBoard: () => { const mm = s.matches.find(x => x.players.length >= 4); if (!mm) return this.flash('No full court to log yet'); this.setState({ cur: mm.id, rs: { c: 0, win: null } }); },
+      resultOpen: !!s.rs, rs: rsv, closeResult: () => this.setState({ rs: null }), saveResult: () => this.saveResult(), rsShuffle: () => this.shuffle(s.rs ? s.rs.c : 0),
+      form: f, on: { title: setF('title'), venue: setF('venue'), courts: setF('courts'), date: setF('date'), time: setF('time'), cost: setF('cost'), expLabel: setE('label'), expAmount: setE('amount'), sa: setR('sa'), sb: setR('sb') },
+      recurOn: !!f.recurring, recurOff: !f.recurring, toggleRecur: () => this.setState(x => ({ form: { ...x.form, recurring: !x.form.recurring } })),
+      earlyOn: !!f.early, earlyOff: !f.early, toggleEarly: () => this.setState(x => ({ form: { ...x.form, early: !x.form.early } })),
+      sizeOpts: [[4, '1 court · doubles'], [8, '2 courts · doubles']].map(([n, sub]) => ({ n, sub, sel: f.size === n, unsel: f.size !== n, pick: () => this.setState(x => ({ form: { ...x.form, size: n } })) })),
+      durOpts: [60, 90, 120].map(d => ({ label: `${d} min`, sel: f.duration === d, unsel: f.duration !== d, pick: () => this.setState(x => ({ form: { ...x.form, duration: d } })) })),
+      closeOpts: ['2h before', '6h before', '24h before'].map(c => ({ label: c, sel: f.closes === c, unsel: f.closes !== c, pick: () => this.setState(x => ({ form: { ...x.form, closes: c } })) })),
+      formPerHead: `${this.money(perHead)} per player`,
+      createMatch: () => {
+        const id = 'm' + Date.now(), cost = Number(f.cost || 0), courts = f.size === 8 ? (f.courts.includes('&') ? f.courts : f.courts + ' & ' + f.courts.replace(/\d+/, d => Number(d) + 1)) : f.courts;
+        const nm2 = { id, slug: f.title.toLowerCase().split(' ')[0].slice(0, 3) + '-doubles-' + Math.random().toString(36).slice(2, 5), org: s.viewer, title: f.title, size: f.size, venue: f.venue, courts, date: f.date, time: f.time, duration: f.duration, closes: f.closes, cost,
+          players: [s.viewer], joinedAt: { [s.viewer]: 'Created' }, waitlist: [], expenses: [{ label: f.size === 8 ? 'Court booking (2 courts)' : 'Court booking', amount: f.size === 8 ? cost * 2 : cost, by: s.viewer }], settled: {},
+          locked: false, recurring: f.recurring, early: f.early, checkSent: false, checkIn: {}, parking: '' };
+        this.setState(x => ({ matches: [nm2, ...x.matches], cur: id, screen: 'share', prev: 'create' }));
+        if (f.recurring) this.flash('Repeats weekly · next match is created automatically');
+      },
+      link,
+      copyLink: () => this.flash('Link copied'), shareWhatsApp: () => this.flash(m.early ? 'Sent to regulars · group link goes out in 1h' : 'Opening WhatsApp…'),
+      openAsFriend: () => this.setState({ signedIn: false, viewer: null, screen: 'landing' }),
+      landingCta: 'Continue with Google',
+      startGoogle: () => this.setState({ sheet: true }), sheetGoogle: s.sheet, closeSheet: () => this.setState({ sheet: false }), stop: e => e.stopPropagation(), accounts,
+      m: mv, ghostList: mv.ghost ? [mv.ghost] : [],
+      v: { isOrg, confirmed: conf, waiting: waitIdx >= 0, waitPos: waitIdx + 1, canSee, canLeave: conf && !isOrg && !m.past,
+        outsiderOpen: outsider && !full && !m.past && !m.locked, outsiderFull: outsider && full && !m.past && !m.locked, outsiderClosed: outsider && !!m.locked && !m.past,
+        checkPrompt: conf && !isOrg && !!m.checkSent && !m.checkIn[s.viewer] && !m.past, checkedIn: conf && !isOrg && !!m.checkSent && !!m.checkIn[s.viewer] && !m.past,
+        locked: !canSee && s.signedIn },
+      doJoin: () => { const r = this.join(s.viewer); if (r) this.flash(r === 'confirmed' ? "You're confirmed" : `You're ${r} on the waitlist`); },
+      doLeave: () => this.leave(),
+      checkYes: () => { this.updM(x => { x.checkIn[s.viewer] = true; return x; }); this.flash('Spot held · see you on court'); },
+      lockNow: () => { this.updM(x => { x.locked = true; return x; }); this.flash(`Sign-ups closed · ${mv.finalLine}`); },
+      reopen: () => { this.updM(x => { x.locked = false; return x; }); this.flash('Sign-ups reopened'); },
+      sendCheck: () => { this.updM(x => { x.checkSent = true; x.checkIn[x.org] = true; return x; }); this.flash('"Still in?" sent to confirmed players'); },
+      releaseNoReply: () => this.release(),
+      postStatus: () => this.flash('Status posted to the WhatsApp group'),
+      openDirections: () => this.flash(`Opening Maps · ${m.venue}`), addCalendar: () => this.flash(`Added to calendar · ${mv.timeRange}`),
+      doUpgrade: () => { this.updM(x => { x.size = 8; x.players.push(...x.waitlist.splice(0, 4)); x.courts = x.courts + ' & ' + x.courts.replace(/\d+/, d => Number(d) + 1); x.expenses.push({ label: 'Court booking (2nd court)', amount: x.cost, by: x.org }); return x; }); this.flash('Now 8 players on 2 courts · waitlist notified'); setTimeout(() => this.celebrate(), 60); },
+      expOpen: s.expOpen, expClosed: !s.expOpen, exp: s.exp, toggleExp: () => this.setState({ expOpen: true, exp: { label: '', amount: '' } }),
+      addExpense: () => { const amt = Number(s.exp.amount); if (!amt || !s.exp.label.trim()) return this.flash('Add a label and amount'); this.updM(x => { x.expenses.push({ label: s.exp.label.trim(), amount: amt, by: s.viewer }); return x; }); this.setState({ expOpen: false }); this.flash('Expense added and split'); },
+      cost: {
+        total: this.money(tr.total), perHead: this.money(tr.share), none: tr.out.length === 0,
+        expenses: m.expenses.map(e => ({ label: e.label, amount: this.money(e.amount), by: e.by === s.viewer ? 'you' : person(e.by).first })),
+        transfers: tr.out.map(t => { const settled = !!m.settled[t.key], iOwe = t.from === s.viewer, canMark = !settled && !iOwe && (t.to === s.viewer || isOrg), amt = this.money(t.amount);
+          return { from: iOwe ? 'You' : person(t.from).first, to: t.to === s.viewer ? 'you' : person(t.to).first, amount: amt, settled, canPay: !settled && iOwe, canMark, canRemind: canMark, openOther: !settled && !iOwe && !canMark,
+            toggle: () => this.updM(x => { x.settled[t.key] = !x.settled[t.key]; return x; }),
+            pay: () => { this.updM(x => { x.settled[t.key] = true; return x; }); this.flash(`Paid ${person(t.to).first} ${amt}`); },
+            remind: () => this.flash(`Reminder sent to ${person(t.from).first}`) }; })
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>
