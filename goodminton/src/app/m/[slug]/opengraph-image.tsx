@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og'
 import { matchLabels } from '@/lib/match'
 import { getPublicMatch } from '@/lib/supabase/public'
 
-export const alt = 'Courtside match'
+export const alt = 'Goodminton match'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -25,7 +25,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   return new ImageResponse(
     (
       <div style={{ width: '100%', height: '100%', background: '#0F3D35', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 72, fontFamily: family }}>
-        <div style={{ display: 'flex', fontSize: 30, letterSpacing: 3, color: '#3FD3AE' }}>COURTSIDE</div>
+        <div style={{ display: 'flex', fontSize: 30, letterSpacing: 3, color: '#3FD3AE' }}>GOODMINTON</div>
         {m && L ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
             <div style={{ display: 'flex', gap: 14 }}>

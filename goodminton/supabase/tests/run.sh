@@ -3,7 +3,7 @@
 # Usage: supabase/tests/run.sh [psql connection args...]   e.g. -h localhost -p 5432 -U postgres
 set -euo pipefail
 cd "$(dirname "$0")"
-DB=courtside_test_$$
+DB=goodminton_test_$$
 psql -X -q "$@" -c "create database $DB" >/dev/null
 trap 'psql -X -q "$@" -c "drop database $DB" >/dev/null' EXIT
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -c "do \$\$ begin

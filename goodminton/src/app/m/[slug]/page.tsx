@@ -14,13 +14,13 @@ export const dynamic = 'force-dynamic'
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params
   const m = await getPublicMatch(slug)
-  if (!m) return { title: 'Courtside' }
+  if (!m) return { title: 'Goodminton' }
   const L = matchLabels(m, '')
   const description = `${L.when} · ${m.venue}`
   return {
     title: `${m.title} · ${L.spotsLine}`,
     description,
-    openGraph: { title: `${m.title} · ${L.spotsLine}`, description, siteName: 'Courtside', type: 'website' },
+    openGraph: { title: `${m.title} · ${L.spotsLine}`, description, siteName: 'Goodminton', type: 'website' },
   }
 }
 

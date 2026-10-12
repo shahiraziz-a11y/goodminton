@@ -1,8 +1,8 @@
-# Courtside
+# Goodminton
 
 Badminton matches of 4 or 8, never in between. The organiser creates a match and shares one link in WhatsApp. Friends sign in with Google and tap to join. The first 4 are confirmed and everyone after that goes on a waitlist. When 4 are waiting, the organiser can book a second court and all of them are confirmed. The app also splits the costs and keeps track of who owes whom.
 
-Built from the "Courtside Light" Claude Design handoff (`../project/Courtside Light.dc.html`). It uses Next.js 16 (App Router) and Supabase (Google auth and Postgres).
+Built from the Claude Design handoff (`../project/Courtside Light.dc.html`; the design used the working name Courtside). It uses Next.js 16 (App Router) and Supabase (Google auth and Postgres).
 
 ## What's in this first build
 
@@ -35,7 +35,7 @@ Not built yet (they're in the design): the leaderboard and result logging, the "
 5. **Environment:** `cp .env.example .env.local` and fill in the project URL and the anon (publishable) key.
 6. **Run it:** `npm install && npm run dev`.
 
-Deploying on Vercel: set the project root to `courtside/` and add the same environment variables.
+Deploying on Vercel: set the project root to `goodminton/` and add the same environment variables.
 
 ## Tests
 

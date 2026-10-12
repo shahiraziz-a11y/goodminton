@@ -1,4 +1,4 @@
--- Courtside schema.
+-- Goodminton schema.
 --
 -- All reads and writes go through the SECURITY DEFINER functions below. The
 -- tables have RLS enabled with no policies for other people's rows, so the

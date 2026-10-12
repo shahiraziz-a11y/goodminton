@@ -7,7 +7,7 @@ const unbounded = Unbounded({ subsets: ['latin'], weight: ['500', '600', '700', 
 const manrope = Manrope({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], variable: '--font-manrope' })
 
 export const metadata: Metadata = {
-  title: 'Courtside',
+  title: 'Goodminton',
   description: 'Badminton games of 4 or 8, never in between. First in are confirmed.',
 }
 

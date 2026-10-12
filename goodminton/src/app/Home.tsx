@@ -18,7 +18,7 @@ export function SignIn({ failed }: { failed?: boolean }) {
     <Frame>
       <div className="screen" style={{ minHeight: 'calc(100dvh - 56px)', justifyContent: 'center', gap: 28 }}>
         <div className="stack" style={{ gap: 10 }}>
-          <span className="display" style={{ fontSize: 40, fontWeight: 800, letterSpacing: '-.03em', lineHeight: 1, color: '#0B8A6B' }}>Courtside</span>
+          <span className="display" style={{ fontSize: 40, fontWeight: 800, letterSpacing: '-.03em', lineHeight: 1, color: '#0B8A6B' }}>Goodminton</span>
           <span className="h1">Game on.</span>
           <span style={{ fontSize: 15, lineHeight: 1.5, color: '#5B6573' }}>
             Games of 4 or 8, never in between. Share one link, the first in are confirmed, and the rest wait for a second court.

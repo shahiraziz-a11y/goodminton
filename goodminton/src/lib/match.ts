@@ -30,8 +30,8 @@ export function icsFor(m: Pick<MatchView, 'title' | 'venue' | 'starts_at' | 'dur
   const esc = (s: string) => s.replace(/[\\;,]/g, c => '\\' + c).replace(/\n/g, '\\n')
   const start = new Date(m.starts_at)
   return [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Courtside//EN', 'BEGIN:VEVENT',
-    `UID:${m.slug}@courtside`, `DTSTAMP:${stamp(new Date())}`,
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Goodminton//EN', 'BEGIN:VEVENT',
+    `UID:${m.slug}@goodminton`, `DTSTAMP:${stamp(new Date())}`,
     `DTSTART:${stamp(start)}`, `DTEND:${stamp(addMinutes(m.starts_at, m.duration_min))}`,
     `SUMMARY:${esc(`🏸 ${m.title}`)}`,
     `LOCATION:${esc([m.venue, m.courts].filter(Boolean).join(' · '))}`,

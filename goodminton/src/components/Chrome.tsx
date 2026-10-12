@@ -28,7 +28,7 @@ function TopBar({ back, me }: { back?: string; me?: Person | null }) {
               <svg width="9" height="15" viewBox="0 0 11 19" fill="none"><path d="M9.5 1.5 2 9.5l7.5 8" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </button>
           )}
-          <Link href="/" className="wordmark">COURTSIDE</Link>
+          <Link href="/" className="wordmark">GOODMINTON</Link>
         </div>
         {me && (
           <form action="/auth/signout" method="post" onSubmit={e => { if (!confirm(`Signed in as ${me.name}. Sign out?`)) e.preventDefault() }}>
