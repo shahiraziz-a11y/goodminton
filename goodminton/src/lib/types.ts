@@ -1,6 +1,9 @@
+export type Format = 'singles' | 'doubles'
+export const perCourt = (f: Format) => (f === 'singles' ? 2 : 4)
+
 export type Role = 'anon' | 'outsider' | 'organiser' | 'confirmed' | 'waitlist'
 
-export type VisiblePlayer = { id: string; full_name: string; promoted: boolean; joined_at: string }
+export type VisiblePlayer = { id: string; full_name: string; promoted: boolean; joined_at: string; is_guest?: boolean }
 export type HiddenPlayer = { hidden: true }
 export type MatchPlayer = VisiblePlayer | HiddenPlayer
 
@@ -14,6 +17,9 @@ export type MatchView = {
   title: string
   size: 4 | 8
   venue: string
+  format: Format
+  court_count: number
+  status: 'planning' | 'booked'
   starts_at: string
   duration_min: number
   rsvp_close_hours: number
@@ -31,7 +37,11 @@ export type MatchView = {
   confirmed_count: number
   waitlist_count: number
   players: MatchPlayer[]
-  waitlist: { id: string; full_name: string }[] | null
+  waitlist: { id: string; full_name: string; is_guest?: boolean }[] | null
+  /** Removed after the court was booked; still in the cost split until waived. */
+  liable: { id: string; full_name: string }[] | null
+  /** Everyone who shares the costs: confirmed players plus liable ones. */
+  split_ids: string[] | null
   expenses: Expense[] | null
   settlements: Settlement[] | null
   people: Record<string, string> | null
@@ -44,6 +54,9 @@ export type HomeMatch = {
   size: 4 | 8
   starts_at: string
   timezone: string
+  format: Format
+  court_count: number
+  status: 'planning' | 'booked'
   past: boolean
   locked: boolean
   confirmed_count: number
@@ -64,3 +77,18 @@ export type LedgerMatch = {
 }
 
 export const isVisible = (p: MatchPlayer): p is VisiblePlayer => !('hidden' in p)
+
+export type PlayerOption = { id: string; full_name: string; is_guest: boolean }
+
+export type Game = {
+  id: string
+  played_on: string
+  match_title: string | null
+  created_by: string
+  /** 1 player (singles) or 2 (doubles) per side. */
+  a: string[]
+  b: string[]
+  winner: 'a' | 'b'
+}
+
+export type Leaderboard = { games: Game[]; people: Record<string, string> }

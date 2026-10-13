@@ -51,3 +51,10 @@ export function nextSaturday(from = new Date()) {
   d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7 || 7))
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
+
+/** The match's date and time as form values ("2026-10-16", "20:00") in its own timezone. */
+export function localDateTime(iso: string, timeZone: string) {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(iso))
+  const get = (t: string) => parts.find(p => p.type === t)?.value ?? ''
+  return { date: `${get('year')}-${get('month')}-${get('day')}`, time: `${get('hour')}:${get('minute')}` }
+}

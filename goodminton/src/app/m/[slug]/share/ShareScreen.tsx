@@ -42,7 +42,7 @@ export function ShareScreen({ m, link }: { m: MatchView; link: string }) {
               </div>
               <div style={{ padding: '9px 12px', background: '#F0F2F5', display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: '#111B21' }}>{L.spotsLine}</span>
-                <span style={{ fontSize: 12, color: '#54656F' }}>{L.dateLabel} · {m.venue}</span>
+                <span style={{ fontSize: 12, color: '#54656F' }}>{L.dateLabel} · {m.venue || 'Venue TBC'}</span>
                 <span style={{ fontSize: 12, color: '#8696A0' }}>{host.split('/')[0]}</span>
               </div>
             </div>

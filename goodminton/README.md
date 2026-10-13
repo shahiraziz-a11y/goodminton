@@ -6,7 +6,11 @@ Built from the Claude Design handoff (`../project/Courtside Light.dc.html`; the 
 
 ## What's in this first build
 
-- **Create a match:** 4 or 8 players, venue, court numbers, parking notes, date and time, duration, cost per court, and when RSVPs close.
+- **Plan a match, book later:** create a plan with singles or doubles on 1–4 courts, date, time, duration and RSVP close; the venue is optional. Once enough people are in, the organiser taps **Court booked** and adds the venue, court numbers, parking and cost per court. The court cost (per court × courts) then joins the split, and confirmed players are locked in: only the organiser can remove someone. Anyone removed after booking **still owes their share while their spot stays empty**. When someone takes the spot (waitlist, a new join, or an added player), the debt clears; the organiser can also tap Waive.
+- **Edit a match:** the organiser can change the name, singles or doubles, courts, date, time, duration and RSVP close, plus booking details and cost. With fewer spots, the latest joiners (never the organiser) move to the front of the waitlist; with more, the waitlist moves up.
+- **Organiser overrides:** remove any player, even after booking (the next on the waitlist moves up). Add players from your circle, or add a **guest** by name only, for friends without a Google login.
+- **Leaderboard:** a podium, standings (wins, losses, win %, streak), best pairs and recent games.
+- **Log a result:** tap the pair that won. From the home **+** button you pick any 4 players you've played with, guests included. From a match, each full court has Shuffle, Balance (pairs by win rate) and Log result. Whoever logged a result can remove it.
 - **Share:** a WhatsApp preview, Copy, and Share to WhatsApp. The link shows a rich preview card in chats.
 - **Join with Google:** the first in are confirmed and the rest go on the waitlist. When a confirmed player drops out, the first person waiting is promoted automatically.
 - **Privacy:** these rules are enforced in the database, not the browser.
@@ -17,17 +21,16 @@ Built from the Claude Design handoff (`../project/Courtside Light.dc.html`; the 
 - **Second court:** with 4 waiting, "I've booked court 2" moves the match to 8 players and adds the second court's cost to the split.
 - **Cost split:** anyone confirmed can add expenses. The app works out who pays whom, and each payment can be marked paid. Nudge opens WhatsApp with a reminder.
 - **Balances:** your total across all matches, a balance per friend, and the payment history.
-- **For confirmed players:** Directions (Google Maps) and Add to calendar (an `.ics` file).
 - **Installable (PWA):** it opens full screen from a home-screen icon.
   - The home screen shows an "Add to Home Screen" card: a one-tap Install on Android and Chrome, and Share-sheet steps on iPhone. It disappears once installed or dismissed.
   - A service worker caches only static files and shows an offline page when there's no signal. Match data is always fetched live.
 
-Not built yet (they're in the design): the leaderboard and result logging, the "Still in?" check-in, weekly repeat, regulars first, and late-drop tags.
+Not built yet (they're in the design): the "Still in?" check-in, weekly repeat, regulars first, and late-drop tags.
 
 ## Setup
 
 1. **Supabase project:** create one at supabase.com.
-2. **Database:** run `supabase/migrations/0001_init.sql`, either in the SQL editor or with `supabase db push`.
+2. **Database:** run each file in `supabase/migrations/` in order (`0001_…` to `0004_…`), either in the SQL editor or with `supabase db push`. When upgrading an existing project, run only the files you haven't run yet, and run them **before** deploying the new code.
 3. **Google sign-in:**
    - In Google Cloud Console, create an OAuth client of type "Web application".
    - Add the authorised redirect URI `https://<your-project>.supabase.co/auth/v1/callback`.
@@ -53,7 +56,7 @@ The SQL tests need a local Postgres 15+ and stub Supabase's `auth` schema (`supa
 
 ## How it fits together
 
-- `supabase/migrations/0001_init.sql`: tables plus `SECURITY DEFINER` functions. The tables are closed to clients, and every read and write goes through a function.
+- `supabase/migrations/`: tables plus `SECURITY DEFINER` functions. The tables are closed to clients, and every read and write goes through a function.
   - Reads: `get_match`, `my_matches`, `my_ledger`.
   - Writes: `create_match`, `join_match`, `leave_match`, `set_lock`, `upgrade_match`, `add_expense`, `set_settled`.
   - `get_match` shapes the response for each viewer, so hidden data never leaves the database.

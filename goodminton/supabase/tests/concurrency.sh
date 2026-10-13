@@ -10,7 +10,7 @@ select gen_random_uuid(), 'rush' || i || '@gmail.com', jsonb_build_object('full_
 from generate_series(0, 20) i;
 select set_config('request.jwt.claim.sub', (select id::text from auth.users where email = 'rush0@gmail.com'), false);
 set role authenticated;
-select public.create_match('Rush hour', 4, 'Hall', 'Court 1', '', (now() + interval '2 days')::date, '20:00', 'UTC', 60, 2, 0);
+select public.create_match('Rush hour', 'doubles', 1, 'Hall', (now() + interval '2 days')::date, '20:00', 'UTC', 60, 2);
 SQL
 
 MID=$("${PSQL[@]}" -At -c "select id from public.matches where title = 'Rush hour'")

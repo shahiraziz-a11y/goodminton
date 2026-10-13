@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const m = await getPublicMatch(slug)
   if (!m) return { title: 'Goodminton' }
   const L = matchLabels(m, '')
-  const description = `${L.when} · ${m.venue}`
+  const description = `${L.when} · ${m.venue || 'Venue TBC'}`
   return {
     title: `${m.title} · ${L.spotsLine}`,
     description,

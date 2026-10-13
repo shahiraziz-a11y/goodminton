@@ -4,20 +4,29 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Avatar } from '@/components/Avatar'
-import { Frame, GoogleButton, LockIcon } from '@/components/Chrome'
+import { Frame, GoogleButton, LockIcon, Seg } from '@/components/Chrome'
 import { CourtCard, type Slot } from '@/components/Court'
 import { useFeedback } from '@/components/Feedback'
-import { courtNumber, joinedAfter, money } from '@/lib/format'
-import { icsFor, matchLabels, whatsappUrl } from '@/lib/match'
+import { FormatPicker } from '@/components/FormatPicker'
+import { LogResultSheet } from '@/components/LogResultSheet'
+import { PlayerPicker, loadPlayers } from '@/components/PlayerPicker'
+import { Sheet } from '@/components/Sheet'
+import { balancedOrder, shuffled, standings } from '@/lib/stats'
+import { courtNumber, joinedAfter, localDateTime, money } from '@/lib/format'
+import { matchLabels, whatsappUrl } from '@/lib/match'
 import { person, type Person } from '@/lib/people'
 import { transfersOf } from '@/lib/split'
 import { createClient, signInWithGoogle } from '@/lib/supabase/client'
-import { isVisible, type MatchView } from '@/lib/types'
+import { isVisible, perCourt, type Format, type Leaderboard, type MatchView } from '@/lib/types'
 
 export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
   const router = useRouter()
   const { flash, celebrate } = useFeedback()
   const [busy, setBusy] = useState(false)
+  const [booking, setBooking] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [logCourt, setLogCourt] = useState<number | null>(null)
 
   // Keep the count live while the page is open.
   useEffect(() => {
@@ -52,22 +61,32 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
   m.players.filter(isVisible).forEach(p => (names[p.id] = p.full_name))
   const personOf = (id: string): Person => person(id, names[id] ?? 'Player')
 
-  const courts = Array.from({ length: m.size / 4 }, (_, c) => {
-    const group = m.players.slice(c * 4, c * 4 + 4)
-    const slots: Slot[] = [0, 1, 2, 3].map(i => {
+  const per = perCourt(m.format)
+  const nCourts = m.court_count
+  const singles = m.format === 'singles'
+  const courts = Array.from({ length: nCourts }, (_, c) => {
+    const group = m.players.slice(c * per, c * per + per)
+    const slots: Slot[] = Array.from({ length: per }, (_, i) => {
       const p = group[i]
       if (!p) return { kind: 'empty' }
       return isVisible(p) ? { kind: 'named', p: person(p.id, p.full_name) } : { kind: 'anon' }
     })
-    return { label: `Court ${c + 1} of ${m.size / 4}`, num: canSee && m.courts !== null ? courtNumber(m.courts, c) : null, slots }
+    return {
+      label: `Court ${c + 1} of ${nCourts}`,
+      num: canSee && m.courts ? courtNumber(m.courts, c) : null,
+      tbc: canSee && m.status === 'planning',
+      slots,
+      players: group.filter(isVisible).map(p => person(p.id, p.full_name)),
+    }
   })
-  const showGhost = m.size === 4 && full && wc > 0 && !m.past
-  const ghostSlots: Slot[] = [0, 1, 2, 3].map(i =>
-    i < Math.min(wc, 4) ? { kind: 'wait', name: isOrg && m.waitlist ? m.waitlist[i].full_name : 'Waiting' } : { kind: 'empty' })
-  const cn = m.confirmed_count >= 8 ? 2 : m.confirmed_count >= 4 ? 1 : 0
+  const booked = m.status === 'booked'
+  const showGhost = nCourts < 4 && full && wc > 0 && !m.past
+  const ghostSlots: Slot[] = Array.from({ length: per }, (_, i) =>
+    i < Math.min(wc, per) ? { kind: 'wait', name: isOrg && m.waitlist ? m.waitlist[i].full_name : 'Waiting' } : { kind: 'empty' })
+  const cn = Math.floor(m.confirmed_count / per)
   const finalLine = `Final: ${m.confirmed_count} players · ${cn} court${cn === 1 ? '' : 's'}`
 
-  const courtCards = courts.map((c, i) => <CourtCard key={i} {...c} dateLabel={L.dateLabel} start={L.start} end={L.end} />)
+  const courtCards = courts.map((c, i) => <CourtCard key={i} label={c.label} num={c.num} tbc={c.tbc} slots={c.slots} dateLabel={L.dateLabel} start={L.start} end={L.end} />)
 
   // Signed out: the invite landing.
   if (!signedIn) {
@@ -80,7 +99,7 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
           </div>
           <div className="stack" style={{ gap: 8 }}>
             <span className="display" style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-.03em', lineHeight: 1.02 }}>{m.title}</span>
-            <span style={{ fontSize: 15, color: '#5B6573' }}>{m.venue} · {m.duration_min} min</span>
+            <span style={{ fontSize: 15, color: '#5B6573' }}>{m.venue || 'Venue TBC'} · {m.duration_min} min</span>
           </div>
           {courtCards}
           <span className="display" style={{ fontSize: 15, fontWeight: 700, textAlign: 'center', color: '#0B8A6B' }}>
@@ -99,7 +118,14 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
     )
   }
 
-  const tr = canSee ? transfersOf(m.players.filter(isVisible).map(p => p.id), m.expenses ?? [], m.settlements ?? []) : null
+  function remove(id: string, first: string) {
+    if (!confirm(`Remove ${first} from this match?${booked ? ` The court is booked: if nobody takes the spot, ${first} still owes their share.` : ''}`)) return
+    rpc<{ promoted: string | null; still_owes: boolean }>('remove_player', { p_match: m.id, p_user: id }, r =>
+      flash([`${first} removed`, r.still_owes ? 'still owes their share' : '', r.promoted ? `${r.promoted.split(' ')[0]} promoted` : ''].filter(Boolean).join(' · ')))
+  }
+  const members = [...m.players.filter(isVisible).map(p => p.id), ...(m.waitlist ?? []).map(p => p.id)]
+
+  const tr = canSee ? transfersOf(m.split_ids ?? m.players.filter(isVisible).map(p => p.id), m.expenses ?? [], m.settlements ?? []) : null
   const cur = m.currency
   const fmt = (n: number) => money(n, cur)
 
@@ -109,16 +135,21 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
         <div className="stack" style={{ gap: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
             <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.12em', color: '#0B8A6B' }}>
-              {m.size === 4 ? 'Doubles · 1 court · 4 players' : 'Doubles · 2 courts · 8 players'}
+              {`${singles ? 'Singles' : 'Doubles'} · ${nCourts} court${nCourts > 1 ? 's' : ''} · ${m.size} players`}
             </span>
             <span style={{ fontSize: 12, color: '#5B6573', fontWeight: 600 }}>
               {m.past ? 'Played' : m.locked ? 'Sign-ups closed' : `RSVPs close ${m.rsvp_close_hours}h before`}
             </span>
           </div>
           <span className="display" style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.03em', lineHeight: 1.02 }}>{m.title}</span>
-          <span style={{ fontSize: 14, color: '#5B6573' }}>{m.venue} · {m.duration_min} min</span>
-          {m.locked && !m.past && (
-            <div><span className="badge" style={{ background: '#E5484D', color: '#fff', display: 'inline-block' }}>Sign-ups closed</span></div>
+          <span style={{ fontSize: 14, color: '#5B6573' }}>{m.venue || 'Venue TBC'} · {m.duration_min} min</span>
+          {!m.past && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {booked
+                ? <span className="badge" style={{ background: '#E7F6F1', color: '#0E7F66' }}>✓ Court booked</span>
+                : <span className="badge" style={{ background: '#F1F3F6', color: '#5B6573' }}>Planning · court not booked yet</span>}
+              {m.locked && <span className="badge" style={{ background: '#E5484D', color: '#fff' }}>Sign-ups closed</span>}
+            </div>
           )}
         </div>
 
@@ -161,7 +192,10 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
                 <span className="display" style={{ fontSize: 16, fontWeight: 700 }}>{m.past ? 'You played' : "You're in"}</span>
                 <span style={{ fontSize: 13, color: '#5B6573' }}>{L.timeRange}</span>
               </div>
-              {!isOrg && !m.past && (
+              {!isOrg && !m.past && booked && (
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#8A94A3', textAlign: 'right', maxWidth: 110, lineHeight: 1.3 }}>Court booked · ask {org.first} to drop out</span>
+              )}
+              {!isOrg && !m.past && !booked && (
                 <button className="link-btn" disabled={busy} onClick={() => {
                   if (!confirm(m.locked ? 'Sign-ups are closed. Drop out anyway? Your spot goes to the waitlist.' : 'Drop out? Your spot goes to the next person waiting.')) return
                   rpc<{ promoted: string | null }>('leave_match', { p_match: m.id }, r => flash(r.promoted ? `Spot passed to ${r.promoted.split(' ')[0]}` : 'You dropped out'))
@@ -184,7 +218,7 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
         )}
 
         {showGhost && (
-          <CourtCard ghost label="Second court" num={null} dateLabel={L.dateLabel} start={L.start} end={L.end} slots={ghostSlots} footer={`${Math.min(wc, 4)}/4 waiting · opens at 4`} />
+          <CourtCard ghost label="Next court" num={null} dateLabel={L.dateLabel} start={L.start} end={L.end} slots={ghostSlots} footer={`${Math.min(wc, per)}/${per} waiting · opens at ${per}`} />
         )}
 
         {!canSee && (
@@ -197,7 +231,27 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
         {isOrg && !m.past && (
           <>
             <div className="card stack" style={{ padding: 20, gap: 14 }}>
-              <span className="eyebrow">Organiser tools</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className="eyebrow">Organiser tools</span>
+                <button className="chip-btn" onClick={() => setEditing(true)}>Edit match</button>
+              </div>
+              {booked ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span className="stack" style={{ flex: 1, gap: 2 }}>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: '#0E7F66' }}>✓ Court booked</span>
+                    <span style={{ fontSize: 12, color: '#5B6573' }}>Players are locked in. Only you can remove someone.</span>
+                  </span>
+                  <button className="chip-btn" onClick={() => setBooking(true)}>Edit details</button>
+                </div>
+              ) : (
+                <div className="stack" style={{ gap: 10 }}>
+                  <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.4 }}>
+                    {full ? `${m.size} in. Book the court, then add the details here.` : `Book once you have ${m.size}. ${m.size - m.confirmed_count} to go.`}
+                  </span>
+                  <button className="btn" style={{ height: 48, fontSize: 15 }} onClick={() => setBooking(true)}>Court booked · add details</button>
+                </div>
+              )}
+              <div style={{ borderTop: '1px solid rgba(0,0,0,.06)' }} />
               {m.locked ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ flex: 1, fontSize: 14, fontWeight: 800 }}>{finalLine}</span>
@@ -215,18 +269,20 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
                 <a className="btn-2" href={whatsappUrl(L.statusMsg)} target="_blank" rel="noreferrer" style={{ height: 46, color: '#128A5C' }}>Post to WhatsApp</a>
               </div>
             </div>
-            {m.size === 4 && wc >= 4 && (
+            {nCourts < 4 && wc >= per && (
               <div className="stack" style={{ borderRadius: 20, padding: 22, background: '#F7F8FA', boxShadow: '0 0 0 1px #E6E9EE', gap: 16 }}>
                 <div className="stack" style={{ gap: 6 }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: '#D9622B' }}>4 WAITING · EVEN NUMBERS</span>
-                  <span className="display" style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-.02em', lineHeight: 1.2 }}>Make it 8 on two courts</span>
-                  <span style={{ fontSize: 14, color: '#4A5462', lineHeight: 1.45 }}>Book a second court and all 4 waiting players are confirmed. Its cost joins the split.</span>
+                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: '#D9622B' }}>{per} WAITING · EVEN NUMBERS</span>
+                  <span className="display" style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-.02em', lineHeight: 1.2 }}>Make it {m.size + per} on {nCourts + 1} courts</span>
+                  <span style={{ fontSize: 14, color: '#4A5462', lineHeight: 1.45 }}>
+                    {booked ? `Book another court and all ${per} waiting players are confirmed. Its cost joins the split.` : `All ${per} waiting players are confirmed. When you book, book ${nCourts + 1} courts.`}
+                  </span>
                 </div>
-                <button className="btn red" disabled={busy} onClick={() => rpc('upgrade_match', { p_match: m.id }, () => { flash('Now 8 players on 2 courts'); celebrate() })}>I&apos;ve booked court 2</button>
+                <button className="btn red" disabled={busy} onClick={() => rpc('upgrade_match', { p_match: m.id }, () => { flash(`Now ${m.size + per} players on ${nCourts + 1} courts`); celebrate() })}>{booked ? `I've booked court ${nCourts + 1}` : 'Open another court'}</button>
               </div>
             )}
-            {m.size === 4 && full && wc > 0 && wc < 4 && (
-              <span className="note" style={{ padding: '0 4px' }}>Hold off booking court 2. With fewer than 4 waiting, someone would sit out.</span>
+            {nCourts < 4 && full && wc > 0 && wc < per && (
+              <span className="note" style={{ padding: '0 4px' }}>Hold off booking another court. With fewer than {per} waiting, someone would sit out.</span>
             )}
           </>
         )}
@@ -239,22 +295,37 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
                 <span className="display" style={{ fontSize: 18, fontWeight: 700 }}>{finalLine}</span>
               </div>
             )}
-            <div className="card stack" style={{ padding: '18px 20px', gap: 14 }}>
-              <div className="stack" style={{ gap: 4 }}>
+            {booked && (
+              <div className="card stack" style={{ padding: '18px 20px', gap: 4 }}>
                 <span className="eyebrow">Venue</span>
                 <span style={{ fontSize: 16, fontWeight: 700 }}>{m.venue}</span>
-                <span style={{ fontSize: 13, color: '#5B6573' }}>{m.parking || 'No parking notes'}</span>
+                <span style={{ fontSize: 13, color: '#5B6573' }}>{[m.courts, m.parking].filter(Boolean).join(' · ')}</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <a className="chip-btn" style={{ height: 44, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(m.venue)}`} target="_blank" rel="noreferrer">Directions</a>
-                <button className="chip-btn" style={{ height: 44, fontSize: 13 }} onClick={() => {
-                  const url = URL.createObjectURL(new Blob([icsFor(m, link)], { type: 'text/calendar' }))
-                  const a = Object.assign(document.createElement('a'), { href: url, download: `${m.slug}.ics` })
-                  a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000)
-                }}>Add to calendar</button>
+            )}
+
+            {courts.some(c => c.players.length === per) && (
+              <div className="card stack" style={{ padding: '18px 20px', gap: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <span className="eyebrow">{singles ? 'Results' : 'Doubles pairs'}</span>
+                  <span style={{ fontSize: 12, color: '#5B6573' }}>{singles ? 'Left vs right' : 'Left pair vs right pair'}</span>
+                </div>
+                {courts.map((c, i) => c.players.length === per && (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ flex: 1, fontSize: 13, fontWeight: 800, minWidth: 0 }}>{nCourts > 1 ? `Court ${i + 1}` : 'Court'}</span>
+                    {!singles && <>
+                    <button className="chip-btn" disabled={busy} onClick={() => rpc('set_court_order', { p_match: m.id, p_ids: shuffled(c.players.map(p => p.id)) }, () => flash('Pairs shuffled'))}>Shuffle</button>
+                    <button className="chip-btn" disabled={busy} onClick={async () => {
+                      const { data, error } = await createClient().rpc('get_leaderboard')
+                      if (error) return flash(error.message)
+                      const order = balancedOrder(c.players.map(p => p.id), standings((data as Leaderboard).games))
+                      rpc('set_court_order', { p_match: m.id, p_ids: order }, () => flash('Balanced by win rate'))
+                    }}>Balance</button>
+                    </>}
+                    <button className="chip-btn go" onClick={() => setLogCourt(i)}>Log result</button>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
 
             <div className="card stack" style={{ padding: '8px 20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0 4px' }}>
@@ -263,7 +334,7 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
               </div>
               {m.players.filter(isVisible).map(p => {
                 const pp = person(p.id, p.full_name)
-                const tag = [p.id === m.organiser.id ? 'Organiser' : '', p.id === m.viewer.id ? 'You' : ''].filter(Boolean).join(' · ') || 'Confirmed'
+                const tag = [p.id === m.organiser.id ? 'Organiser' : '', p.id === m.viewer.id ? 'You' : '', p.is_guest ? 'Guest' : ''].filter(Boolean).join(' · ') || 'Confirmed'
                 const joined = p.id === m.organiser.id ? 'Created' : p.promoted ? 'Promoted' : joinedAfter(p.joined_at, m.created_at)
                 return (
                   <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0' }}>
@@ -273,6 +344,7 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
                       <span style={{ fontSize: 12, color: '#5B6573' }}>{tag}</span>
                     </span>
                     <span style={{ fontSize: 12, color: '#8A94A3', fontWeight: 600 }}>{joined}</span>
+                    {isOrg && !m.past && p.id !== m.organiser.id && <RemoveButton name={pp.first} onRemove={() => remove(p.id, pp.first)} busy={busy} />}
                   </div>
                 )
               })}
@@ -283,9 +355,30 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
                     <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <span className="display" style={{ width: 26, fontSize: 13, fontWeight: 700, color: '#D6336C' }}>{i + 1}</span>
                       <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{p.full_name}</span>
+                      {!m.past && <RemoveButton name={p.full_name.split(' ')[0]} onRemove={() => remove(p.id, p.full_name.split(' ')[0])} busy={busy} />}
                     </div>
                   ))}
                 </div>
+              )}
+              {(m.liable?.length ?? 0) > 0 && (
+                <div className="stack" style={{ borderTop: '1px solid rgba(0,0,0,.07)', padding: '14px 0 8px', gap: 10 }}>
+                  <div className="stack" style={{ gap: 3 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: '#D9622B' }}>REMOVED AFTER BOOKING · STILL OWE A SHARE</span>
+                    <span style={{ fontSize: 12, color: '#5B6573' }}>Cleared automatically when someone takes the spot.</span>
+                  </div>
+                  {m.liable!.map(p => (
+                    <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{p.full_name}</span>
+                      {isOrg && <button className="chip-btn" style={{ height: 30 }} disabled={busy} onClick={() => {
+                        if (!confirm(`Waive ${p.full_name.split(' ')[0]}'s share? The others split it instead.`)) return
+                        rpc('waive_share', { p_match: m.id, p_user: p.id }, () => flash('Share waived'))
+                      }}>Waive</button>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {isOrg && !m.past && (
+                <button onClick={() => setAdding(true)} style={{ height: 44, margin: '6px 0 12px', borderRadius: 14, border: 'none', background: '#F1F3F6', color: '#0E7F66', fontWeight: 700, fontSize: 14 }}>+ Add player</button>
               )}
             </div>
 
@@ -295,6 +388,20 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
           </>
         )}
       </div>
+
+      {isOrg && <BookSheet open={booking} onClose={() => setBooking(false)} m={m} rpc={rpc} />}
+      {isOrg && <EditSheet open={editing} onClose={() => setEditing(false)} m={m} rpc={rpc} />}
+      {isOrg && (
+        <Sheet open={adding} onClose={() => setAdding(false)} title="Add player" subtitle={full ? 'The match is full, so they go on the waitlist.' : `${m.size - m.confirmed_count} spot${m.size - m.confirmed_count === 1 ? '' : 's'} left`}>
+          <PlayerPicker exclude={members} newLabel="Add guest (no login)"
+            onPick={p => { setAdding(false); rpc<{ status: string }>('add_player', { p_match: m.id, p_user: p.id, p_name: null }, r => flash(`${p.full_name.split(' ')[0]} added${r.status === 'waitlist' ? ' to the waitlist' : ''}`)) }}
+            onNew={name => { setAdding(false); rpc<{ status: string }>('add_player', { p_match: m.id, p_user: null, p_name: name }, r => { loadPlayers(true); flash(`${name} added as a guest${r.status === 'waitlist' ? ' · waitlist' : ''}`) }) }} />
+        </Sheet>
+      )}
+      {canSee && (
+        <LogResultSheet open={logCourt !== null} onClose={() => setLogCourt(null)} matchId={m.id} matchTitle={m.title} initialCourt={logCourt ?? 0}
+          courts={courts.map((c, i) => ({ label: `Court ${i + 1}`, players: c.players }))} />
+      )}
     </Frame>
   )
 }
@@ -385,5 +492,97 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
         {tr.out.length === 0 && <span className="note">All square.</span>}
       </div>
     </div>
+  )
+}
+
+function RemoveButton({ name, onRemove, busy }: { name: string; onRemove: () => void; busy: boolean }) {
+  return (
+    <button aria-label={`Remove ${name}`} disabled={busy} onClick={onRemove}
+      style={{ border: 'none', background: '#F1F3F6', color: '#8A94A3', width: 28, height: 28, borderRadius: 10, fontSize: 16, lineHeight: 1, flex: 'none' }}>×</button>
+  )
+}
+
+/** Organiser marks the court booked and adds the details. Running it again edits them. */
+function BookSheet({ open, onClose, m, rpc }: { open: boolean; onClose: () => void; m: MatchView; rpc: Rpc }) {
+  const { flash } = useFeedback()
+  const [f, setF] = useState({ venue: m.venue, courts: m.courts ?? '', parking: m.parking ?? '', cost: m.court_cost ? String(m.court_cost) : '' })
+  // Pick up changes made elsewhere (e.g. a court added) each time the sheet opens.
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open) setF({ venue: m.venue, courts: m.courts ?? '', parking: m.parking ?? '', cost: m.court_cost ? String(m.court_cost) : '' })
+  }
+  const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF(x => ({ ...x, [k]: e.target.value }))
+  const cost = Number(f.cost || 0)
+  const nCourts = m.court_count
+  const booked = m.status === 'booked'
+  return (
+    <Sheet open={open} onClose={onClose} title={booked ? 'Court details' : 'Court booked'}
+      subtitle={booked ? 'Update what the players see.' : 'Players get locked in once you save. Only you can remove someone after this.'}>
+      <label className="label"><span className="eyebrow">Venue</span>
+        <input className="field" value={f.venue} onChange={set('venue')} placeholder="e.g. Al Quoz Sports Hall" maxLength={120} /></label>
+      <label className="label"><span className="eyebrow">{nCourts === 2 ? 'Court numbers' : 'Court number'}</span>
+        <input className="field" value={f.courts} onChange={set('courts')} placeholder={nCourts === 2 ? 'e.g. Court 3 & Court 4' : 'e.g. Court 3'} maxLength={60} /></label>
+      <label className="label"><span className="eyebrow">Parking notes · optional</span>
+        <input className="field" value={f.parking} onChange={set('parking')} placeholder="e.g. Free parking behind the hall" maxLength={200} /></label>
+      {(
+        <label className="label"><span className="eyebrow">Court cost · per court</span>
+          <div className="field-wrap">
+            <span style={{ fontWeight: 800, color: '#0E7F66', fontSize: 14 }}>{m.currency}</span>
+            <input type="number" inputMode="decimal" min={0} value={f.cost} onChange={set('cost')} placeholder="0" style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', color: '#12161C', fontSize: 16, outline: 'none' }} />
+          </div>
+          <span className="note">{money(cost * nCourts, m.currency)} for {nCourts} court{nCourts > 1 ? 's' : ''} · {money((cost * nCourts) / m.size, m.currency)} per player · in the cost split as paid by you</span>
+        </label>
+      )}
+      <button className="btn" onClick={() => {
+        if (!f.venue.trim() || !f.courts.trim()) return flash('Add the venue and court number')
+        if (Number.isNaN(cost) || cost < 0) return flash('Court cost must be a number')
+        onClose()
+        rpc('book_match', { p_match: m.id, p_venue: f.venue.trim(), p_courts: f.courts.trim(), p_parking: f.parking.trim(), p_court_cost: cost },
+          () => flash(booked ? 'Details updated' : 'Court booked · players locked in'))
+      }}>{booked ? 'Save details' : 'Save · lock in players'}</button>
+    </Sheet>
+  )
+}
+
+/** Organiser edits the match: name, singles/doubles, courts, date, time, duration, RSVP close. */
+function EditSheet({ open, onClose, m, rpc }: { open: boolean; onClose: () => void; m: MatchView; rpc: Rpc }) {
+  const { flash } = useFeedback()
+  const init = () => ({ title: m.title, format: m.format, courts: m.court_count, ...localDateTime(m.starts_at, m.timezone), duration: m.duration_min, closes: m.rsvp_close_hours })
+  const [f, setF] = useState(init)
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) { setWasOpen(open); if (open) setF(init()) }
+  const size = f.courts * perCourt(f.format)
+  const moving = Math.max(0, m.confirmed_count - size)
+  return (
+    <Sheet open={open} onClose={onClose} title="Edit match" subtitle={m.status === 'booked' ? 'Court booked · changing courts updates the cost split' : 'Planning'}>
+      <label className="label"><span className="eyebrow">Match name</span>
+        <input className="field" value={f.title} onChange={e => setF(x => ({ ...x, title: e.target.value }))} maxLength={80} /></label>
+      <FormatPicker format={f.format} courts={f.courts} onChange={(format: Format, courts) => setF(x => ({ ...x, format, courts }))} />
+      {moving > 0 && <span className="note" style={{ color: '#D9622B', marginTop: -8 }}>{moving} player{moving > 1 ? 's' : ''} who joined last will move to the front of the waitlist.</span>}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <label className="label"><span className="eyebrow">Date</span>
+          <input className="field" type="date" value={f.date} onChange={e => setF(x => ({ ...x, date: e.target.value }))} style={{ padding: '0 12px', fontSize: 15 }} /></label>
+        <label className="label"><span className="eyebrow">Start</span>
+          <input className="field" type="time" value={f.time} onChange={e => setF(x => ({ ...x, time: e.target.value }))} style={{ padding: '0 12px', fontSize: 15 }} /></label>
+      </div>
+      <div className="stack" style={{ gap: 10 }}>
+        <span className="eyebrow">Duration</span>
+        <Seg options={[60, 90, 120].map(d => ({ value: d, label: `${d} min` }))} value={f.duration} onChange={v => setF(x => ({ ...x, duration: v }))} />
+      </div>
+      <div className="stack" style={{ gap: 10 }}>
+        <span className="eyebrow">RSVPs close</span>
+        <Seg options={[2, 6, 24].map(h => ({ value: h, label: `${h}h before` }))} value={f.closes} onChange={v => setF(x => ({ ...x, closes: v }))} />
+      </div>
+      <button className="btn" onClick={() => {
+        if (!f.title.trim()) return flash('Add a match name')
+        if (moving > 0 && !confirm(`${moving} player${moving > 1 ? 's' : ''} will move to the waitlist. Continue?`)) return
+        onClose()
+        rpc<{ demoted: number; promoted: number }>('update_match', {
+          p_match: m.id, p_title: f.title.trim(), p_format: f.format, p_court_count: f.courts,
+          p_date: f.date, p_time: f.time, p_duration_min: f.duration, p_rsvp_close_hours: f.closes,
+        }, r => flash(['Match updated', r.demoted ? `${r.demoted} moved to waitlist` : '', r.promoted ? `${r.promoted} promoted` : ''].filter(Boolean).join(' · ')))
+      }}>Save changes</button>
+    </Sheet>
   )
 }

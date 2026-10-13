@@ -16,12 +16,14 @@ type Props = {
   start: string
   end: string
   slots: Slot[]
+  /** Confirmed viewer, but the court isn't booked yet. */
+  tbc?: boolean
   ghost?: boolean
   footer?: string
 }
 
 /** A court card: number, time, and a top-down court with players either side of the net. */
-export function CourtCard({ label, num, dateLabel, start, end, slots, ghost, footer }: Props) {
+export function CourtCard({ label, num, dateLabel, start, end, slots, tbc, ghost, footer }: Props) {
   return (
     <div className="card" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14, opacity: ghost ? 0.85 : 1 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 10 }}>
@@ -29,7 +31,9 @@ export function CourtCard({ label, num, dateLabel, start, end, slots, ghost, foo
           <span className="eyebrow">{label}</span>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span className="display muted" style={{ fontSize: 12, fontWeight: 600 }}>COURT</span>
-            {num ? (
+            {tbc ? (
+              <span className="display" style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: '#8A94A3' }}>TBC</span>
+            ) : num ? (
               <span className="display" style={{ fontSize: 32, fontWeight: 700, lineHeight: 1, letterSpacing: '-.02em', color: ghost ? '#5B6573' : '#12161C' }}>{num}</span>
             ) : (
               <span className="display" style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#8A94A3', fontSize: 26, fontWeight: 700, lineHeight: 1 }} aria-label="Hidden until you're confirmed">
@@ -45,9 +49,9 @@ export function CourtCard({ label, num, dateLabel, start, end, slots, ghost, foo
         </div>
       </div>
       <div className={`court${ghost ? ' ghost' : ''}`}>
-        <Half slots={[slots[0], slots[1]]} side="left" />
+        <Half slots={slots.slice(0, slots.length / 2)} side="left" />
         <div className="court-net" />
-        <Half slots={[slots[2], slots[3]]} side="right" />
+        <Half slots={slots.slice(slots.length / 2)} side="right" />
       </div>
       {footer && <span style={{ fontSize: 13, color: '#D9622B', fontWeight: 600 }}>{footer}</span>}
     </div>

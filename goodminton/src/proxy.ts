@@ -15,7 +15,8 @@ export async function proxy(request: NextRequest) {
       },
     },
   })
-  await supabase.auth.getUser()
+  // Refreshes an expired session; verifies locally when it's still valid.
+  await supabase.auth.getClaims()
   return response
 }
 
