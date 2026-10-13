@@ -15,4 +15,5 @@ for f in ../migrations/*.sql; do psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f 
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f match_flow.sql
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f games_flow.sql
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f edit_flow.sql
+psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f push_flow.sql
 ./concurrency.sh "$@" -d "$DB"

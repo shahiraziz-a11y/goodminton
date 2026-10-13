@@ -10,6 +10,7 @@ import { useFeedback } from '@/components/Feedback'
 import { FormatPicker } from '@/components/FormatPicker'
 import { LogResultSheet } from '@/components/LogResultSheet'
 import { PlayerPicker, loadPlayers } from '@/components/PlayerPicker'
+import { AlertsCard } from '@/components/Pwa'
 import { Sheet } from '@/components/Sheet'
 import { balancedOrder, shuffled, standings } from '@/lib/stats'
 import { courtNumber, joinedAfter, localDateTime, money } from '@/lib/format'
@@ -210,11 +211,15 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
               <span className="display" style={{ fontSize: 48, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: '#E5484D' }}>#{m.viewer.wait_pos}</span>
               <div className="stack" style={{ gap: 3 }}>
                 <span className="display" style={{ fontSize: 16, fontWeight: 700 }}>On the waitlist</span>
-                <span style={{ fontSize: 13, color: '#5B6573' }}>You move up automatically if a spot opens. Check back here.</span>
+                <span style={{ fontSize: 13, color: '#5B6573' }}>You move up automatically if a spot opens.</span>
               </div>
             </div>
             {!m.past && <button className="link-btn" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={() => rpc('leave_match', { p_match: m.id }, () => flash('Left the waitlist'))}>Leave waitlist</button>}
           </div>
+        )}
+
+        {!m.past && (conf || role === 'waitlist') && (
+          <AlertsCard compact reason={isOrg ? 'Get alerts when people join or drop out' : role === 'waitlist' ? 'Get an alert the moment you move up' : 'Get alerts if the court, time or players change'} />
         )}
 
         {showGhost && (
