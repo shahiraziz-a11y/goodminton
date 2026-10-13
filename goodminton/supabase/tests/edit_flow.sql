@@ -83,19 +83,44 @@ reset role;
 select pg_temp.check((select amount from public.expenses where match_id = :'mid') = 140, 'cost edited');
 set role authenticated;
 
--- Removed after booking: still in the split until waived.
+-- Removed after booking. Confirmed: Olga, Pat, Quin, Rita. Waiting: Sam, Tom.
+-- Replaced straight away from the waitlist: no debt.
 select public.remove_player(:'mid', :'quin') as r \gset
-select pg_temp.check((:'r'::jsonb ->> 'still_owes') = 'true', 'removed player still owes');
+select pg_temp.check((:'r'::jsonb ->> 'still_owes') = 'false' and (:'r'::jsonb ->> 'promoted') = 'Sam', 'replaced by Sam, Quin owes nothing');
+select pg_temp.check(pg_temp.order_of(:'slug', 'confirmed') = 'Olga,Pat,Rita,Sam', 'Sam took the spot');
+select public.remove_player(:'mid', :'pat') ->> 'still_owes' as o \gset
+select pg_temp.check(:'o' = 'false', 'Pat replaced by Tom');
+-- Waitlist empty now: Rita's spot stays empty, so she owes.
+select public.remove_player(:'mid', :'rita') as r \gset
+select pg_temp.check((:'r'::jsonb ->> 'still_owes') = 'true', 'no replacement, Rita still owes');
 select public.get_match(:'slug') as v \gset
-select pg_temp.check(jsonb_array_length(:'v'::jsonb -> 'split_ids') = 5 and (:'v'::jsonb -> 'liable' -> 0 ->> 'full_name') = 'Quin', 'split has 4 players plus the removed one');
-select pg_temp.as_user('quin');
+select pg_temp.check(jsonb_array_length(:'v'::jsonb -> 'split_ids') = 4
+                 and jsonb_array_length(:'v'::jsonb -> 'liable') = 1
+                 and (:'v'::jsonb -> 'liable' -> 0 ->> 'full_name') = 'Rita', 'split: 3 players plus Rita');
+select pg_temp.as_user('rita');
 select public.my_ledger() as l \gset
-select pg_temp.check(exists (select 1 from jsonb_array_elements(:'l'::jsonb) x where x ->> 'id' = :'mid'), 'removed player sees what they owe');
-select pg_temp.check(pg_temp.fails(format('select public.waive_share(%L, %L)', :'mid', :'quin')) like '%Only the organiser%', 'only organiser waives');
+select pg_temp.check(exists (select 1 from jsonb_array_elements(:'l'::jsonb) x where x ->> 'id' = :'mid'), 'Rita sees what she owes');
+select pg_temp.check(pg_temp.fails(format('select public.waive_share(%L, %L)', :'mid', :'rita')) like '%Only the organiser%', 'only organiser waives');
+-- A later joiner takes the empty spot: Rita is cleared.
+select pg_temp.as_user('uma'); select public.join_match(:'mid');
 select pg_temp.as_user('olga');
-select public.waive_share(:'mid', :'quin');
 select public.get_match(:'slug') as v \gset
-select pg_temp.check(jsonb_array_length(:'v'::jsonb -> 'split_ids') = 4 and jsonb_array_length(:'v'::jsonb -> 'liable') = 0, 'waived');
+select pg_temp.check(jsonb_array_length(:'v'::jsonb -> 'liable') = 0 and jsonb_array_length(:'v'::jsonb -> 'split_ids') = 4, 'join cleared Rita');
+-- Chain: the replacement is removed with nobody waiting, so Uma owes and Rita stays clear.
+reset role; select id as uma from public.profiles where email = 'uma@edit.test' \gset
+set role authenticated;
+select public.remove_player(:'mid', :'uma');
+select public.get_match(:'slug') as v \gset
+select pg_temp.check((:'v'::jsonb -> 'liable' -> 0 ->> 'full_name') = 'Uma' and jsonb_array_length(:'v'::jsonb -> 'liable') = 1, 'latest removed owes');
+-- Adding a court opens new spots; it doesn't clear Uma's debt.
+select public.update_match(:'mid', 'Edit me', 'doubles', 2, (now() + interval '6 days')::date, '19:30', 90, 24);
+select public.get_match(:'slug') as v \gset
+select pg_temp.check((:'v'::jsonb -> 'liable' -> 0 ->> 'full_name') = 'Uma', 'new court spots are not replacements');
+select public.update_match(:'mid', 'Edit me', 'doubles', 1, (now() + interval '6 days')::date, '19:30', 90, 24);
+-- Waive.
+select public.waive_share(:'mid', :'uma');
+select public.get_match(:'slug') as v \gset
+select pg_temp.check(jsonb_array_length(:'v'::jsonb -> 'liable') = 0, 'waived');
 -- Removing someone before booking never creates a debt.
 select public.create_match('Plan only', 'doubles', 1, '', (now() + interval '5 days')::date, '18:00', 'Asia/Dubai', 60, 6) as s2 \gset
 reset role; select id as m2 from public.matches where slug = :'s2' \gset

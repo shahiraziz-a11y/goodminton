@@ -119,7 +119,7 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
   }
 
   function remove(id: string, first: string) {
-    if (!confirm(`Remove ${first} from this match?${booked ? ` The court is booked, so ${first} still owes their share. You can waive it afterwards.` : ''}`)) return
+    if (!confirm(`Remove ${first} from this match?${booked ? ` The court is booked: if nobody takes the spot, ${first} still owes their share.` : ''}`)) return
     rpc<{ promoted: string | null; still_owes: boolean }>('remove_player', { p_match: m.id, p_user: id }, r =>
       flash([`${first} removed`, r.still_owes ? 'still owes their share' : '', r.promoted ? `${r.promoted.split(' ')[0]} promoted` : ''].filter(Boolean).join(' · ')))
   }
@@ -362,7 +362,10 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
               )}
               {(m.liable?.length ?? 0) > 0 && (
                 <div className="stack" style={{ borderTop: '1px solid rgba(0,0,0,.07)', padding: '14px 0 8px', gap: 10 }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: '#D9622B' }}>REMOVED AFTER BOOKING · STILL OWE A SHARE</span>
+                  <div className="stack" style={{ gap: 3 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: '#D9622B' }}>REMOVED AFTER BOOKING · STILL OWE A SHARE</span>
+                    <span style={{ fontSize: 12, color: '#5B6573' }}>Cleared automatically when someone takes the spot.</span>
+                  </div>
                   {m.liable!.map(p => (
                     <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{p.full_name}</span>

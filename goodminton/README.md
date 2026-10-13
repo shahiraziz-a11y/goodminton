@@ -6,7 +6,7 @@ Built from the Claude Design handoff (`../project/Courtside Light.dc.html`; the 
 
 ## What's in this first build
 
-- **Plan a match, book later:** create a plan with singles or doubles on 1–4 courts, date, time, duration and RSVP close; the venue is optional. Once enough people are in, the organiser taps **Court booked** and adds the venue, court numbers, parking and cost per court. The court cost (per court × courts) then joins the split, and confirmed players are locked in: only the organiser can remove someone. Anyone removed after booking **still owes their share** until the organiser taps Waive.
+- **Plan a match, book later:** create a plan with singles or doubles on 1–4 courts, date, time, duration and RSVP close; the venue is optional. Once enough people are in, the organiser taps **Court booked** and adds the venue, court numbers, parking and cost per court. The court cost (per court × courts) then joins the split, and confirmed players are locked in: only the organiser can remove someone. Anyone removed after booking **still owes their share while their spot stays empty**. When someone takes the spot (waitlist, a new join, or an added player), the debt clears; the organiser can also tap Waive.
 - **Edit a match:** the organiser can change the name, singles or doubles, courts, date, time, duration and RSVP close, plus booking details and cost. With fewer spots, the latest joiners (never the organiser) move to the front of the waitlist; with more, the waitlist moves up.
 - **Organiser overrides:** remove any player, even after booking (the next on the waitlist moves up). Add players from your circle, or add a **guest** by name only, for friends without a Google login.
 - **Leaderboard:** a podium, standings (wins, losses, win %, streak), best pairs and recent games.
@@ -30,7 +30,7 @@ Not built yet (they're in the design): the "Still in?" check-in, weekly repeat, 
 ## Setup
 
 1. **Supabase project:** create one at supabase.com.
-2. **Database:** run each file in `supabase/migrations/` in order (`0001_…`, `0002_…`, `0003_…`), either in the SQL editor or with `supabase db push`. When upgrading an existing project, run only the files you haven't run yet, and run them **before** deploying the new code.
+2. **Database:** run each file in `supabase/migrations/` in order (`0001_…` to `0004_…`), either in the SQL editor or with `supabase db push`. When upgrading an existing project, run only the files you haven't run yet, and run them **before** deploying the new code.
 3. **Google sign-in:**
    - In Google Cloud Console, create an OAuth client of type "Web application".
    - Add the authorised redirect URI `https://<your-project>.supabase.co/auth/v1/callback`.
