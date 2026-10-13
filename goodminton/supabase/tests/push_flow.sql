@@ -115,6 +115,53 @@ reset role;
 select pg_temp.check((select body from public.notifications n join public.profiles p on p.id = n.user_id
                        where p.email = 'ben@push.test' and kind = 'removed') like '%still owe%', 'removed after booking mentions share');
 
+-- Booking only the courts you can fill: planned 2 doubles courts, 5 signed up, book 1.
+select pg_temp.as_user('org');
+set role authenticated;
+select public.create_match('Two court plan', 'doubles', 2, '', (now() + interval '5 days')::date, '19:00', 'Asia/Dubai', 90, 6) as s2 \gset
+reset role; select id as m2 from public.matches where slug = :'s2' \gset
+set role authenticated;
+select pg_temp.as_user('ann'); select public.join_match(:'m2');
+select pg_temp.as_user('ben'); select public.join_match(:'m2');
+select pg_temp.as_user('cat'); select public.join_match(:'m2');
+select pg_temp.as_user('dan'); select public.join_match(:'m2');
+reset role; delete from public.notifications; set role authenticated;
+select pg_temp.as_user('ann');
+select pg_temp.check(pg_temp.fails(format('select public.book_match(%L, %L, %L, %L, 90, 1)', :'m2', 'Hall', 'Court 5', '')) like '%Only the organiser%', 'only organiser books courts');
+select pg_temp.as_user('org');
+select pg_temp.check(pg_temp.fails(format('select public.book_match(%L, %L, %L, %L, 90, 0)', :'m2', 'Hall', 'Court 5', '')) like '%1 to 4%', 'at least one court');
+select public.book_match(:'m2', 'Hall', 'Court 5', '', 90, 1) as r \gset
+select pg_temp.check((:'r'::jsonb ->> 'demoted') = '1', 'fifth player moved to waitlist');
+reset role;
+select pg_temp.check((select court_count || '/' || size || '/' || courts || '/' || status from public.matches where id = :'m2') = '1/4/Court 5/booked', 'one court booked');
+select pg_temp.check((select string_agg(p.full_name, ',' order by mp.seq) from public.match_players mp join public.profiles p on p.id = mp.user_id
+                       where mp.match_id = :'m2' and mp.status = 'confirmed') = 'Org Test,Ann Test,Ben Test,Cat Test', 'first four confirmed');
+select pg_temp.check((select p.full_name from public.match_players mp join public.profiles p on p.id = mp.user_id
+                       where mp.match_id = :'m2' and mp.status = 'waitlist' order by mp.seq limit 1) = 'Dan Test', 'Dan is #1 on the waitlist');
+select pg_temp.check((select sum(amount) from public.expenses where match_id = :'m2') = 90, 'only one court charged');
+select pg_temp.check((select string_agg(n.kind, ',' order by n.kind) from public.notifications n join public.profiles p on p.id = n.user_id
+                       where p.email = 'dan@push.test') = 'demoted', 'Dan told he moved to the waitlist, not that the court is booked');
+select pg_temp.check((select string_agg(n.kind, ',') from public.notifications n join public.profiles p on p.id = n.user_id
+                       where p.email = 'ann@push.test') = 'booked', 'Ann told court booked');
+set role authenticated;
+-- Booked players are locked in; the waitlisted fifth can still leave.
+select pg_temp.as_user('ann');
+select pg_temp.check(pg_temp.fails(format('select public.leave_match(%L)', :'m2')) like '%locked in%', 'court 1 players locked in');
+-- Three more join; four waiting, so court 2 can be added and booked later.
+select pg_temp.as_user('eve'); select public.join_match(:'m2');
+select pg_temp.as_user('org');
+select public.add_player(:'m2', null, 'Late ' || n) from generate_series(1, 2) n;
+select public.upgrade_match(:'m2');
+reset role;
+select pg_temp.check((select court_count || '/' || courts from public.matches where id = :'m2') = '2/Court 5 & Court 6', 'court 2 added later');
+select pg_temp.check((select sum(amount) from public.expenses where match_id = :'m2') = 180, 'second court charged when added');
+set role authenticated;
+-- Editing details later without p_court_count keeps the courts as they are.
+select public.book_match(:'m2', 'Hall', 'Court 5 & Court 6', 'Gate A', 90);
+reset role;
+select pg_temp.check((select court_count from public.matches where id = :'m2') = 2, 'details edit keeps courts');
+set role authenticated;
+
 -- Subscriptions are private, and a user can only delete their own.
 set role authenticated;
 select pg_temp.check(pg_temp.fails('select * from public.push_subscriptions') like '%permission denied%', 'subscriptions closed');

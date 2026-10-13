@@ -251,7 +251,9 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
               ) : (
                 <div className="stack" style={{ gap: 10 }}>
                   <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.4 }}>
-                    {full ? `${m.size} in. Book the court, then add the details here.` : `Book once you have ${m.size}. ${m.size - m.confirmed_count} to go.`}
+                    {full ? `${m.size} in. Book the court${nCourts > 1 ? 's' : ''}, then add the details here.`
+                      : nCourts > 1 && cn >= 1 ? `${m.confirmed_count}/${m.size} in · enough for ${cn} of ${nCourts} courts. Book ${cn} now, or wait for ${per - (m.confirmed_count % per)} more for another.`
+                      : `Book once you have ${per}. ${per - m.confirmed_count} to go.`}
                   </span>
                   <button className="btn" style={{ height: 48, fontSize: 15 }} onClick={() => setBooking(true)}>Court booked · add details</button>
                 </div>
@@ -517,35 +519,56 @@ function BookSheet({ open, onClose, m, rpc }: { open: boolean; onClose: () => vo
     setWasOpen(open)
     if (open) setF({ venue: m.venue, courts: m.courts ?? '', parking: m.parking ?? '', cost: m.court_cost ? String(m.court_cost) : '' })
   }
-  const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF(x => ({ ...x, [k]: e.target.value }))
+  const set = (k: 'venue' | 'courts' | 'parking' | 'cost') => (e: { target: { value: string } }) => setF(x => ({ ...x, [k]: e.target.value }))
   const cost = Number(f.cost || 0)
-  const nCourts = m.court_count
   const booked = m.status === 'booked'
+  const per = perCourt(m.format)
+  // How many courts to book: on first booking, default to the courts we can fill.
+  const fillable = Math.max(1, Math.min(m.court_count, Math.floor(m.confirmed_count / per)))
+  const [book, setBook] = useState(booked ? m.court_count : fillable)
+  if (open !== wasOpen && open) setBook(booked ? m.court_count : fillable)
+  const nCourts = booked ? m.court_count : book
+  const size = nCourts * per
+  const moving = Math.max(0, m.confirmed_count - size)
+  const dropping = m.court_count - nCourts
   return (
     <Sheet open={open} onClose={onClose} title={booked ? 'Court details' : 'Court booked'}
       subtitle={booked ? 'Update what the players see.' : 'Players get locked in once you save. Only you can remove someone after this.'}>
+      {!booked && m.court_count > 1 && (
+        <div className="stack" style={{ gap: 10 }}>
+          <span className="eyebrow">Courts booked</span>
+          <Seg options={Array.from({ length: m.court_count }, (_, i) => ({ value: i + 1, label: `${i + 1} of ${m.court_count}` }))} value={book} onChange={setBook} />
+          <span className="note" style={{ color: moving ? '#D9622B' : undefined }}>
+            {m.confirmed_count} signed up.{' '}
+            {dropping > 0 ? `Court${dropping > 1 ? 's' : ''} ${Array.from({ length: dropping }, (_, i) => nCourts + i + 1).join(' & ')} will be dropped. ` : ''}
+            {moving > 0 ? `${moving === 1 ? 'The last person to join moves' : `The last ${moving} to join move`} to the front of the waitlist; another court opens once ${per} are waiting.` : ''}
+          </span>
+        </div>
+      )}
       <label className="label"><span className="eyebrow">Venue</span>
         <input className="field" value={f.venue} onChange={set('venue')} placeholder="e.g. Al Quoz Sports Hall" maxLength={120} /></label>
-      <label className="label"><span className="eyebrow">{nCourts === 2 ? 'Court numbers' : 'Court number'}</span>
-        <input className="field" value={f.courts} onChange={set('courts')} placeholder={nCourts === 2 ? 'e.g. Court 3 & Court 4' : 'e.g. Court 3'} maxLength={60} /></label>
+      <label className="label"><span className="eyebrow">{nCourts > 1 ? 'Court numbers' : 'Court number'}</span>
+        <input className="field" value={f.courts} onChange={set('courts')} placeholder={nCourts > 1 ? `e.g. ${Array.from({ length: nCourts }, (_, i) => `Court ${i + 3}`).join(' & ')}` : 'e.g. Court 3'} maxLength={60} />
+        {nCourts > 1 && <span className="note">Just the first one is fine: the next numbers are filled in.</span>}</label>
       <label className="label"><span className="eyebrow">Parking notes · optional</span>
         <input className="field" value={f.parking} onChange={set('parking')} placeholder="e.g. Free parking behind the hall" maxLength={200} /></label>
-      {(
-        <label className="label"><span className="eyebrow">Court cost · per court</span>
-          <div className="field-wrap">
-            <span style={{ fontWeight: 800, color: '#0E7F66', fontSize: 14 }}>{m.currency}</span>
-            <input type="number" inputMode="decimal" min={0} value={f.cost} onChange={set('cost')} placeholder="0" style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', color: '#12161C', fontSize: 16, outline: 'none' }} />
-          </div>
-          <span className="note">{money(cost * nCourts, m.currency)} for {nCourts} court{nCourts > 1 ? 's' : ''} · {money((cost * nCourts) / m.size, m.currency)} per player · in the cost split as paid by you</span>
-        </label>
-      )}
+      <label className="label"><span className="eyebrow">Court cost · per court</span>
+        <div className="field-wrap">
+          <span style={{ fontWeight: 800, color: '#0E7F66', fontSize: 14 }}>{m.currency}</span>
+          <input type="number" inputMode="decimal" min={0} value={f.cost} onChange={set('cost')} placeholder="0" style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', color: '#12161C', fontSize: 16, outline: 'none' }} />
+        </div>
+        <span className="note">{money(cost * nCourts, m.currency)} for {nCourts} court{nCourts > 1 ? 's' : ''} · {money((cost * nCourts) / size, m.currency)} per player · in the cost split as paid by you</span>
+      </label>
       <button className="btn" onClick={() => {
         if (!f.venue.trim() || !f.courts.trim()) return flash('Add the venue and court number')
         if (Number.isNaN(cost) || cost < 0) return flash('Court cost must be a number')
+        if (moving > 0 && !confirm(`Book ${nCourts} of ${m.court_count} courts? ${moving === 1 ? 'The last person to join moves' : `The last ${moving} to join move`} to the waitlist.`)) return
         onClose()
-        rpc('book_match', { p_match: m.id, p_venue: f.venue.trim(), p_courts: f.courts.trim(), p_parking: f.parking.trim(), p_court_cost: cost },
-          () => flash(booked ? 'Details updated' : 'Court booked · players locked in'))
-      }}>{booked ? 'Save details' : 'Save · lock in players'}</button>
+        rpc<{ demoted: number }>('book_match', {
+          p_match: m.id, p_venue: f.venue.trim(), p_courts: f.courts.trim(), p_parking: f.parking.trim(), p_court_cost: cost,
+          p_court_count: booked ? null : nCourts,
+        }, r => flash(booked ? 'Details updated' : ['Court booked · players locked in', r?.demoted ? `${r.demoted} moved to the waitlist` : ''].filter(Boolean).join(' · ')))
+      }}>{booked ? 'Save details' : `Save · lock in ${Math.min(m.confirmed_count, size)} players`}</button>
     </Sheet>
   )
 }
