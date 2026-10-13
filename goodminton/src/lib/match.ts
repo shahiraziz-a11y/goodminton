@@ -23,19 +23,3 @@ export function matchLabels(m: Pick<MatchView, 'title' | 'size' | 'starts_at' | 
 }
 
 export const whatsappUrl = (text: string) => `https://wa.me/?text=${encodeURIComponent(text)}`
-
-/** Builds an .ics file so the match can go in any calendar app. */
-export function icsFor(m: Pick<MatchView, 'title' | 'venue' | 'starts_at' | 'duration_min' | 'slug' | 'courts'>, link: string) {
-  const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
-  const esc = (s: string) => s.replace(/[\\;,]/g, c => '\\' + c).replace(/\n/g, '\\n')
-  const start = new Date(m.starts_at)
-  return [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Goodminton//EN', 'BEGIN:VEVENT',
-    `UID:${m.slug}@goodminton`, `DTSTAMP:${stamp(new Date())}`,
-    `DTSTART:${stamp(start)}`, `DTEND:${stamp(addMinutes(m.starts_at, m.duration_min))}`,
-    `SUMMARY:${esc(`🏸 ${m.title}`)}`,
-    `LOCATION:${esc([m.venue, m.courts].filter(Boolean).join(' · '))}`,
-    `DESCRIPTION:${esc(link)}`, `URL:${link}`,
-    'END:VEVENT', 'END:VCALENDAR',
-  ].join('\r\n')
-}

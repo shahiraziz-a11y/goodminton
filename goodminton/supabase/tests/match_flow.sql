@@ -42,7 +42,7 @@ select id as mid from public.matches where slug = :'slug' \gset
 
 select pg_temp.check(:'slug' like 'thursday-night-doubles-%', 'slug from title');
 select pg_temp.check((select count(*) from public.match_players where match_id = :'mid') = 1, 'organiser is player 1');
-select pg_temp.check((select amount from public.expenses where match_id = :'mid') = 180, 'court booking expense');
+select pg_temp.check((select count(*) from public.expenses where match_id = :'mid') = 0 and (select status from public.matches where id = :'mid') = 'planning', 'plan: no cost until booked');
 select pg_temp.check((select to_char(starts_at at time zone 'Asia/Dubai', 'HH24:MI') from public.matches where id = :'mid') = '20:00', 'start time in venue tz');
 
 -- Signed out, spots open: names visible, court number and costs hidden.
@@ -82,7 +82,7 @@ select pg_temp.check((:'v'::jsonb -> 'players' -> 1 ->> 'hidden') = 'true', 'out
 -- Confirmed player sees everything except waitlist names.
 select pg_temp.as_user('samir');  select public.get_match(:'slug') as v \gset
 select pg_temp.check((:'v'::jsonb ->> 'courts') = 'Court 3', 'confirmed: court visible');
-select pg_temp.check(jsonb_array_length(:'v'::jsonb -> 'expenses') = 1, 'confirmed: expenses visible');
+select pg_temp.check((:'v'::jsonb -> 'expenses') = '[]'::jsonb, 'confirmed: expenses visible');
 select pg_temp.check((:'v'::jsonb -> 'waitlist') = 'null'::jsonb, 'confirmed: waitlist names hidden');
 
 -- Organiser sees waitlist names.
@@ -118,7 +118,9 @@ select pg_temp.as_user('rohan');  select public.upgrade_match(:'mid');
 reset role; select pg_temp.check((select size from public.matches where id = :'mid') = 8, 'size 8'); set role authenticated;
 reset role; select pg_temp.check((select courts from public.matches where id = :'mid') = 'Court 3 & Court 4', 'second court number'); set role authenticated;
 reset role; select pg_temp.check((select count(*) from public.match_players where match_id = :'mid' and status = 'confirmed') = 8, '8 confirmed'); set role authenticated;
-reset role; select pg_temp.check((select sum(amount) from public.expenses where match_id = :'mid') = 360, 'second court cost added'); set role authenticated;
+reset role; select pg_temp.check((select sum(amount) from public.expenses where match_id = :'mid') is null, 'no cost before booking'); set role authenticated;
+select pg_temp.as_user('rohan'); select public.book_match(:'mid', 'Al Quoz Sports Hall', 'Court 3 & Court 4', 'Gate B', 180);
+reset role; select pg_temp.check((select sum(amount) from public.expenses where match_id = :'mid') = 360 and (select status from public.matches where id = :'mid') = 'booked', 'booking adds both courts'); set role authenticated;
 select public.get_match(:'slug') as v \gset
 select pg_temp.check((select string_agg(split_part(x ->> 'full_name', ' ', 1), ',') from jsonb_array_elements(:'v'::jsonb -> 'players') x)
   = 'Rohan,Samir,Meera,Dev,Aisha,Jon,Kabir,Nina', 'court 2 is the old waitlist in order');
@@ -140,7 +142,7 @@ reset role; select pg_temp.check((select count(*) from public.settlements) = 0, 
 
 -- Ledger and home lists.
 select pg_temp.as_user('dev');    select public.my_ledger() as l \gset
-select pg_temp.check(jsonb_array_length(:'l'::jsonb) = 1 and jsonb_array_length(:'l'::jsonb -> 0 -> 'expenses') = 3, 'ledger');
+select pg_temp.check(jsonb_array_length(:'l'::jsonb) = 1 and jsonb_array_length(:'l'::jsonb -> 0 -> 'expenses') = 2, 'ledger');
 select pg_temp.as_user('priya');  select public.my_ledger() as l \gset
 select pg_temp.check(jsonb_array_length(:'l'::jsonb) = 0, 'dropped player has no ledger');
 select pg_temp.as_user('jon');    select public.my_matches() as h \gset
@@ -162,7 +164,9 @@ select pg_temp.as_user('aisha');  select public.join_match(:'mid2');
 
 -- 8-player match derives the second court number.
 select pg_temp.as_user('rohan');
-select public.create_match('Big game', 8, 'Hall', 'Court 5', '', (now() + interval '3 days')::date, '19:00', 'Asia/Dubai', 120, 24, 100) as slug3 \gset
+select public.create_match('Big game', 8, '', '', '', (now() + interval '3 days')::date, '19:00', 'Asia/Dubai', 120, 24, 0) as slug3 \gset
+reset role; select id as mid3 from public.matches where slug = :'slug3' \gset
+set role authenticated; select public.book_match(:'mid3', 'Hall', 'Court 5', '', 100);
 reset role;
 select pg_temp.check((select courts from public.matches where slug = :'slug3') = 'Court 5 & Court 6', '8-player courts');
 select pg_temp.check((select amount from public.expenses e join public.matches m on m.id = e.match_id where m.slug = :'slug3') = 200, '2 courts cost');

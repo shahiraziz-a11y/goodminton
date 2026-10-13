@@ -7,7 +7,7 @@ import { Avatar } from './Avatar'
 import type { Person } from '@/lib/people'
 
 /** Page frame: frosted top bar, content, optional bottom tabs. */
-export function Frame({ children, back, me, tab }: { children: ReactNode; back?: string; me?: Person | null; tab?: 'home' | 'balances' }) {
+export function Frame({ children, back, me, tab }: { children: ReactNode; back?: string; me?: Person | null; tab?: 'home' | 'board' | 'balances' }) {
   return (
     <div className={`app${tab ? ' has-tabs' : ''}`}>
       <TopBar back={back} me={me} />
@@ -42,12 +42,16 @@ function TopBar({ back, me }: { back?: string; me?: Person | null }) {
   )
 }
 
-function TabBar({ active }: { active: 'home' | 'balances' }) {
+function TabBar({ active }: { active: 'home' | 'board' | 'balances' }) {
   return (
     <nav className="tabbar">
       <Link href="/" className={`tab${active === 'home' ? ' sel' : ''}`}>
         <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="3.5" y="5" width="19" height="17" rx="3.5" /><path d="M3.5 10.5h19M8.5 3v4M17.5 3v4" /></svg>
         Matches
+      </Link>
+      <Link href="/leaderboard" className={`tab${active === 'board' ? ' sel' : ''}`}>
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M8 4h10v6a5 5 0 0 1-10 0V4Z" /><path d="M8 6H4.5a3.5 3.5 0 0 0 4 4M18 6h3.5a3.5 3.5 0 0 1-4 4M13 15v4M9 22h8" /></svg>
+        Leaderboard
       </Link>
       <Link href="/balances" className={`tab${active === 'balances' ? ' sel' : ''}`}>
         <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="6.5" width="20" height="14" rx="3" /><path d="M3 11h20M7.5 16h4" /></svg>

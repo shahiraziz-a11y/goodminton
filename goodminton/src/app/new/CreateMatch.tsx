@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { Frame, Seg } from '@/components/Chrome'
 import { useFeedback } from '@/components/Feedback'
-import { money, nextSaturday } from '@/lib/format'
+import { nextSaturday } from '@/lib/format'
 import { createClient } from '@/lib/supabase/client'
 import { CURRENCY } from '@/lib/supabase/env'
 
@@ -15,20 +15,18 @@ export function CreateMatch() {
   const { flash } = useFeedback()
   const [busy, setBusy] = useState(false)
   const [f, setF] = useState({
-    size: 4 as 4 | 8, title: 'Saturday Doubles', venue: '', courts: '', parking: '',
-    date: nextSaturday(), time: '19:00', duration: 90, cost: '', closes: 6,
+    size: 4 as 4 | 8, title: 'Saturday Doubles', venue: '',
+    date: nextSaturday(), time: '19:00', duration: 90, closes: 6,
   })
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF(x => ({ ...x, [k]: v }))
-  const cost = Number(f.cost || 0)
 
   async function create() {
-    if (!f.title.trim() || !f.venue.trim()) return flash('Add a match name and venue')
-    if (cost < 0 || Number.isNaN(cost)) return flash('Court cost must be a number')
+    if (!f.title.trim()) return flash('Add a match name')
     setBusy(true)
     const { data, error } = await createClient().rpc('create_match', {
-      p_title: f.title.trim(), p_size: f.size, p_venue: f.venue.trim(), p_courts: f.courts.trim(), p_parking: f.parking.trim(),
+      p_title: f.title.trim(), p_size: f.size, p_venue: f.venue.trim(), p_courts: '', p_parking: '',
       p_date: f.date, p_time: f.time, p_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      p_duration_min: f.duration, p_rsvp_close_hours: f.closes, p_court_cost: cost, p_currency: CURRENCY,
+      p_duration_min: f.duration, p_rsvp_close_hours: f.closes, p_court_cost: 0, p_currency: CURRENCY,
     })
     if (error) { setBusy(false); return flash(error.message) }
     router.push(`/m/${data}/share`)
@@ -55,12 +53,8 @@ export function CreateMatch() {
           <span className="note">Fixed sizes, so nobody sits out on rotation.</span>
         </div>
         <Field label="Match name"><input className="field" value={f.title} onChange={e => set('title', e.target.value)} maxLength={80} /></Field>
-        <Field label="Venue"><input className="field" value={f.venue} onChange={e => set('venue', e.target.value)} placeholder="e.g. Al Quoz Sports Hall" maxLength={120} /></Field>
-        <Field label="Court numbers" hint="Revealed to confirmed players only.">
-          <input className="field" value={f.courts} onChange={e => set('courts', e.target.value)} placeholder="e.g. Court 3" maxLength={60} />
-        </Field>
-        <Field label="Parking notes" hint="Optional. Also for confirmed players only.">
-          <input className="field" value={f.parking} onChange={e => set('parking', e.target.value)} placeholder="e.g. Free parking behind the hall" maxLength={200} />
+        <Field label="Venue · optional" hint="Not booked yet? Leave it. You'll add the venue, court and cost when you book.">
+          <input className="field" value={f.venue} onChange={e => set('venue', e.target.value)} placeholder="e.g. Al Quoz Sports Hall" maxLength={120} />
         </Field>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <Field label="Date"><input className="field" type="date" value={f.date} onChange={e => set('date', e.target.value)} style={{ padding: '0 12px', fontSize: 15 }} /></Field>
@@ -70,19 +64,12 @@ export function CreateMatch() {
           <span className="eyebrow">Duration</span>
           <Seg options={[60, 90, 120].map(d => ({ value: d, label: `${d} min` }))} value={f.duration} onChange={v => set('duration', v)} />
         </div>
-        <Field label="Court cost · per court" hint={`${money(cost / 4, CURRENCY)} per player`}>
-          <div className="field-wrap">
-            <span style={{ fontWeight: 800, color: '#0E7F66', fontSize: 14 }}>{CURRENCY}</span>
-            <input type="number" inputMode="decimal" min={0} value={f.cost} onChange={e => set('cost', e.target.value)} placeholder="0"
-              style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', color: '#12161C', fontSize: 16, outline: 'none' }} />
-          </div>
-        </Field>
         <div className="stack" style={{ gap: 10 }}>
           <span className="eyebrow">RSVPs close</span>
           <Seg options={[2, 6, 24].map(h => ({ value: h, label: `${h}h before` }))} value={f.closes} onChange={v => set('closes', v)} />
           <span className="note">Sign-ups lock automatically, so you have the final count in time to book.</span>
         </div>
-        <button className="btn" onClick={create} disabled={busy}>{busy ? 'Creating…' : 'Create match & get link'}</button>
+        <button className="btn" onClick={create} disabled={busy}>{busy ? 'Creating…' : 'Create plan & get link'}</button>
       </div>
     </Frame>
   )

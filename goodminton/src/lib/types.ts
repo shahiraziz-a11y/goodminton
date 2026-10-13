@@ -1,6 +1,6 @@
 export type Role = 'anon' | 'outsider' | 'organiser' | 'confirmed' | 'waitlist'
 
-export type VisiblePlayer = { id: string; full_name: string; promoted: boolean; joined_at: string }
+export type VisiblePlayer = { id: string; full_name: string; promoted: boolean; joined_at: string; is_guest?: boolean }
 export type HiddenPlayer = { hidden: true }
 export type MatchPlayer = VisiblePlayer | HiddenPlayer
 
@@ -14,6 +14,7 @@ export type MatchView = {
   title: string
   size: 4 | 8
   venue: string
+  status: 'planning' | 'booked'
   starts_at: string
   duration_min: number
   rsvp_close_hours: number
@@ -31,7 +32,7 @@ export type MatchView = {
   confirmed_count: number
   waitlist_count: number
   players: MatchPlayer[]
-  waitlist: { id: string; full_name: string }[] | null
+  waitlist: { id: string; full_name: string; is_guest?: boolean }[] | null
   expenses: Expense[] | null
   settlements: Settlement[] | null
   people: Record<string, string> | null
@@ -44,6 +45,7 @@ export type HomeMatch = {
   size: 4 | 8
   starts_at: string
   timezone: string
+  status: 'planning' | 'booked'
   past: boolean
   locked: boolean
   confirmed_count: number
@@ -64,3 +66,17 @@ export type LedgerMatch = {
 }
 
 export const isVisible = (p: MatchPlayer): p is VisiblePlayer => !('hidden' in p)
+
+export type PlayerOption = { id: string; full_name: string; is_guest: boolean }
+
+export type Game = {
+  id: string
+  played_on: string
+  match_title: string | null
+  created_by: string
+  a: [string, string]
+  b: [string, string]
+  winner: 'a' | 'b'
+}
+
+export type Leaderboard = { games: Game[]; people: Record<string, string> }
