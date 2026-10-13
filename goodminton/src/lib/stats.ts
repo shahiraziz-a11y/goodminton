@@ -25,6 +25,7 @@ export type PairStats = { ids: [string, string]; w: number; l: number }
 export function bestPairs(games: Game[], limit = 3): PairStats[] {
   const pm: Record<string, PairStats> = {}
   for (const g of games) {
+    if (g.a.length < 2) continue // singles have no partnerships
     for (const [pair, won] of [[g.a, g.winner === 'a'], [g.b, g.winner === 'b']] as const) {
       const ids = [...pair].sort() as [string, string]
       const k = ids.join('|')

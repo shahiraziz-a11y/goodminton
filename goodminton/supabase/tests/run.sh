@@ -14,4 +14,5 @@ psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f auth_stub.sql >/dev/null
 for f in ../migrations/*.sql; do psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f "$f" >/dev/null; done
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f match_flow.sql
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f games_flow.sql
+psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f edit_flow.sql
 ./concurrency.sh "$@" -d "$DB"

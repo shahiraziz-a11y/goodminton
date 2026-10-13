@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { balancedOrder, bestPairs, standings } from './stats.ts'
 import type { Game } from './types.ts'
 
-const G = (a: [string, string], b: [string, string], winner: 'a' | 'b'): Game =>
+const G = (a: string[], b: string[], winner: 'a' | 'b'): Game =>
   ({ id: Math.random().toString(), played_on: '2026-10-11', match_title: null, created_by: 'r', a, b, winner })
 
 // Newest first.
@@ -29,6 +29,12 @@ test('best pairs count wins together regardless of order', () => {
   const p = bestPairs([G(['x', 'y'], ['p', 'q'], 'a'), G(['y', 'x'], ['p', 'q'], 'a'), G(['p', 'q'], ['x', 'z'], 'a')])
   assert.deepEqual(p[0], { ids: ['x', 'y'], w: 2, l: 0 })
   assert.deepEqual(p[1].ids, ['p', 'q'])
+})
+
+test('singles count in standings but not in pairs', () => {
+  const s = [G(['x'], ['y'], 'a')]
+  assert.deepEqual(standings(s).map(t => [t.id, t.w]), [['x', 1], ['y', 0]])
+  assert.equal(bestPairs(s).length, 0)
 })
 
 test('balance pairs strongest with weakest', () => {

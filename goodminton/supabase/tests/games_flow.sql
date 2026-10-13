@@ -35,7 +35,7 @@ select id as stranger from public.profiles where email = 'stranger@games.test' \
 -- A plan: no venue, no courts, no cost yet.
 select pg_temp.as_user('org');
 set role authenticated;
-select public.create_match('Friday plan', 4, '', '', '', (now() + interval '3 days')::date, '20:00', 'Asia/Dubai', 90, 6, 0) as slug \gset
+select public.create_match('Friday plan', 'doubles', 1, '', (now() + interval '3 days')::date, '20:00', 'Asia/Dubai', 90, 6) as slug \gset
 reset role;
 select id as mid from public.matches where slug = :'slug' \gset
 set role authenticated;
@@ -114,7 +114,7 @@ select pg_temp.check(pg_temp.fails(format('select public.log_game(%L, %L, %L, %L
 select pg_temp.as_user('org');
 select public.log_game(null, :'org', :'raj', :'ben', :'eve', 'a') as g2 \gset
 select pg_temp.check(pg_temp.fails(format('select public.log_game(null, %L, %L, %L, %L, %L)', :'org', :'raj', :'ben', :'stranger', 'a')) like '%played with%', 'no strangers in home games');
-select pg_temp.check(pg_temp.fails(format('select public.log_game(null, %L, %L, %L, %L, %L)', :'org', :'org', :'ben', :'eve', 'a')) like '%games_check%', 'four different players');
+select pg_temp.check(pg_temp.fails(format('select public.log_game(null, %L, %L, %L, %L, %L)', :'org', :'org', :'ben', :'eve', 'a')) like '%players_check%', 'four different players');
 
 -- Leaderboard visibility.
 select public.get_leaderboard() as lb \gset
@@ -139,7 +139,7 @@ select pg_temp.check((select count(*) from public.games where created_by = :'org
 -- Plan of 4 opens a second court before booking: no cost until booked, then both courts.
 select pg_temp.as_user('org');
 set role authenticated;
-select public.create_match('Big plan', 4, '', '', '', (now() + interval '4 days')::date, '19:00', 'Asia/Dubai', 60, 2, 0) as s2 \gset
+select public.create_match('Big plan', 'doubles', 1, '', (now() + interval '4 days')::date, '19:00', 'Asia/Dubai', 60, 2) as s2 \gset
 reset role; select id as m2 from public.matches where slug = :'s2' \gset
 set role authenticated;
 select public.add_player(:'m2', id, null) from unnest(array[:'ann', :'ben', :'cat', :'dan', :'eve']::uuid[]) id;

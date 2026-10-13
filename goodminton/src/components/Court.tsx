@@ -49,9 +49,9 @@ export function CourtCard({ label, num, dateLabel, start, end, slots, tbc, ghost
         </div>
       </div>
       <div className={`court${ghost ? ' ghost' : ''}`}>
-        <Half slots={[slots[0], slots[1]]} side="left" />
+        <Half slots={slots.slice(0, slots.length / 2)} side="left" />
         <div className="court-net" />
-        <Half slots={[slots[2], slots[3]]} side="right" />
+        <Half slots={slots.slice(slots.length / 2)} side="right" />
       </div>
       {footer && <span style={{ fontSize: 13, color: '#D9622B', fontWeight: 600 }}>{footer}</span>}
     </div>

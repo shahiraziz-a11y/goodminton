@@ -1,21 +1,21 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Frame, Seg } from '@/components/Chrome'
+import { FormatPicker } from '@/components/FormatPicker'
 import { useFeedback } from '@/components/Feedback'
 import { nextSaturday } from '@/lib/format'
 import { createClient } from '@/lib/supabase/client'
 import { CURRENCY } from '@/lib/supabase/env'
-
-const big: CSSProperties = { fontFamily: 'var(--display)', fontSize: 44, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1 }
+import type { Format } from '@/lib/types'
 
 export function CreateMatch() {
   const router = useRouter()
   const { flash } = useFeedback()
   const [busy, setBusy] = useState(false)
   const [f, setF] = useState({
-    size: 4 as 4 | 8, title: 'Saturday Doubles', venue: '',
+    format: 'doubles' as Format, courts: 1, title: 'Saturday Doubles', venue: '',
     date: nextSaturday(), time: '19:00', duration: 90, closes: 6,
   })
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF(x => ({ ...x, [k]: v }))
@@ -24,9 +24,9 @@ export function CreateMatch() {
     if (!f.title.trim()) return flash('Add a match name')
     setBusy(true)
     const { data, error } = await createClient().rpc('create_match', {
-      p_title: f.title.trim(), p_size: f.size, p_venue: f.venue.trim(), p_courts: '', p_parking: '',
+      p_title: f.title.trim(), p_format: f.format, p_court_count: f.courts, p_venue: f.venue.trim(),
       p_date: f.date, p_time: f.time, p_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      p_duration_min: f.duration, p_rsvp_close_hours: f.closes, p_court_cost: 0, p_currency: CURRENCY,
+      p_duration_min: f.duration, p_rsvp_close_hours: f.closes, p_currency: CURRENCY,
     })
     if (error) { setBusy(false); return flash(error.message) }
     router.push(`/m/${data}/share`)
@@ -36,22 +36,7 @@ export function CreateMatch() {
     <Frame back="/">
       <div className="screen" style={{ gap: 24 }}>
         <span className="h1">New match</span>
-        <div className="stack" style={{ gap: 10 }}>
-          <span className="eyebrow">Players</span>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            {([[4, '1 court · doubles'], [8, '2 courts · doubles']] as const).map(([n, sub]) => {
-              const sel = f.size === n
-              return (
-                <button key={n} type="button" onClick={() => set('size', n)} aria-pressed={sel} className={sel ? '' : 'card'}
-                  style={{ borderRadius: 22, border: 'none', background: sel ? '#0E9F7E' : '#fff', padding: 18, textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <span style={{ ...big, color: sel ? '#fff' : '#12161C' }}>{n}</span>
-                  <span style={{ fontSize: 12, fontWeight: sel ? 800 : 700, color: sel ? '#fff' : '#5B6573' }}>{sub}</span>
-                </button>
-              )
-            })}
-          </div>
-          <span className="note">Fixed sizes, so nobody sits out on rotation.</span>
-        </div>
+        <FormatPicker format={f.format} courts={f.courts} onChange={(format, courts) => setF(x => ({ ...x, format, courts }))} />
         <Field label="Match name"><input className="field" value={f.title} onChange={e => set('title', e.target.value)} maxLength={80} /></Field>
         <Field label="Venue · optional" hint="Not booked yet? Leave it. You'll add the venue, court and cost when you book.">
           <input className="field" value={f.venue} onChange={e => set('venue', e.target.value)} placeholder="e.g. Al Quoz Sports Hall" maxLength={120} />

@@ -1,3 +1,6 @@
+export type Format = 'singles' | 'doubles'
+export const perCourt = (f: Format) => (f === 'singles' ? 2 : 4)
+
 export type Role = 'anon' | 'outsider' | 'organiser' | 'confirmed' | 'waitlist'
 
 export type VisiblePlayer = { id: string; full_name: string; promoted: boolean; joined_at: string; is_guest?: boolean }
@@ -14,6 +17,8 @@ export type MatchView = {
   title: string
   size: 4 | 8
   venue: string
+  format: Format
+  court_count: number
   status: 'planning' | 'booked'
   starts_at: string
   duration_min: number
@@ -33,6 +38,10 @@ export type MatchView = {
   waitlist_count: number
   players: MatchPlayer[]
   waitlist: { id: string; full_name: string; is_guest?: boolean }[] | null
+  /** Removed after the court was booked; still in the cost split until waived. */
+  liable: { id: string; full_name: string }[] | null
+  /** Everyone who shares the costs: confirmed players plus liable ones. */
+  split_ids: string[] | null
   expenses: Expense[] | null
   settlements: Settlement[] | null
   people: Record<string, string> | null
@@ -45,6 +54,8 @@ export type HomeMatch = {
   size: 4 | 8
   starts_at: string
   timezone: string
+  format: Format
+  court_count: number
   status: 'planning' | 'booked'
   past: boolean
   locked: boolean
@@ -74,8 +85,9 @@ export type Game = {
   played_on: string
   match_title: string | null
   created_by: string
-  a: [string, string]
-  b: [string, string]
+  /** 1 player (singles) or 2 (doubles) per side. */
+  a: string[]
+  b: string[]
   winner: 'a' | 'b'
 }
 
