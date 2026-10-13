@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies, headers } from 'next/headers'
-import { SUPABASE_KEY, SUPABASE_URL } from './env'
+import { SITE_URL, SUPABASE_KEY, SUPABASE_URL } from './env'
 
 export async function createClient() {
   const cookieStore = await cookies()
@@ -31,8 +31,9 @@ export async function getUser() {
   return { supabase, user }
 }
 
-/** Public origin of this request, for share links. */
+/** Public origin for share links: the official address if set, else this request's. */
 export async function siteOrigin() {
+  if (SITE_URL) return SITE_URL
   const h = await headers()
   const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost:3000'
   const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https')

@@ -45,7 +45,7 @@ Not built yet (they're in the design): the "Still in?" check-in, weekly repeat, 
 5. **Environment:** `cp .env.example .env.local` and fill in the project URL and the anon (publishable) key.
 6. **Run it:** `npm install && npm run dev`.
 
-Deploying on Vercel: set the project root to `goodminton/` and add the same environment variables.
+Deploying on Vercel: set the project root to `goodminton/` and add the same environment variables. Also set `NEXT_PUBLIC_SITE_URL` to the app's public address (e.g. `https://goodminton-bice.vercel.app`). Share links and link previews then always use it, and Vercel's other `*.vercel.app` addresses for production redirect to it. Those other addresses sit behind Vercel's login wall, so WhatsApp can't show previews for them.
 
 ## Push alerts setup
 
