@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { Bars, Frame, GoogleButton } from '@/components/Chrome'
 import { useFeedback } from '@/components/Feedback'
-import { InstallCard } from '@/components/Pwa'
+import { AlertsCard, InstallCard } from '@/components/Pwa'
 import { LogResultSheet } from '@/components/LogResultSheet'
 import { Sheet } from '@/components/Sheet'
 import { fmtDate, fmtTime, money } from '@/lib/format'
@@ -58,6 +58,7 @@ export function Home({ meId, meName, matches, ledger }: { meId: string; meName: 
           <button className="btn" aria-label="New match or log a game" onClick={() => setChoosing(true)} style={{ width: 52, height: 52, borderRadius: 18, fontSize: 28, fontWeight: 600, lineHeight: 1, padding: 0 }}>+</button>
         </div>
         <InstallCard />
+        <AlertsCard />
         <BalanceCard total={bal.total} currency={ledger[0]?.currency ?? CURRENCY} />
         <div className="stack" style={{ gap: 16 }}>
           <span className="eyebrow">Matches</span>
