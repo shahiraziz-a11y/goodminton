@@ -57,9 +57,6 @@ export function Home({ meId, meName, matches, ledger }: { meId: string; meName: 
           </div>
           <button className="btn" aria-label="New match or log a game" onClick={() => setChoosing(true)} style={{ width: 52, height: 52, borderRadius: 18, fontSize: 28, fontWeight: 600, lineHeight: 1, padding: 0 }}>+</button>
         </div>
-        <InstallCard />
-        <AlertsCard />
-        <BalanceCard total={bal.total} currency={ledger[0]?.currency ?? CURRENCY} />
         <div className="stack" style={{ gap: 16 }}>
           <span className="eyebrow">Matches</span>
           {matches.map(m => <MatchRow key={m.slug} m={m} />)}
@@ -69,6 +66,9 @@ export function Home({ meId, meName, matches, ledger }: { meId: string; meName: 
             </div>
           )}
         </div>
+        <BalanceRow total={bal.total} currency={ledger[0]?.currency ?? CURRENCY} />
+        <InstallCard />
+        <AlertsCard />
       </div>
       <Sheet open={choosing} onClose={() => setChoosing(false)} title="What's up?">
         <Link href="/new" className="card sheet-option" onClick={() => setChoosing(false)}>
@@ -91,14 +91,15 @@ export function Home({ meId, meName, matches, ledger }: { meId: string; meName: 
   )
 }
 
-export function BalanceCard({ total, currency }: { total: number; currency: string }) {
+/** Slim money summary under the matches; hidden when everyone is square. */
+function BalanceRow({ total, currency }: { total: number; currency: string }) {
+  if (Math.abs(total) < 0.01) return null
+  const owed = total > 0
   return (
-    <Link href="/balances" className="card" style={{ padding: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <span className="stack" style={{ gap: 6 }}>
-        <span className="eyebrow">{total >= 0 ? 'You are owed' : 'You owe'}</span>
-        <span className="display" style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-.02em' }}>{money(Math.abs(total), currency)}</span>
-      </span>
-      <span className="panel" style={{ width: 42, height: 42, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0E7F66', fontSize: 20 }}>›</span>
+    <Link href="/balances" className="panel" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 14 }}>
+      <span style={{ flex: 1, fontSize: 13, color: '#5B6573' }}>{owed ? 'You are owed' : 'You owe'}</span>
+      <span style={{ fontSize: 14, fontWeight: 800, color: owed ? '#0E7F66' : '#E0245E' }}>{money(Math.abs(total), currency)}</span>
+      <span style={{ color: '#8A94A3', fontSize: 16 }}>›</span>
     </Link>
   )
 }

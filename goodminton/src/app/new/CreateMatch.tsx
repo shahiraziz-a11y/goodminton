@@ -33,7 +33,7 @@ export function CreateMatch() {
   }
 
   return (
-    <Frame back="/">
+    <Frame back="/" tab="home">
       <div className="screen" style={{ gap: 24 }}>
         <span className="h1">New match</span>
         <FormatPicker format={f.format} courts={f.courts} onChange={(format, courts) => setF(x => ({ ...x, format, courts }))} />
