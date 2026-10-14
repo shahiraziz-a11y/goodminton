@@ -15,6 +15,23 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(to, 308)
     }
   }
+  // Supabase sends people back to its Site URL (with ?code=…) when our callback isn't in
+  // its redirect allow list. Don't drop that sign-in: finish it at the callback.
+  const { pathname, searchParams } = request.nextUrl
+  if (searchParams.has('code') && pathname !== '/auth/callback') {
+    const to = new URL('/auth/callback', request.url)
+    to.searchParams.set('code', searchParams.get('code')!)
+    to.searchParams.set('next', pathname.startsWith('/') && !pathname.startsWith('//') ? pathname : '/')
+    return NextResponse.redirect(to)
+  }
+  // Same for errors Supabase or Google send back (e.g. access denied).
+  if (searchParams.has('error_description') && pathname !== '/') {
+    const to = new URL('/', request.url)
+    to.searchParams.set('error', 'signin')
+    to.searchParams.set('reason', searchParams.get('error_description')!)
+    return NextResponse.redirect(to)
+  }
+
   let response = NextResponse.next({ request })
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_KEY, {
     cookies: {

@@ -6,13 +6,17 @@ import type { ReactNode } from 'react'
 import { Avatar } from './Avatar'
 import type { Person } from '@/lib/people'
 
-/** Page frame: frosted top bar, content, optional bottom tabs. */
+/**
+ * Page frame: frosted top bar, content, and the bottom tabs whenever someone is signed in
+ * (`me` or `tab` given). `tab` picks the highlighted tab; anything else counts as Matches.
+ */
 export function Frame({ children, back, me, tab }: { children: ReactNode; back?: string; me?: Person | null; tab?: 'home' | 'board' | 'balances' }) {
+  const tabs = !!tab || !!me
   return (
-    <div className={`app${tab ? ' has-tabs' : ''}`}>
+    <div className={`app${tabs ? ' has-tabs' : ''}`}>
       <TopBar back={back} me={me} />
       <main>{children}</main>
-      {tab && <TabBar active={tab} />}
+      {tabs && <TabBar active={tab ?? 'home'} />}
     </div>
   )
 }

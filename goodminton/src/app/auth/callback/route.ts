@@ -7,10 +7,15 @@ export async function GET(request: NextRequest) {
   const next = searchParams.get('next') ?? '/'
   // Only same-site paths, so the link can't bounce people elsewhere.
   const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/'
+  let reason = searchParams.get('error_description') ?? 'No sign-in code came back from Google.'
   if (code) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) return NextResponse.redirect(`${origin}${safeNext}`)
+    reason = error.message
   }
-  return NextResponse.redirect(`${origin}/?error=signin`)
+  const back = new URL('/', origin)
+  back.searchParams.set('error', 'signin')
+  back.searchParams.set('reason', reason)
+  return NextResponse.redirect(back)
 }
