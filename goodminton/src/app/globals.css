@@ -108,6 +108,12 @@ input[type=date]::-webkit-calendar-picker-indicator, input[type=time]::-webkit-c
 .pill-btn { height: 30px; padding: 0 12px; border-radius: 99px; font-size: 12px; font-weight: 800; border: none; background: var(--field); color: var(--ink); }
 .pill-btn.go { background: var(--green); color: #fff; }
 .pill-btn.outline { border: 1px solid rgba(14,127,102,.45); background: transparent; color: var(--green-ink); }
+/* The row of actions under the court cards */
+.row-btn {
+  flex: 1; height: 44px; border-radius: 14px; border: none; background: var(--field); color: #0E7F66;
+  font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; white-space: nowrap;
+}
+.row-btn.go { background: var(--green); color: #fff; font-weight: 800; }
 .badge { flex: none; font-size: 11px; font-weight: 800; padding: 6px 10px; border-radius: 99px; }
 
 .field {
@@ -176,10 +182,10 @@ input[type=date]::-webkit-calendar-picker-indicator, input[type=time]::-webkit-c
 
 /* Responsiveness: no double-tap zoom delay, and every tap gets instant visual feedback. */
 a, button, label, input { touch-action: manipulation; }
-.btn, .btn-2, .chip-btn, .pill-btn, .icon-btn, .link-btn, .seg button, a.card, button.card, .tab {
+.btn, .btn-2, .row-btn, .chip-btn, .pill-btn, .icon-btn, .link-btn, .seg button, a.card, button.card, .tab {
   transition: transform .08s ease, opacity .08s ease, filter .08s ease;
 }
-.btn:active, .btn-2:active, .chip-btn:active, .pill-btn:active, .icon-btn:active, .seg button:active, a.card:active, button.card:active {
+.btn:active, .btn-2:active, .row-btn:active, .chip-btn:active, .pill-btn:active, .icon-btn:active, .seg button:active, a.card:active, button.card:active {
   transform: scale(.97); filter: brightness(.94);
 }
 .link-btn:active, .tab:active { opacity: .55; }

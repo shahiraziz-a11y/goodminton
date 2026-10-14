@@ -29,5 +29,8 @@ export default async function Page({ params }: Params) {
   const supabase = await createClient()
   const { data } = await supabase.rpc('get_match', { p_slug: slug })
   if (!data) notFound()
-  return <MatchScreen m={data as MatchView} link={`${await siteOrigin()}/m/${slug}`} />
+  const m = data as MatchView
+  // Decided on the server so the first render matches; the screen refreshes itself while open.
+  const started = Date.now() >= new Date(m.starts_at).getTime()
+  return <MatchScreen m={m} link={`${await siteOrigin()}/m/${slug}`} started={started} />
 }

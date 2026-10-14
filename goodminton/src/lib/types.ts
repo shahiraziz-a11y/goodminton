@@ -63,10 +63,17 @@ export type HomeMatch = {
   format: Format
   court_count: number
   status: 'planning' | 'booked'
+  duration_min: number
+  started: boolean
   past: boolean
   locked: boolean
   confirmed_count: number
   waitlist_count: number
+  /** Court numbers, for confirmed players only. */
+  courts: string | null
+  games_count: number
+  /** First names of the winners of the latest game logged in this match. */
+  last_winners: string | null
 }
 
 export type LedgerMatch = {
