@@ -9,24 +9,25 @@ import { CourtCard, type Slot } from '@/components/Court'
 import { useFeedback } from '@/components/Feedback'
 import { FormatPicker } from '@/components/FormatPicker'
 import { LogResultSheet } from '@/components/LogResultSheet'
-import { PlayerPicker, loadPlayers } from '@/components/PlayerPicker'
+import { loadPlayers } from '@/components/PlayerPicker'
 import { AlertsCard } from '@/components/Pwa'
 import { Sheet } from '@/components/Sheet'
 import { balancedOrder, shuffled, standings } from '@/lib/stats'
-import { courtNumber, joinedAfter, localDateTime, money } from '@/lib/format'
+import { courtNumber, localDateTime, money } from '@/lib/format'
 import { matchLabels, whatsappUrl } from '@/lib/match'
 import { person, type Person } from '@/lib/people'
 import { transfersOf } from '@/lib/split'
 import { createClient, signInWithGoogle } from '@/lib/supabase/client'
-import { isVisible, perCourt, type Format, type Leaderboard, type MatchView } from '@/lib/types'
+import { isVisible, perCourt, type Format, type Leaderboard, type MatchView, type PlayerOption } from '@/lib/types'
 
-export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
+export function MatchScreen({ m, link, started }: { m: MatchView; link: string; started: boolean }) {
   const router = useRouter()
   const { flash, celebrate } = useFeedback()
   const [busy, setBusy] = useState(false)
   const [booking, setBooking] = useState(false)
   const [editing, setEditing] = useState(false)
   const [adding, setAdding] = useState(false)
+  const [mySpot, setMySpot] = useState(false)
   const [logCourt, setLogCourt] = useState<number | null>(null)
 
   // Keep the count live while the page is open.
@@ -65,12 +66,18 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
   const per = perCourt(m.format)
   const nCourts = m.court_count
   const singles = m.format === 'singles'
+  const booked = m.status === 'booked'
+  const canAdd = conf && !m.past
+  const canRemove = (id: string) => !m.past && id !== m.organiser.id && (isOrg || m.added_by[id] === m.viewer.id)
   const courts = Array.from({ length: nCourts }, (_, c) => {
     const group = m.players.slice(c * per, c * per + per)
     const slots: Slot[] = Array.from({ length: per }, (_, i) => {
       const p = group[i]
-      if (!p) return { kind: 'empty' }
-      return isVisible(p) ? { kind: 'named', p: person(p.id, p.full_name) } : { kind: 'anon' }
+      if (!p) return canAdd ? { kind: 'add', onTap: () => setAdding(true) } : { kind: 'empty' }
+      if (!isVisible(p)) return { kind: 'anon' }
+      const pp = person(p.id, p.full_name)
+      if (p.id === m.viewer.id) return { kind: 'mine', p: pp, onTap: !isOrg && !m.past ? () => setMySpot(true) : undefined }
+      return { kind: 'named', p: pp, onRemove: canRemove(p.id) ? () => remove(p.id, pp.first) : undefined }
     })
     return {
       label: `Court ${c + 1} of ${nCourts}`,
@@ -80,12 +87,20 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
       players: group.filter(isVisible).map(p => person(p.id, p.full_name)),
     }
   })
-  const booked = m.status === 'booked'
   const showGhost = nCourts < 4 && full && wc > 0 && !m.past
-  const ghostSlots: Slot[] = Array.from({ length: per }, (_, i) =>
-    i < Math.min(wc, per) ? { kind: 'wait', name: isOrg && m.waitlist ? m.waitlist[i].full_name : 'Waiting' } : { kind: 'empty' })
+  const ghostSlots: Slot[] = Array.from({ length: per }, (_, i) => {
+    const w = isOrg ? m.waitlist?.[i] : undefined
+    if (i >= Math.min(wc, per)) return { kind: 'empty' }
+    return w ? { kind: 'wait', name: w.full_name, onRemove: () => remove(w.id, w.full_name.split(' ')[0]) } : { kind: 'wait', name: 'Waiting' }
+  })
   const cn = Math.floor(m.confirmed_count / per)
   const finalLine = `Final: ${m.confirmed_count} players · ${cn} court${cn === 1 ? '' : 's'}`
+
+  function remove(id: string, first: string) {
+    if (!confirm(`Remove ${first} from this match?${booked ? ` The court is booked: if nobody takes the spot, ${first} still owes their share.` : ''}`)) return
+    rpc<{ promoted: string | null; still_owes: boolean }>('remove_player', { p_match: m.id, p_user: id }, r =>
+      flash([`${first} removed`, r.still_owes ? 'still owes their share' : '', r.promoted ? `${r.promoted.split(' ')[0]} promoted` : ''].filter(Boolean).join(' · ')))
+  }
 
   const courtCards = courts.map((c, i) => <CourtCard key={i} label={c.label} num={c.num} tbc={c.tbc} slots={c.slots} dateLabel={L.dateLabel} start={L.start} end={L.end} />)
 
@@ -119,11 +134,7 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
     )
   }
 
-  function remove(id: string, first: string) {
-    if (!confirm(`Remove ${first} from this match?${booked ? ` The court is booked: if nobody takes the spot, ${first} still owes their share.` : ''}`)) return
-    rpc<{ promoted: string | null; still_owes: boolean }>('remove_player', { p_match: m.id, p_user: id }, r =>
-      flash([`${first} removed`, r.still_owes ? 'still owes their share' : '', r.promoted ? `${r.promoted.split(' ')[0]} promoted` : ''].filter(Boolean).join(' · ')))
-  }
+  const canLog = started && courts.some(c => c.players.length === per)
   const members = [...m.players.filter(isVisible).map(p => p.id), ...(m.waitlist ?? []).map(p => p.id)]
 
   const tr = canSee ? transfersOf(m.split_ids ?? m.players.filter(isVisible).map(p => p.id), m.expenses ?? [], m.settlements ?? []) : null
@@ -160,6 +171,13 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
           <span className="display" style={{ fontSize: 14, fontWeight: 700 }}>{m.confirmed_count}/{m.size} confirmed</span>
           <span style={{ fontSize: 13, color: '#5B6573', fontWeight: 600 }}>{wc ? `${wc} waiting` : 'No waitlist'}</span>
         </div>
+        {canSee && (canLog || !started || canAdd) && (
+          <div style={{ display: 'flex', gap: 8, marginTop: -8 }}>
+            {canLog && <button className="row-btn go" onClick={() => setLogCourt(Math.max(0, courts.findIndex(c => c.players.length === per)))}>+ Log result</button>}
+            {!started && <Link className="row-btn go" href={`/m/${m.slug}/share`}>Share match link</Link>}
+            {canAdd && <button className="row-btn" onClick={() => setAdding(true)}>+ Add player</button>}
+          </div>
+        )}
 
         {outsider && m.locked && !m.past && (
           <div className="card stack" style={{ padding: 20, gap: 6 }}>
@@ -183,26 +201,6 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
               <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.45 }}>Join the waitlist. You&apos;ll move up if someone drops out, or play on a second court once 4 are waiting.</span>
             </div>
             <button className="btn red" disabled={busy} onClick={() => rpc<{ position: number }>('join_match', { p_match: m.id }, r => flash(`You're #${r.position} on the waitlist`))}>Join waitlist</button>
-          </div>
-        )}
-        {conf && (
-          <div style={{ borderRadius: 22, padding: 2, background: '#0E9F7E' }}>
-            <div style={{ borderRadius: 20, background: '#E6EAF0', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-              <span style={{ width: 40, height: 40, borderRadius: '50%', background: '#0E9F7E', color: '#fff', fontSize: 18, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>✓</span>
-              <div className="stack" style={{ flex: 1, gap: 2, minWidth: 0 }}>
-                <span className="display" style={{ fontSize: 16, fontWeight: 700 }}>{m.past ? 'You played' : "You're in"}</span>
-                <span style={{ fontSize: 13, color: '#5B6573' }}>{L.timeRange}</span>
-              </div>
-              {!isOrg && !m.past && booked && (
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#8A94A3', textAlign: 'right', maxWidth: 110, lineHeight: 1.3 }}>Court booked · ask {org.first} to drop out</span>
-              )}
-              {!isOrg && !m.past && !booked && (
-                <button className="link-btn" disabled={busy} onClick={() => {
-                  if (!confirm(m.locked ? 'Sign-ups are closed. Drop out anyway? Your spot goes to the waitlist.' : 'Drop out? Your spot goes to the next person waiting.')) return
-                  rpc<{ promoted: string | null }>('leave_match', { p_match: m.id }, r => flash(r.promoted ? `Spot passed to ${r.promoted.split(' ')[0]}` : 'You dropped out'))
-                }}>Drop out</button>
-              )}
-            </div>
           </div>
         )}
         {role === 'waitlist' && (
@@ -310,16 +308,15 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
               </div>
             )}
 
-            {courts.some(c => c.players.length === per) && (
+            {!singles && !m.past && courts.some(c => c.players.length === per) && (
               <div className="card stack" style={{ padding: '18px 20px', gap: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                  <span className="eyebrow">{singles ? 'Results' : 'Doubles pairs'}</span>
-                  <span style={{ fontSize: 12, color: '#5B6573' }}>{singles ? 'Left vs right' : 'Left pair vs right pair'}</span>
+                  <span className="eyebrow">Doubles pairs</span>
+                  <span style={{ fontSize: 12, color: '#5B6573' }}>Left pair vs right pair</span>
                 </div>
                 {courts.map((c, i) => c.players.length === per && (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ flex: 1, fontSize: 13, fontWeight: 800, minWidth: 0 }}>{nCourts > 1 ? `Court ${i + 1}` : 'Court'}</span>
-                    {!singles && <>
                     <button className="chip-btn" disabled={busy} onClick={() => rpc('set_court_order', { p_match: m.id, p_ids: shuffled(c.players.map(p => p.id)) }, () => flash('Pairs shuffled'))}>Shuffle</button>
                     <button className="chip-btn" disabled={busy} onClick={async () => {
                       const { data, error } = await createClient().rpc('get_leaderboard')
@@ -327,84 +324,53 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
                       const order = balancedOrder(c.players.map(p => p.id), standings((data as Leaderboard).games))
                       rpc('set_court_order', { p_match: m.id, p_ids: order }, () => flash('Balanced by win rate'))
                     }}>Balance</button>
-                    </>}
-                    <button className="chip-btn go" onClick={() => setLogCourt(i)}>Log result</button>
                   </div>
                 ))}
               </div>
             )}
 
-            <div className="card stack" style={{ padding: '8px 20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0 4px' }}>
-                <span className="eyebrow">Squad</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#0E7F66' }}>{m.courts}</span>
+            {(m.liable?.length ?? 0) > 0 && (
+              <div className="card stack" style={{ padding: '18px 20px', gap: 10 }}>
+                <div className="stack" style={{ gap: 3 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: '#D9622B' }}>REMOVED AFTER BOOKING · STILL OWE A SHARE</span>
+                  <span style={{ fontSize: 12, color: '#5B6573' }}>Cleared automatically when someone takes the spot.</span>
+                </div>
+                {m.liable!.map(p => (
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{p.full_name}</span>
+                    {isOrg && <button className="chip-btn" style={{ height: 30 }} disabled={busy} onClick={() => {
+                      if (!confirm(`Waive ${p.full_name.split(' ')[0]}'s share? The others split it instead.`)) return
+                      rpc('waive_share', { p_match: m.id, p_user: p.id }, () => flash('Share waived'))
+                    }}>Waive</button>}
+                  </div>
+                ))}
               </div>
-              {m.players.filter(isVisible).map(p => {
-                const pp = person(p.id, p.full_name)
-                const payer = m.billed_to?.[p.id]
-                const tag = [p.id === m.organiser.id ? 'Organiser' : '', p.id === m.viewer.id ? 'You' : '',
-                  p.is_guest ? `Guest · ${payer === m.viewer.id ? 'you pay' : `${personOf(payer ?? '').first} pays`} their share` : ''].filter(Boolean).join(' · ') || 'Confirmed'
-                const joined = p.id === m.organiser.id ? 'Created' : p.promoted ? 'Promoted' : joinedAfter(p.joined_at, m.created_at)
-                return (
-                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0' }}>
-                    <Avatar p={pp} />
-                    <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
-                      <span style={{ fontSize: 15, fontWeight: 700 }}>{pp.name}</span>
-                      <span style={{ fontSize: 12, color: '#5B6573' }}>{tag}</span>
-                    </span>
-                    <span style={{ fontSize: 12, color: '#8A94A3', fontWeight: 600 }}>{joined}</span>
-                    {!m.past && p.id !== m.organiser.id && (isOrg || m.added_by[p.id] === m.viewer.id) && <RemoveButton name={pp.first} onRemove={() => remove(p.id, pp.first)} busy={busy} />}
-                  </div>
-                )
-              })}
-              {wc > 0 && (
-                <div className="stack" style={{ borderTop: '1px solid rgba(0,0,0,.07)', padding: '14px 0 8px', gap: 10 }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: '#D6336C' }}>WAITLIST · {wc}</span>
-                  {m.waitlist?.map((p, i) => (
-                    <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span className="display" style={{ width: 26, fontSize: 13, fontWeight: 700, color: '#D6336C' }}>{i + 1}</span>
-                      <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{p.full_name}</span>
-                      {!m.past && <RemoveButton name={p.full_name.split(' ')[0]} onRemove={() => remove(p.id, p.full_name.split(' ')[0])} busy={busy} />}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {(m.liable?.length ?? 0) > 0 && (
-                <div className="stack" style={{ borderTop: '1px solid rgba(0,0,0,.07)', padding: '14px 0 8px', gap: 10 }}>
-                  <div className="stack" style={{ gap: 3 }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: '#D9622B' }}>REMOVED AFTER BOOKING · STILL OWE A SHARE</span>
-                    <span style={{ fontSize: 12, color: '#5B6573' }}>Cleared automatically when someone takes the spot.</span>
-                  </div>
-                  {m.liable!.map(p => (
-                    <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{p.full_name}</span>
-                      {isOrg && <button className="chip-btn" style={{ height: 30 }} disabled={busy} onClick={() => {
-                        if (!confirm(`Waive ${p.full_name.split(' ')[0]}'s share? The others split it instead.`)) return
-                        rpc('waive_share', { p_match: m.id, p_user: p.id }, () => flash('Share waived'))
-                      }}>Waive</button>}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {conf && !m.past && (
-                <button onClick={() => setAdding(true)} style={{ height: 44, margin: '6px 0 12px', borderRadius: 14, border: 'none', background: '#F1F3F6', color: '#0E7F66', fontWeight: 700, fontSize: 14 }}>+ Add player</button>
-              )}
-            </div>
+            )}
 
             <CostSplit m={m} tr={tr} fmt={fmt} personOf={personOf} busy={busy} rpc={rpc} link={link} />
-
-            <Link href={`/m/${m.slug}/share`} className="btn-2">Share match link</Link>
           </>
         )}
       </div>
 
       {isOrg && <BookSheet open={booking} onClose={() => setBooking(false)} m={m} rpc={rpc} />}
       {isOrg && <EditSheet open={editing} onClose={() => setEditing(false)} m={m} rpc={rpc} />}
-      {conf && (
-        <Sheet open={adding} onClose={() => setAdding(false)} title="Add player" subtitle={full ? 'The match is full, so they go on the waitlist.' : `${m.size - m.confirmed_count} spot${m.size - m.confirmed_count === 1 ? '' : 's'} left`}>
-          <PlayerPicker exclude={members} newLabel="Add guest (no login, you pay their share)"
-            onPick={p => { setAdding(false); rpc<{ status: string }>('add_player', { p_match: m.id, p_user: p.id, p_name: null }, r => flash(`${p.full_name.split(' ')[0]} added${r.status === 'waitlist' ? ' to the waitlist' : ''}`)) }}
-            onNew={name => { setAdding(false); rpc<{ status: string }>('add_player', { p_match: m.id, p_user: null, p_name: name }, r => { loadPlayers(true); flash(`${name} added as a guest${r.status === 'waitlist' ? ' · waitlist' : ''}`) }) }} />
+      {conf && <AddPlayerSheet open={adding} onClose={() => setAdding(false)} m={m} exclude={members} inviteMsg={L.inviteMsg} rpc={rpc} />}
+      {conf && !isOrg && (
+        <Sheet open={mySpot} onClose={() => setMySpot(false)} title="You're in" subtitle={`${m.title} · ${L.dateLabel}, ${L.timeRange}`}>
+          {booked ? (
+            <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.45 }}>
+              The court&apos;s booked, so you&apos;re locked in. Ask {org.first} if you need to drop out. You&apos;ll still owe your share.
+            </span>
+          ) : (
+            <div className="stack" style={{ gap: 12 }}>
+              <button className="btn-2" style={{ color: '#E0245E', fontWeight: 800 }} disabled={busy} onClick={() => {
+                if (m.locked && !confirm('Sign-ups are closed. Drop out anyway?')) return
+                setMySpot(false)
+                rpc<{ promoted: string | null }>('leave_match', { p_match: m.id }, r => flash(r.promoted ? `Spot passed to ${r.promoted.split(' ')[0]}` : 'You dropped out'))
+              }}>Drop out</button>
+              <span style={{ fontSize: 13, color: '#5B6573', textAlign: 'center' }}>Your spot goes to the next person on the waitlist.</span>
+            </div>
+          )}
         </Sheet>
       )}
       {canSee && (
@@ -425,6 +391,7 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
   const [exp, setExp] = useState({ label: '', amount: '' })
   const meId = m.viewer.id
   const isOrg = m.viewer.role === 'organiser'
+  const guests = Object.entries(m.billed_to ?? {})
 
   if (!m.split_ready) {
     return (
@@ -475,6 +442,11 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
       ) : (
         <button onClick={() => { setExp({ label: '', amount: '' }); setAdding(true) }} style={{ height: 46, borderRadius: 16, border: 'none', background: '#F1F3F6', color: '#0E7F66', fontWeight: 700, fontSize: 14 }}>+ Add expense</button>
       )}
+      {guests.length > 0 && (
+        <span style={{ fontSize: 12, color: '#5B6573', lineHeight: 1.45 }}>
+          {guests.map(([g, payer]) => `${personOf(g).name}'s share goes to ${payer === meId ? 'you' : personOf(payer).first}`).join(' · ')}
+        </span>
+      )}
       <div className="stack" style={{ gap: 10 }}>
         <span className="eyebrow">Settle up</span>
         {tr.out.map(t => {
@@ -514,13 +486,6 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
         {tr.out.length === 0 && <span className="note">All square.</span>}
       </div>
     </div>
-  )
-}
-
-function RemoveButton({ name, onRemove, busy }: { name: string; onRemove: () => void; busy: boolean }) {
-  return (
-    <button aria-label={`Remove ${name}`} disabled={busy} onClick={onRemove}
-      style={{ border: 'none', background: '#F1F3F6', color: '#8A94A3', width: 28, height: 28, borderRadius: 10, fontSize: 16, lineHeight: 1, flex: 'none' }}>×</button>
   )
 }
 
@@ -626,6 +591,72 @@ function EditSheet({ open, onClose, m, rpc }: { open: boolean; onClose: () => vo
           p_date: f.date, p_time: f.time, p_duration_min: f.duration, p_rsvp_close_hours: f.closes,
         }, r => flash(['Match updated', r.demoted ? `${r.demoted} moved to waitlist` : '', r.promoted ? `${r.promoted} promoted` : ''].filter(Boolean).join(' · ')))
       }}>Save changes</button>
+    </Sheet>
+  )
+}
+
+/** Add someone by name (a guest whose share you pay) or from the people you've played with. */
+function AddPlayerSheet({ open, onClose, m, exclude, inviteMsg, rpc }: {
+  open: boolean; onClose: () => void; m: MatchView; exclude: string[]; inviteMsg: string; rpc: Rpc
+}) {
+  const { flash } = useFeedback()
+  const [all, setAll] = useState<PlayerOption[] | null>(null)
+  const [name, setName] = useState('')
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) { setWasOpen(open); if (open) setName('') }
+  useEffect(() => { if (open) loadPlayers().then(setAll, e => flash(e.message)) }, [open, flash])
+
+  const left = m.size - m.confirmed_count
+  const term = name.trim().toLowerCase()
+  const known = (all ?? []).filter(p => !exclude.includes(p.id))
+  const list = known.filter(p => !term || p.full_name.toLowerCase().includes(term))
+  const exact = known.find(p => p.full_name.toLowerCase() === term)
+  const where = (status: string) => (status === 'waitlist' ? ' · waitlist' : ' · confirmed')
+
+  function addKnown(p: PlayerOption) {
+    onClose()
+    rpc<{ status: string }>('add_player', { p_match: m.id, p_user: p.id, p_name: null }, r => flash(`${p.full_name.split(' ')[0]} added${where(r.status)}`))
+  }
+  function addByName() {
+    const n = name.trim()
+    if (!n) return flash('Type a name')
+    if (exact) return addKnown(exact)
+    onClose()
+    rpc<{ status: string }>('add_player', { p_match: m.id, p_user: null, p_name: n }, r => { loadPlayers(true); flash(`${n} added as a guest${where(r.status)}`) })
+  }
+
+  return (
+    <Sheet open={open} onClose={onClose} title="Add player">
+      <span style={{ fontSize: 13, color: '#5B6573', marginTop: -8 }}>
+        {left > 0 ? `${left} spot${left > 1 ? 's' : ''} free · they're confirmed straight away` : 'Match is full · they go on the waitlist'}
+      </span>
+      <form className="stack" style={{ gap: 8 }} onSubmit={e => { e.preventDefault(); addByName() }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Name" maxLength={60} aria-label="Player name"
+            style={{ flex: 1, minWidth: 0, height: 48, borderRadius: 14, border: 'none', boxShadow: '0 0 0 1px #E6E9EE', padding: '0 14px', fontSize: 15, color: '#12161C', background: '#fff', outline: 'none' }} />
+          <button type="submit" style={{ height: 48, padding: '0 18px', borderRadius: 14, border: 'none', background: '#0E9F7E', color: '#fff', fontWeight: 800, fontSize: 14, flex: 'none' }}>Add</button>
+        </div>
+        <span className="note" style={{ fontSize: 12 }}>Not on Goodminton? They&apos;re added as your guest and you pay their share.</span>
+      </form>
+      {list.length > 0 && (
+        <div className="stack" style={{ gap: 4 }}>
+          <span className="eyebrow">Played with before</span>
+          {list.map(p => {
+            const pp = person(p.id, p.full_name)
+            return (
+              <button key={p.id} type="button" onClick={() => addKnown(p)}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', border: 'none', background: 'none', textAlign: 'left', width: '100%', color: '#12161C' }}>
+                <Avatar p={pp} size={36} font={13} />
+                <span style={{ flex: 1, fontSize: 15, fontWeight: 700 }}>{p.full_name}</span>
+                {p.is_guest && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', color: '#8A94A3' }}>GUEST</span>}
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#0E7F66' }}>+ Add</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+      {all === null && <span className="note">Loading players…</span>}
+      <a className="btn-2" href={whatsappUrl(inviteMsg)} target="_blank" rel="noreferrer" style={{ height: 46, color: '#128A5C' }}>Send invite link on WhatsApp</a>
     </Sheet>
   )
 }

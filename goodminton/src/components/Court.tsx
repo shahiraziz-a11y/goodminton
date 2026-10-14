@@ -3,10 +3,14 @@ import { LockIcon } from './Chrome'
 import type { Person } from '@/lib/people'
 
 export type Slot =
-  | { kind: 'named'; p: Person }
+  | { kind: 'named'; p: Person; onRemove?: () => void }
+  /** The viewer's own spot; tapping it opens their options. */
+  | { kind: 'mine'; p: Person; onTap?: () => void }
   | { kind: 'anon' }
-  | { kind: 'wait'; name: string }
+  | { kind: 'wait'; name: string; onRemove?: () => void }
   | { kind: 'empty' }
+  /** An open spot the viewer can fill by adding someone. */
+  | { kind: 'add'; onTap: () => void }
 
 type Props = {
   label: string
@@ -74,18 +78,44 @@ function SlotView({ s }: { s: Slot }) {
       return (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px', minWidth: 0 }}>
           <Avatar p={s.p} size={26} font={10} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.15, overflow: 'hidden' }}>{s.p.name}</span>
+          <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1.15, overflow: 'hidden' }}>{s.p.name}</span>
+          {s.onRemove && <RemoveX name={s.p.first} onClick={s.onRemove} />}
         </div>
+      )
+    case 'mine':
+      return (
+        <button type="button" onClick={s.onTap} disabled={!s.onTap} aria-label={s.onTap ? 'Your spot: options' : 'Your spot'}
+          style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px', minWidth: 0, border: 'none', background: 'rgba(14,159,126,.38)', color: '#fff', cursor: s.onTap ? 'pointer' : 'default', textAlign: 'left' }}>
+          <Avatar p={s.p} size={26} font={10} ring />
+          <span style={{ flex: 1, fontSize: 12, fontWeight: 800, lineHeight: 1.15, overflow: 'hidden' }}>You</span>
+          {s.onTap && <span style={{ fontSize: 14, opacity: .8 }}>›</span>}
+        </button>
+      )
+    case 'add':
+      return (
+        <button type="button" onClick={s.onTap} aria-label="Add a player"
+          style={{ ...center, gap: 6, border: 'none', background: 'transparent', color: 'rgba(255,255,255,.75)', cursor: 'pointer' }}>
+          <span style={{ width: 22, height: 22, borderRadius: '50%', border: '1.5px dashed rgba(255,255,255,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, lineHeight: 1 }}>+</span>
+          <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.14em' }}>ADD</span>
+        </button>
       )
     case 'anon':
       return <div style={center}><span style={{ width: 26, height: 26, borderRadius: '50%', background: '#0E9F7E', boxShadow: '0 0 14px rgba(255,255,255,.45)' }} /></div>
     case 'wait':
       return (
         <div style={{ ...center, padding: '0 8px' }}>
-          <span style={{ fontSize: 11, fontWeight: 800, padding: '5px 9px', borderRadius: 99, background: '#E5484D', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{s.name}</span>
+          <span style={{ fontSize: 11, fontWeight: 800, padding: '5px 9px', borderRadius: 99, background: '#E5484D', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{s.name}</span>
+          {s.onRemove && <span style={{ marginLeft: 6 }}><RemoveX name={s.name.split(' ')[0]} onClick={s.onRemove} /></span>}
         </div>
       )
     default:
       return <div style={center}><span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.14em', color: 'rgba(255,255,255,.45)' }}>OPEN</span></div>
   }
+}
+
+function RemoveX({ name, onClick }: { name: string; onClick: () => void }) {
+  return (
+    <button type="button" aria-label={`Remove ${name}`} onClick={onClick}
+      style={{ width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.18)', color: '#fff', fontSize: 14, lineHeight: 1, padding: 0, flex: 'none', cursor: 'pointer' }}>×</button>
+  )
 }

@@ -9,10 +9,10 @@ import { LogResultSheet } from '@/components/LogResultSheet'
 import { Sheet } from '@/components/Sheet'
 import { fmtDate, fmtTime, money } from '@/lib/format'
 import { person } from '@/lib/people'
-import { balancesFor } from '@/lib/split'
+import { balancesFor, transfersOf } from '@/lib/split'
 import { signInWithGoogle } from '@/lib/supabase/client'
 import { CURRENCY } from '@/lib/supabase/env'
-import type { HomeMatch, LedgerMatch } from '@/lib/types'
+import { perCourt, type HomeMatch, type LedgerMatch } from '@/lib/types'
 
 export function SignIn({ failed, reason }: { failed?: boolean; reason?: string }) {
   const { flash } = useFeedback()
@@ -51,9 +51,11 @@ export function Home({ meId, meName, matches, ledger }: { meId: string; meName: 
   const bal = balancesFor(meId, ledger)
   const [choosing, setChoosing] = useState(false)
   const [logging, setLogging] = useState(false)
+  const groups = groupMatches(matches)
+  const bySlug = new Map(ledger.map(l => [l.slug, l]))
   return (
     <Frame me={me} tab="home">
-      <div className="screen">
+      <div className="screen" style={{ gap: 22 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <div className="stack" style={{ gap: 6 }}>
             <span style={{ fontSize: 14, color: '#5B6573', fontWeight: 600 }}>Hey {me.first}</span>
@@ -61,15 +63,12 @@ export function Home({ meId, meName, matches, ledger }: { meId: string; meName: 
           </div>
           <button className="btn" aria-label="New match or log a game" onClick={() => setChoosing(true)} style={{ width: 52, height: 52, borderRadius: 18, fontSize: 28, fontWeight: 600, lineHeight: 1, padding: 0 }}>+</button>
         </div>
-        <div className="stack" style={{ gap: 16 }}>
-          <span className="eyebrow">Matches</span>
-          {matches.map(m => <MatchRow key={m.slug} m={m} />)}
-          {!matches.length && (
-            <div className="card" style={{ padding: 28, textAlign: 'center', color: '#5B6573', fontSize: 14 }}>
-              No matches yet. Tap + to organise one, or open a link from a friend to join theirs.
-            </div>
-          )}
-        </div>
+        {groups.map(g => <Group key={g.kind} g={g} ledger={bySlug} />)}
+        {!matches.length && (
+          <div className="card" style={{ padding: 28, textAlign: 'center', color: '#5B6573', fontSize: 14 }}>
+            No matches yet. Tap + to organise one, or open a link from a friend to join theirs.
+          </div>
+        )}
         <BalanceRow total={bal.total} currency={ledger[0]?.currency ?? CURRENCY} />
         <InstallCard />
         <AlertsCard />
@@ -95,6 +94,51 @@ export function Home({ meId, meName, matches, ledger }: { meId: string; meName: 
   )
 }
 
+type Kind = 'live' | 'upcoming' | 'completed' | 'abandoned'
+const GROUPS: { kind: Kind; label: string; color: string; glow?: string; show: number }[] = [
+  { kind: 'live', label: 'In progress', color: '#E5484D', glow: '0 0 0 3px rgba(229,72,77,.2)', show: 99 },
+  { kind: 'upcoming', label: 'Upcoming', color: '#0E9F7E', show: 99 },
+  { kind: 'completed', label: 'Completed', color: '#5B6573', show: 3 },
+  { kind: 'abandoned', label: 'Abandoned', color: '#C5CDD8', show: 2 },
+]
+type GroupData = (typeof GROUPS)[number] & { items: HomeMatch[] }
+
+/** Started without the court ever being marked booked counts as called off. */
+function kindOf(m: HomeMatch): Kind {
+  if (!m.started) return 'upcoming'
+  if (m.status !== 'booked') return 'abandoned'
+  return m.past ? 'completed' : 'live'
+}
+
+function groupMatches(matches: HomeMatch[]): GroupData[] {
+  const t = (m: HomeMatch) => new Date(m.starts_at).getTime()
+  return GROUPS.map(g => {
+    const items = matches.filter(m => kindOf(m) === g.kind)
+    items.sort((a, b) => (g.kind === 'upcoming' || g.kind === 'live' ? t(a) - t(b) : t(b) - t(a)))
+    return { ...g, items }
+  }).filter(g => g.items.length)
+}
+
+function Group({ g, ledger }: { g: GroupData; ledger: Map<string, LedgerMatch> }) {
+  const [all, setAll] = useState(false)
+  const shown = all ? g.items : g.items.slice(0, g.show)
+  return (
+    <div className="stack" style={{ gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: g.color, boxShadow: g.glow, flex: 'none' }} />
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase' }}>{g.label}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#8A94A3' }}>{g.items.length}</span>
+      </div>
+      {shown.map(m => <MatchRow key={m.slug} m={m} kind={g.kind} money={ledger.get(m.slug)} />)}
+      {g.items.length > shown.length && (
+        <button className="link-btn" style={{ alignSelf: 'flex-start', color: '#0E7F66', padding: '0 4px' }} onClick={() => setAll(true)}>
+          Show {g.items.length - shown.length} more
+        </button>
+      )}
+    </div>
+  )
+}
+
 /** Slim money summary under the matches; hidden when everyone is square. */
 function BalanceRow({ total, currency }: { total: number; currency: string }) {
   if (Math.abs(total) < 0.01) return null
@@ -108,28 +152,63 @@ function BalanceRow({ total, currency }: { total: number; currency: string }) {
   )
 }
 
-function MatchRow({ m }: { m: HomeMatch }) {
+const tagStyle = { fontSize: 10, fontWeight: 800, letterSpacing: '.08em' } as const
+
+function MatchRow({ m, kind, money: led }: { m: HomeMatch; kind: Kind; money?: LedgerMatch }) {
   const full = m.confirmed_count >= m.size
-  const status = m.past ? 'Played' : full ? `Full${m.waitlist_count ? ` · +${m.waitlist_count}` : ''}` : `${m.confirmed_count}/${m.size} in`
-  const badge = m.past ? { background: '#F1F3F6', color: '#5B6573', fontWeight: 700 } : full ? { background: '#E5484D', color: '#fff' } : { background: '#0E9F7E', color: '#fff' }
+  const venue = m.venue || 'Venue TBC'
+  const when = `${fmtDate(m.starts_at, m.timezone)}, ${fmtTime(m.starts_at, m.timezone)}`
+  let sub = `${when} · ${venue}`, tag = '', tagColor = '#8A94A3', note: string | null = null
+  let status: string, badge: { background: string; color: string }
+
+  if (kind === 'live') {
+    sub = `Started ${fmtTime(m.starts_at, m.timezone)} · ${venue}`
+    tag = m.courts ? m.courts.toUpperCase() : '✓ COURT BOOKED'
+    tagColor = '#0E7F66'
+    status = 'Live'
+    badge = { background: '#E5484D', color: '#fff' }
+    note = m.games_count ? `${m.games_count} game${m.games_count > 1 ? 's' : ''} logged · tap to log more.` : 'Tap to log results as you play.'
+  } else if (kind === 'upcoming') {
+    tag = m.status === 'booked' ? '✓ COURT BOOKED' : 'PLANNING'
+    tagColor = m.status === 'booked' ? '#0E7F66' : '#8A94A3'
+    status = full ? `Full${m.waitlist_count ? ` · +${m.waitlist_count}` : ''}` : `${m.confirmed_count}/${m.size} in`
+    badge = full ? { background: '#E5484D', color: '#fff' } : { background: '#0E9F7E', color: '#fff' }
+  } else if (kind === 'completed') {
+    if (led) {
+      const tr = transfersOf(led.players, led.expenses, led.settlements)
+      const settled = tr.out.every(t => t.settled)
+      tag = `${money(tr.share, led.currency).toUpperCase()} EACH · ${settled ? 'SETTLED' : 'SETTLING UP'}`
+      tagColor = settled ? '#0E7F66' : '#D6336C'
+    } else tag = 'NO COST'
+    status = 'Played'
+    badge = { background: '#F1F3F6', color: '#5B6573' }
+    if (m.last_winners) note = m.games_count > 1 ? `${m.last_winners} won the last game · ${m.games_count} games logged` : `${m.last_winners} won`
+  } else {
+    tag = 'NO COST'
+    status = 'Called off'
+    badge = { background: '#F1F3F6', color: '#8A94A3' }
+    const per = perCourt(m.format)
+    note = m.confirmed_count < per ? `Only ${m.confirmed_count} of ${m.size} signed up by the deadline` : 'The court was never booked'
+  }
+
   return (
-    <Link href={`/m/${m.slug}`} className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <Link href={`/m/${m.slug}`} className="card" style={{
+      padding: 20, display: 'flex', flexDirection: 'column', gap: 16,
+      boxShadow: kind === 'live' ? '0 0 0 2px #0E9F7E' : undefined, opacity: kind === 'abandoned' ? 0.7 : 1,
+    }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, width: '100%' }}>
         <div className="stack" style={{ gap: 5, minWidth: 0 }}>
-          <span className="display" style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-.01em', lineHeight: 1.2 }}>{m.title}</span>
-          <span style={{ fontSize: 13, color: '#5B6573' }}>{fmtDate(m.starts_at, m.timezone)}, {fmtTime(m.starts_at, m.timezone)} · {m.venue || 'Venue TBC'}</span>
-          {!m.past && (
-            <div style={{ display: 'flex', gap: 8 }}>
-              {m.status === 'booked'
-                ? <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', color: '#0E7F66' }}>✓ COURT BOOKED</span>
-                : <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', color: '#8A94A3' }}>PLANNING</span>}
-              {m.locked && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', color: '#D9622B' }}>LOCKED</span>}
-            </div>
-          )}
+          <span className="display" style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-.01em', lineHeight: 1.2, textDecoration: kind === 'abandoned' ? 'line-through' : 'none' }}>{m.title}</span>
+          <span style={{ fontSize: 13, color: '#5B6573' }}>{sub}</span>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {tag && <span style={{ ...tagStyle, color: tagColor }}>{tag}</span>}
+            {kind === 'upcoming' && m.locked && <span style={{ ...tagStyle, color: '#D9622B' }}>LOCKED</span>}
+          </div>
         </div>
         <span className="badge" style={badge}>{status}</span>
       </div>
-      <Bars n={m.confirmed_count} size={m.size} />
+      {kind === 'upcoming' && <Bars n={m.confirmed_count} size={m.size} />}
+      {note && <span style={{ fontSize: 13, color: '#4A5462', lineHeight: 1.4, borderTop: '1px solid rgba(0,0,0,.06)', paddingTop: 12 }}>{note}</span>}
     </Link>
   )
 }

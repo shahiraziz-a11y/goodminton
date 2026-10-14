@@ -110,6 +110,14 @@ select pg_temp.check(pg_temp.fails(format('select public.log_game(%L, %L, %L, %L
 select pg_temp.as_user('ben');
 select pg_temp.check(pg_temp.fails(format('select public.log_game(%L, %L, %L, %L, %L, %L)', :'mid', :'org', :'dan', :'ann', :'cat', 'a')) like '%Only players%', 'waitlist cannot log');
 
+-- Home cards: latest winners, not started; court numbers only for confirmed players.
+select x as card from jsonb_array_elements(public.my_matches()) x where x ->> 'slug' = :'slug' \gset
+select pg_temp.check((:'card'::jsonb ->> 'last_winners') = 'Ann & Cat' and not (:'card'::jsonb ->> 'started')::boolean
+                 and (:'card'::jsonb ->> 'games_count')::int = 1 and (:'card'::jsonb ->> 'courts') is null, 'waitlist home card');
+select pg_temp.as_user('ann');
+select x as card from jsonb_array_elements(public.my_matches()) x where x ->> 'slug' = :'slug' \gset
+select pg_temp.check((:'card'::jsonb ->> 'courts') = 'Court 4', 'confirmed see court numbers on home');
+
 -- Logging from home: anyone in my circle, guests included; never strangers.
 select pg_temp.as_user('org');
 select public.log_game(null, :'org', :'raj', :'ben', :'eve', 'a') as g2 \gset
