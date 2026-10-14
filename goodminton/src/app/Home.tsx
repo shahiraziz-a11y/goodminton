@@ -14,7 +14,7 @@ import { signInWithGoogle } from '@/lib/supabase/client'
 import { CURRENCY } from '@/lib/supabase/env'
 import type { HomeMatch, LedgerMatch } from '@/lib/types'
 
-export function SignIn({ failed }: { failed?: boolean }) {
+export function SignIn({ failed, reason }: { failed?: boolean; reason?: string }) {
   const { flash } = useFeedback()
   const [busy, setBusy] = useState(false)
   return (
@@ -27,7 +27,11 @@ export function SignIn({ failed }: { failed?: boolean }) {
             Games of 4 or 8, never in between. Share one link, the first in are confirmed, and the rest wait for a second court.
           </span>
         </div>
-        {failed && <span className="note" style={{ color: '#E0245E' }}>Sign-in didn&apos;t complete. Try again.</span>}
+        {failed && (
+          <span className="note" style={{ color: '#E0245E' }}>
+            Sign-in didn&apos;t complete. Try again.{reason ? <><br /><span style={{ color: '#8A94A3' }}>Reason: {reason.slice(0, 160)}</span></> : null}
+          </span>
+        )}
         <GoogleButton busy={busy} onClick={async () => {
           setBusy(true)
           const { error } = await signInWithGoogle('/')
