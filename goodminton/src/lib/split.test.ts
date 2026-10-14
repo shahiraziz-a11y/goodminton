@@ -45,6 +45,13 @@ test('balances across matches', () => {
   assert.equal(lines.length, 2)
 })
 
+test('a sponsor pays their own share and their guest\'s', () => {
+  // Ann added guest Raj, so the split lists Ann twice.
+  const { out } = transfersOf(['olly', 'ann', 'ann', 'bob'], [{ amount: 120, paid_by: 'olly' }])
+  assert.equal(out.find(t => t.from === 'ann')?.amount, 60)
+  assert.equal(out.find(t => t.from === 'bob')?.amount, 30)
+})
+
 test('formatting', () => {
   const iso = '2026-10-15T16:00:00Z' // 8 PM in Dubai
   assert.equal(fmtDate(iso, 'Asia/Dubai'), 'Thu 15 Oct')

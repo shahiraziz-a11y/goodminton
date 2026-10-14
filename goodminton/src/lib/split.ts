@@ -13,7 +13,7 @@ export function transfersOf(players: string[], expenses: Expense[], settlements:
   const total = expenses.reduce((s, e) => s + Number(e.amount), 0)
   const share = total / n
   const net: Record<string, number> = {}
-  players.forEach(p => (net[p] = -share))
+  players.forEach(p => (net[p] = (net[p] ?? 0) - share)) // a sponsor appears once per share they carry
   expenses.forEach(e => (net[e.paid_by] = (net[e.paid_by] ?? 0) + Number(e.amount)))
 
   const deb = Object.entries(net).filter(([, v]) => v < -0.005).map(([k, v]) => ({ k, v: -v }))

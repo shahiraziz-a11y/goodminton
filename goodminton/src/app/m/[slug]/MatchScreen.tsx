@@ -341,7 +341,9 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
               </div>
               {m.players.filter(isVisible).map(p => {
                 const pp = person(p.id, p.full_name)
-                const tag = [p.id === m.organiser.id ? 'Organiser' : '', p.id === m.viewer.id ? 'You' : '', p.is_guest ? 'Guest' : ''].filter(Boolean).join(' · ') || 'Confirmed'
+                const payer = m.billed_to?.[p.id]
+                const tag = [p.id === m.organiser.id ? 'Organiser' : '', p.id === m.viewer.id ? 'You' : '',
+                  p.is_guest ? `Guest · ${payer === m.viewer.id ? 'you pay' : `${personOf(payer ?? '').first} pays`} their share` : ''].filter(Boolean).join(' · ') || 'Confirmed'
                 const joined = p.id === m.organiser.id ? 'Created' : p.promoted ? 'Promoted' : joinedAfter(p.joined_at, m.created_at)
                 return (
                   <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0' }}>
@@ -351,7 +353,7 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
                       <span style={{ fontSize: 12, color: '#5B6573' }}>{tag}</span>
                     </span>
                     <span style={{ fontSize: 12, color: '#8A94A3', fontWeight: 600 }}>{joined}</span>
-                    {isOrg && !m.past && p.id !== m.organiser.id && <RemoveButton name={pp.first} onRemove={() => remove(p.id, pp.first)} busy={busy} />}
+                    {!m.past && p.id !== m.organiser.id && (isOrg || m.added_by[p.id] === m.viewer.id) && <RemoveButton name={pp.first} onRemove={() => remove(p.id, pp.first)} busy={busy} />}
                   </div>
                 )
               })}
@@ -384,7 +386,7 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
                   ))}
                 </div>
               )}
-              {isOrg && !m.past && (
+              {conf && !m.past && (
                 <button onClick={() => setAdding(true)} style={{ height: 44, margin: '6px 0 12px', borderRadius: 14, border: 'none', background: '#F1F3F6', color: '#0E7F66', fontWeight: 700, fontSize: 14 }}>+ Add player</button>
               )}
             </div>
@@ -398,9 +400,9 @@ export function MatchScreen({ m, link }: { m: MatchView; link: string }) {
 
       {isOrg && <BookSheet open={booking} onClose={() => setBooking(false)} m={m} rpc={rpc} />}
       {isOrg && <EditSheet open={editing} onClose={() => setEditing(false)} m={m} rpc={rpc} />}
-      {isOrg && (
+      {conf && (
         <Sheet open={adding} onClose={() => setAdding(false)} title="Add player" subtitle={full ? 'The match is full, so they go on the waitlist.' : `${m.size - m.confirmed_count} spot${m.size - m.confirmed_count === 1 ? '' : 's'} left`}>
-          <PlayerPicker exclude={members} newLabel="Add guest (no login)"
+          <PlayerPicker exclude={members} newLabel="Add guest (no login, you pay their share)"
             onPick={p => { setAdding(false); rpc<{ status: string }>('add_player', { p_match: m.id, p_user: p.id, p_name: null }, r => flash(`${p.full_name.split(' ')[0]} added${r.status === 'waitlist' ? ' to the waitlist' : ''}`)) }}
             onNew={name => { setAdding(false); rpc<{ status: string }>('add_player', { p_match: m.id, p_user: null, p_name: name }, r => { loadPlayers(true); flash(`${name} added as a guest${r.status === 'waitlist' ? ' · waitlist' : ''}`) }) }} />
         </Sheet>
@@ -423,6 +425,19 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
   const [exp, setExp] = useState({ label: '', amount: '' })
   const meId = m.viewer.id
   const isOrg = m.viewer.role === 'organiser'
+
+  if (!m.split_ready) {
+    return (
+      <div className="card stack" style={{ padding: 20, gap: 6 }}>
+        <span className="eyebrow">Cost split</span>
+        <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.45 }}>
+          {m.status === 'booked'
+            ? `Starts once the court cost is entered.${isOrg ? ' Add it under Edit details.' : ''}`
+            : `Starts once the court is booked and its cost is entered.${isOrg ? '' : ` ${personOf(m.organiser.id).first} will add it.`}`}
+        </span>
+      </div>
+    )
+  }
 
   return (
     <div className="card stack" style={{ padding: 20, gap: 16 }}>

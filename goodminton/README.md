@@ -8,6 +8,8 @@ Built from the Claude Design handoff (`../project/Courtside Light.dc.html`; the 
 
 - **Plan a match, book later:** create a plan with singles or doubles on 1–4 courts, date, time, duration and RSVP close; the venue is optional. Once enough people are in, the organiser taps **Court booked** and adds the venue, court numbers, parking and cost per court. When more courts were planned than people turned up, book only the courts you can fill (e.g. 1 of 2 with 5 signed up): the first players are confirmed, the unbooked court is dropped, and the rest go to the front of the waitlist. **Open another court** brings it back once enough are waiting. The court cost (per court × booked courts) then joins the split, and confirmed players are locked in: only the organiser can remove someone. Anyone removed after booking **still owes their share while their spot stays empty**. When someone takes the spot (waitlist, a new join, or an added player), the debt clears; the organiser can also tap Waive.
 - **Edit a match:** the organiser can change the name, singles or doubles, courts, date, time, duration and RSVP close, plus booking details and cost. With fewer spots, the latest joiners (never the organiser) move to the front of the waitlist; with more, the waitlist moves up.
+- **Anyone in a match can add players:** the organiser or any confirmed player can add people they've played with, or a name-only guest. A guest's share of the costs is billed to whoever added them; a signed-up player always pays their own. The organiser, or whoever added a player, can remove them.
+- **Costs split only once booked:** nothing is split, and no expenses can be added, until the court is booked and its cost entered. Balances only include those matches.
 - **Organiser overrides:** remove any player, even after booking (the next on the waitlist moves up). Add players from your circle, or add a **guest** by name only, for friends without a Google login.
 - **Leaderboard:** a podium, standings (wins, losses, win %, streak), best pairs and recent games.
 - **Log a result:** tap the pair that won. From the home **+** button you pick any 4 players you've played with, guests included. From a match, each full court has Shuffle, Balance (pairs by win rate) and Log result. Whoever logged a result can remove it.
@@ -34,7 +36,7 @@ Not built yet (they're in the design): the "Still in?" check-in, weekly repeat, 
 ## Setup
 
 1. **Supabase project:** create one at supabase.com.
-2. **Database:** run each file in `supabase/migrations/` in order (`0001_…` to `0006_…`), either in the SQL editor or with `supabase db push`. When upgrading an existing project, run only the files you haven't run yet, and run them **before** deploying the new code.
+2. **Database:** run each file in `supabase/migrations/` in order (`0001_…` to `0007_…`), either in the SQL editor or with `supabase db push`. When upgrading an existing project, run only the files you haven't run yet, and run them **before** deploying the new code.
 3. **Google sign-in:**
    - In Google Cloud Console, create an OAuth client of type "Web application".
    - Add the authorised redirect URI `https://<your-project>.supabase.co/auth/v1/callback`.
