@@ -78,7 +78,7 @@ select pg_temp.check(pg_temp.fails(format('select public.remove_player(%L, %L)',
 select pg_temp.as_user('org');
 select public.remove_player(:'mid', :'ben') ->> 'promoted' as p \gset
 select pg_temp.check(:'p' = 'Dan', 'dan promoted on removal');
-select pg_temp.check(pg_temp.fails(format('select public.remove_player(%L, %L)', :'mid', :'org')) like '%yourself%', 'cannot remove self');
+select pg_temp.check(pg_temp.fails(format('select public.remove_player(%L, %L)', :'mid', :'org')) like '%organiser can%', 'cannot remove the organiser');
 
 -- Organiser adds a guest (name only) and someone from their circle.
 select public.add_player(:'mid', null, 'Uncle Raj') as j \gset

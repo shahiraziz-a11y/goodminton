@@ -42,6 +42,12 @@ export type MatchView = {
   liable: { id: string; full_name: string }[] | null
   /** Everyone who shares the costs: confirmed players plus liable ones. */
   split_ids: string[] | null
+  /** True once the court is booked with a cost: only then are costs split. */
+  split_ready: boolean
+  /** Guest (no login) → who pays their share. */
+  billed_to: Record<string, string> | null
+  /** Player → who added them (when someone else did). */
+  added_by: Record<string, string>
   expenses: Expense[] | null
   settlements: Settlement[] | null
   people: Record<string, string> | null
