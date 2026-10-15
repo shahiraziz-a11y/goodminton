@@ -88,7 +88,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
     return {
       court: c,
       label: `Court ${c} of ${nCourts}`,
-      num: canSee && ic?.booked && ic.label ? courtNumber(ic.label, 0) : null,
+      num: canSee && ic?.booked && ic.label ? (/\d/.test(ic.label) ? courtNumber(ic.label, 0) : ic.label) : null,
       tbc: canSee && !ic?.booked,
       slots,
       count: group.length,

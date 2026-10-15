@@ -18,4 +18,7 @@ psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f edit_flow.sql
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f push_flow.sql
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f sponsor_flow.sql
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f court_booking.sql
+psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f court_booking_more.sql
 ./concurrency.sh "$@" -d "$DB"
+./concurrency_booking.sh "$@" -d "$DB"
+./upgrade_0009.sh "$@"

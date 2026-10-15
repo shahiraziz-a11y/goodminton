@@ -66,3 +66,28 @@ test('formatting', () => {
   assert.equal(initials('Rohan Kapoor'), 'RK')
   assert.equal(initials('cher'), 'CH')
 })
+
+test('two courts booked by two players, seven share', () => {
+  // Ann booked court 1 (100), Dan booked court 2 (100). 7 players: 200 / 7 each.
+  const players = ['org', 'ann', 'ben', 'cat', 'dan', 'eve', 'fay']
+  const { out, share, total } = transfersOf(players, [{ amount: 100, paid_by: 'ann' }, { amount: 100, paid_by: 'dan' }])
+  assert.equal(total, 200)
+  assert.equal(Math.round(share * 100) / 100, 28.57)
+  const owedTo = (to: string) => Math.round(out.filter(t => t.to === to).reduce((s, t) => s + t.amount, 0) * 100) / 100
+  // Each booker gets back what they paid minus their own share.
+  assert.equal(owedTo('ann'), 71.43)
+  assert.equal(owedTo('dan'), 71.43)
+  assert.ok(out.every(t => t.from !== 'ann' && t.from !== 'dan'), 'bookers owe nothing')
+  assert.equal(out.filter(t => t.from === 'org').length >= 1, true)
+})
+
+test('booked one court, the other court pays nothing yet', () => {
+  // Only court 1's four are in the split; Dan (court 2) booked court 1 and is owed it all.
+  const { out } = transfersOf(['org', 'ann', 'ben', 'cat'], [{ amount: 100, paid_by: 'dan' }])
+  assert.deepEqual(out.map(t => [t.from, t.to, t.amount]), [['org', 'dan', 25], ['ann', 'dan', 25], ['ben', 'dan', 25], ['cat', 'dan', 25]])
+})
+
+test('court number from a booked court label', () => {
+  assert.equal(courtNumber('Court 3', 0), '03')
+  assert.equal(courtNumber('Court 12', 0), '12')
+})

@@ -466,7 +466,9 @@ begin
   select * into m from public.matches where id = new.match_id;
   if public.match_past(m) then return null; end if;
   for r in select user_id from public.match_players where match_id = m.id and status = 'confirmed' and court = new.court loop
-    perform public.notify(r.user_id, m, 'booked', 'Court booked 🏸',
+    perform public.notify(r.user_id, m, 'booked',
+      case when r.user_id = m.organiser_id and new.booked_by <> m.organiser_id
+           then public.first_name(new.booked_by) || ' booked a court' else 'Court booked 🏸' end,
       m.title || ' · ' || public.when_label(m) || ' · ' || m.venue || ' · ' || new.label);
   end loop;
   if not exists (select 1 from public.match_players where match_id = m.id and user_id = m.organiser_id and court = new.court) then
@@ -706,7 +708,9 @@ language sql stable security definer set search_path = public as $$
   ) order by m.starts_at desc), '[]'::jsonb)
   from public.matches m
   where public.split_ready(m.id)
-    and (m.organiser_id = auth.uid() or auth.uid() = any (public.split_ids(m.id)));
+    and (m.organiser_id = auth.uid() or auth.uid() = any (public.split_ids(m.id))
+         -- Paid for something (e.g. booked a court) and then dropped out: still owed.
+         or exists (select 1 from public.expenses e where e.match_id = m.id and e.paid_by = auth.uid()));
 $$;
 
 create or replace function public.add_expense(p_match uuid, p_label text, p_amount numeric) returns void
