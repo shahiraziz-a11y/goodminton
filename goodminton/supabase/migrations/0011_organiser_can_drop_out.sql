@@ -174,3 +174,35 @@ begin
                        where mp.match_id = m.id)), '{}'::jsonb) end
   );
 end $$;
+-- Logging a game in a match saves its pairs as the court's order, so the next
+-- "Log result" (and the court picture) starts with the same pairs until someone
+-- shuffles, balances or logs a different pairing.
+create or replace function public.keep_last_pairing() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  ids uuid[] := array_remove(array[new.a1, new.a2, new.b1, new.b2], null);
+  seqs bigint[];
+begin
+  if new.match_id is null then return null; end if;
+  -- Only when the game is exactly one court's players.
+  if (select count(*) from public.match_players
+       where match_id = new.match_id and status = 'confirmed' and user_id = any (ids)) <> cardinality(ids)
+     or (select count(distinct court) from public.match_players where match_id = new.match_id and user_id = any (ids)) <> 1
+     or (select count(*) from public.match_players mp
+          where mp.match_id = new.match_id and mp.status = 'confirmed'
+            and mp.court = (select court from public.match_players where match_id = new.match_id and user_id = ids[1])) <> cardinality(ids) then
+    return null;
+  end if;
+  select array_agg(seq order by seq) into seqs from public.match_players where match_id = new.match_id and user_id = any (ids);
+  for i in 1..cardinality(ids) loop
+    update public.match_players set seq = seqs[i] where match_id = new.match_id and user_id = ids[i];
+  end loop;
+  return null;
+end $$;
+
+drop trigger if exists games_keep_pairing on public.games;
+create trigger games_keep_pairing
+  after insert on public.games
+  for each row execute function public.keep_last_pairing();
+
+revoke all on function public.keep_last_pairing() from public, anon, authenticated;

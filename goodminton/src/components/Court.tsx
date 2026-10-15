@@ -5,7 +5,7 @@ import type { Person } from '@/lib/people'
 
 export type Slot =
   | { kind: 'named'; p: Person; onRemove?: () => void }
-  /** The viewer's own spot; tapping it opens their options. */
+  /** The viewer's own spot, highlighted; the − button opens their drop-out options. */
   | { kind: 'mine'; p: Person; onTap?: () => void }
   | { kind: 'anon' }
   | { kind: 'wait'; name: string; onRemove?: () => void }
@@ -95,12 +95,17 @@ function SlotView({ s }: { s: Slot }) {
       )
     case 'mine':
       return (
-        <button type="button" onClick={s.onTap} disabled={!s.onTap} aria-label={s.onTap ? 'Your spot: options' : 'Your spot'}
-          style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px', minWidth: 0, border: 'none', background: 'rgba(14,159,126,.38)', color: '#fff', cursor: s.onTap ? 'pointer' : 'default', textAlign: 'left' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px', minWidth: 0, background: 'rgba(14,159,126,.55)', boxShadow: 'inset 0 0 0 2px rgba(255,255,255,.75)', color: '#fff' }}>
           <Avatar p={s.p} size={26} font={10} ring />
-          <span style={{ flex: 1, fontSize: 12, fontWeight: 800, lineHeight: 1.15, overflow: 'hidden' }}>You</span>
-          {s.onTap && <span style={{ fontSize: 14, opacity: .8 }}>›</span>}
-        </button>
+          <span className="stack" style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <span style={{ fontSize: 12, fontWeight: 800, lineHeight: 1.15, overflow: 'hidden' }}>{s.p.name}</span>
+            <span style={{ alignSelf: 'flex-start', fontSize: 9, fontWeight: 900, letterSpacing: '.12em', padding: '2px 6px', borderRadius: 99, background: '#fff', color: '#0E7F66' }}>YOU</span>
+          </span>
+          {s.onTap && (
+            <button type="button" onClick={s.onTap} aria-label="Drop out"
+              style={{ width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.22)', color: '#fff', fontSize: 16, fontWeight: 800, lineHeight: 1, padding: 0, flex: 'none', cursor: 'pointer' }}>−</button>
+          )}
+        </div>
       )
     case 'add':
       return (
