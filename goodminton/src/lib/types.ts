@@ -36,7 +36,8 @@ export type MatchView = {
   courts: string | null
   parking: string | null
   organiser: { id: string; full_name: string }
-  viewer: { id: string | null; role: Role; wait_pos: number | null; full_name: string | null }
+  /** status: my place on the player list (an organiser may not be playing). */
+  viewer: { id: string | null; role: Role; wait_pos: number | null; full_name: string | null; status?: 'confirmed' | 'waitlist' | null }
   confirmed_count: number
   waitlist_count: number
   players: MatchPlayer[]

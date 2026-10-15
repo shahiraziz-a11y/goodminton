@@ -121,7 +121,6 @@ select pg_temp.as_user('rohan');  select public.get_match(:'slug') as v \gset
 select pg_temp.check((select string_agg(x ->> 'full_name', ',') from jsonb_array_elements(:'v'::jsonb -> 'players') x)
   = 'Rohan Test,Samir Test,Meera Test,Dev Test', 'court order after promotion');
 select pg_temp.check((:'v'::jsonb -> 'players' -> 3 ->> 'promoted') = 'true', 'promoted flag');
-select pg_temp.check(pg_temp.fails(format('select public.leave_match(%L)', :'mid')) like '%Organisers%', 'organiser cannot leave');
 
 -- Lock / reopen.
 select pg_temp.as_user('samir');
