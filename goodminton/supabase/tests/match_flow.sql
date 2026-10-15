@@ -65,25 +65,50 @@ select pg_temp.as_user('meera');  select public.join_match(:'mid') as j \gset
 select pg_temp.check((:'j'::jsonb ->> 'filled') = 'true', 'filled at 4');
 select pg_temp.check(pg_temp.fails(format('select public.join_match(%L)', :'mid')) like '%already%', 'no double join');
 
--- Fifth goes on the waitlist and sees nothing private.
+-- Fifth goes on the waitlist: sees every name, but no court number or costs.
 select pg_temp.as_user('dev');    select public.join_match(:'mid') as j \gset
 select pg_temp.check((:'j'::jsonb ->> 'status') = 'waitlist' and (:'j'::jsonb ->> 'position') = '1', 'dev waitlist #1');
 select public.get_match(:'slug') as v \gset
 select pg_temp.check((:'v'::jsonb -> 'viewer' ->> 'wait_pos') = '1', 'dev sees position');
-select pg_temp.check((:'v'::jsonb -> 'players' -> 0 ->> 'hidden') = 'true', 'waitlist: names hidden');
+select pg_temp.check((:'v'::jsonb -> 'players' -> 0 ->> 'full_name') = 'Rohan Test'
+                 and not exists (select 1 from jsonb_array_elements(:'v'::jsonb -> 'players') x where x ? 'hidden'), 'waitlist: all names visible');
 select pg_temp.check((:'v'::jsonb ->> 'courts') is null, 'waitlist: court hidden');
-select pg_temp.check((:'v'::jsonb -> 'waitlist') = 'null'::jsonb, 'waitlist: no waitlist names');
+select pg_temp.check((:'v'::jsonb -> 'expenses') = 'null'::jsonb, 'waitlist: costs hidden');
+select pg_temp.check((:'v'::jsonb -> 'waitlist' -> 0 ->> 'full_name') = 'Dev Test', 'waitlist: waitlist names visible');
 
--- Outsider on a full match: names hidden too.
+-- Outsider on a full match: names visible too.
 select pg_temp.as_user('aisha');  select public.get_match(:'slug') as v \gset
 select pg_temp.check((:'v'::jsonb -> 'viewer' ->> 'role') = 'outsider', 'outsider role');
-select pg_temp.check((:'v'::jsonb -> 'players' -> 1 ->> 'hidden') = 'true', 'outsider on full match: names hidden');
+select pg_temp.check((:'v'::jsonb -> 'players' -> 1 ->> 'full_name') = 'Priya Test', 'outsider on full match: names visible');
+select pg_temp.check((:'v'::jsonb -> 'waitlist' -> 0 ->> 'full_name') = 'Dev Test', 'outsider sees the waitlist');
+select pg_temp.check((:'v'::jsonb ->> 'courts') is null and (:'v'::jsonb -> 'expenses') = 'null'::jsonb, 'outsider: court and costs hidden');
 
--- Confirmed player sees everything except waitlist names.
+-- Outsider's home list has the match even though they're not in it.
+select x as card from jsonb_array_elements(public.my_matches()) x where x ->> 'slug' = :'slug' \gset
+select pg_temp.check(:'card' <> '' and (:'card'::jsonb ->> 'my_role') is null and (:'card'::jsonb ->> 'courts') is null, 'outsider home: listed, not in it, no court');
+select pg_temp.as_user('dev');
+select x ->> 'my_role' as r from jsonb_array_elements(public.my_matches()) x where x ->> 'slug' = :'slug' \gset
+select pg_temp.check(:'r' = 'waitlist', 'waitlist home role');
+select pg_temp.as_user('rohan');
+select x ->> 'my_role' as r from jsonb_array_elements(public.my_matches()) x where x ->> 'slug' = :'slug' \gset
+select pg_temp.check(:'r' = 'organiser', 'organiser home role');
+
+-- Signed out on a full match: names visible, nothing private.
+select pg_temp.as_user('');
+reset role;
+set role anon;
+select public.get_match(:'slug') as v \gset
+select pg_temp.check((:'v'::jsonb -> 'players' -> 3 ->> 'full_name') = 'Meera Test' and (:'v'::jsonb -> 'waitlist' -> 0 ->> 'full_name') = 'Dev Test', 'anon on full match: names visible');
+select pg_temp.check((:'v'::jsonb ->> 'courts') is null and (:'v'::jsonb -> 'expenses') = 'null'::jsonb and (:'v'::jsonb -> 'split_ids') = 'null'::jsonb, 'anon: nothing private');
+select pg_temp.check(pg_temp.fails('select public.my_matches()') like '%permission denied%', 'anon has no home list');
+reset role;
+set role authenticated;
+
+-- Confirmed player sees everything.
 select pg_temp.as_user('samir');  select public.get_match(:'slug') as v \gset
 select pg_temp.check((:'v'::jsonb ->> 'courts') = '', 'confirmed: courts visible (empty until booked)');
 select pg_temp.check((:'v'::jsonb -> 'expenses') = '[]'::jsonb, 'confirmed: expenses visible');
-select pg_temp.check((:'v'::jsonb -> 'waitlist') = 'null'::jsonb, 'confirmed: waitlist names hidden');
+select pg_temp.check((:'v'::jsonb -> 'waitlist' -> 0 ->> 'full_name') = 'Dev Test', 'confirmed: waitlist names visible');
 
 -- Organiser sees waitlist names.
 select pg_temp.as_user('rohan');  select public.get_match(:'slug') as v \gset

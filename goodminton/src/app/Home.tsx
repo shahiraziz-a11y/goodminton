@@ -161,13 +161,14 @@ function MatchRow({ m, kind, money: led }: { m: HomeMatch; kind: Kind; money?: L
   let sub = `${when} · ${venue}`, tag = '', tagColor = '#8A94A3', note: string | null = null
   let status: string, badge: { background: string; color: string }
 
+  const inIt = m.my_role != null
   if (kind === 'live') {
     sub = `Started ${fmtTime(m.starts_at, m.timezone)} · ${venue}`
     tag = m.courts ? m.courts.toUpperCase() : '✓ COURT BOOKED'
     tagColor = '#0E7F66'
     status = 'Live'
     badge = { background: '#E5484D', color: '#fff' }
-    note = m.games_count ? `${m.games_count} game${m.games_count > 1 ? 's' : ''} logged · tap to log more.` : 'Tap to log results as you play.'
+    note = !inIt ? null : m.games_count ? `${m.games_count} game${m.games_count > 1 ? 's' : ''} logged · tap to log more.` : 'Tap to log results as you play.'
   } else if (kind === 'upcoming') {
     const b = m.booked_courts ?? (m.status === 'booked' ? m.court_count : 0)
     tag = b === 0 ? 'PLANNING' : b >= m.court_count ? (m.court_count > 1 ? '✓ COURTS BOOKED' : '✓ COURT BOOKED') : `✓ ${b} OF ${m.court_count} COURTS BOOKED`
@@ -180,7 +181,7 @@ function MatchRow({ m, kind, money: led }: { m: HomeMatch; kind: Kind; money?: L
       const settled = tr.out.every(t => t.settled)
       tag = `${money(tr.share, led.currency).toUpperCase()} EACH · ${settled ? 'SETTLED' : 'SETTLING UP'}`
       tagColor = settled ? '#0E7F66' : '#D6336C'
-    } else tag = 'NO COST'
+    } else tag = inIt ? 'NO COST' : ''
     status = 'Played'
     badge = { background: '#F1F3F6', color: '#5B6573' }
     if (m.last_winners) note = m.games_count > 1 ? `${m.last_winners} won the last game · ${m.games_count} games logged` : `${m.last_winners} won`
@@ -204,6 +205,8 @@ function MatchRow({ m, kind, money: led }: { m: HomeMatch; kind: Kind; money?: L
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {tag && <span style={{ ...tagStyle, color: tagColor }}>{tag}</span>}
             {kind === 'upcoming' && m.locked && <span style={{ ...tagStyle, color: '#D9622B' }}>LOCKED</span>}
+            {kind === 'upcoming' && m.my_role === 'waitlist' && <span style={{ ...tagStyle, color: '#D6336C' }}>YOU&apos;RE ON THE WAITLIST</span>}
+            {kind === 'upcoming' && !inIt && !m.locked && <span style={{ ...tagStyle, color: full ? '#D6336C' : '#0E7F66' }}>{full ? 'FULL · WAITLIST' : 'OPEN TO JOIN'}</span>}
           </div>
         </div>
         <span className="badge" style={badge}>{status}</span>
