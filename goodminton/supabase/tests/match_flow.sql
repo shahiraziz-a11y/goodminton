@@ -143,7 +143,7 @@ reset role; select pg_temp.check((select count(*) from public.settlements) = 0, 
 
 -- Ledger and home lists.
 select pg_temp.as_user('dev');    select public.my_ledger() as l \gset
-select pg_temp.check(jsonb_array_length(:'l'::jsonb) = 1 and jsonb_array_length(:'l'::jsonb -> 0 -> 'expenses') = 2, 'ledger');
+select pg_temp.check(jsonb_array_length(:'l'::jsonb) = 1 and jsonb_array_length(:'l'::jsonb -> 0 -> 'expenses') = 3, 'ledger: one row per booked court plus shuttles');
 select pg_temp.as_user('priya');  select public.my_ledger() as l \gset
 select pg_temp.check(jsonb_array_length(:'l'::jsonb) = 0, 'dropped player has no ledger');
 select pg_temp.as_user('jon');    select public.my_matches() as h \gset
@@ -170,7 +170,7 @@ reset role; select id as mid3 from public.matches where slug = :'slug3' \gset
 set role authenticated; select public.book_match(:'mid3', 'Hall', 'Court 5', '', 100);
 reset role;
 select pg_temp.check((select courts from public.matches where slug = :'slug3') = 'Court 5 & Court 6', '8-player courts');
-select pg_temp.check((select amount from public.expenses e join public.matches m on m.id = e.match_id where m.slug = :'slug3') = 200, '2 courts cost');
+select pg_temp.check((select sum(amount) from public.expenses e join public.matches m on m.id = e.match_id where m.slug = :'slug3') = 200, '2 courts cost');
 
 -- Permissions: tables are closed, anon can only read a match.
 set role authenticated;

@@ -153,10 +153,20 @@ select pg_temp.as_user('org');
 select public.add_player(:'m2', null, 'Late ' || n) from generate_series(1, 2) n;
 select public.upgrade_match(:'m2');
 reset role;
-select pg_temp.check((select court_count || '/' || courts from public.matches where id = :'m2') = '2/Court 5 & Court 6', 'court 2 added later');
-select pg_temp.check((select sum(amount) from public.expenses where match_id = :'m2') = 180, 'second court charged when added');
+select pg_temp.check((select court_count || '/' || courts from public.matches where id = :'m2') = '2/Court 5', 'court 2 opened, not booked');
+select pg_temp.check((select sum(amount) from public.expenses where match_id = :'m2') = 90, 'court 2 not charged until booked');
+delete from public.notifications;
+set role authenticated;
+-- Court 2's players aren't locked in until it's booked; a player on it books it later.
+select pg_temp.as_user('eve'); select public.book_court(:'m2', 2, 'Hall', 'Court 6', '', 100);
+reset role;
+select pg_temp.check((select sum(amount) from public.expenses where match_id = :'m2') = 190
+                 and (select paid_by from public.expenses where match_id = :'m2' and court = 2) = (select id from public.profiles where email = 'eve@push.test'), 'Eve pays court 2');
+select pg_temp.check((select string_agg(n.kind, ',') from public.notifications n join public.profiles p on p.id = n.user_id
+                       where p.email = 'org@push.test') = 'booked', 'organiser told Eve booked a court');
 set role authenticated;
 -- Editing details later without p_court_count keeps the courts as they are.
+select pg_temp.as_user('org');
 select public.book_match(:'m2', 'Hall', 'Court 5 & Court 6', 'Gate A', 90);
 reset role;
 select pg_temp.check((select court_count from public.matches where id = :'m2') = 2, 'details edit keeps courts');

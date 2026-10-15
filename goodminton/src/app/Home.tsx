@@ -103,7 +103,7 @@ const GROUPS: { kind: Kind; label: string; color: string; glow?: string; show: n
 ]
 type GroupData = (typeof GROUPS)[number] & { items: HomeMatch[] }
 
-/** Started without the court ever being marked booked counts as called off. */
+/** Started without any court ever being marked booked counts as called off. */
 function kindOf(m: HomeMatch): Kind {
   if (!m.started) return 'upcoming'
   if (m.status !== 'booked') return 'abandoned'
@@ -169,8 +169,9 @@ function MatchRow({ m, kind, money: led }: { m: HomeMatch; kind: Kind; money?: L
     badge = { background: '#E5484D', color: '#fff' }
     note = m.games_count ? `${m.games_count} game${m.games_count > 1 ? 's' : ''} logged · tap to log more.` : 'Tap to log results as you play.'
   } else if (kind === 'upcoming') {
-    tag = m.status === 'booked' ? '✓ COURT BOOKED' : 'PLANNING'
-    tagColor = m.status === 'booked' ? '#0E7F66' : '#8A94A3'
+    const b = m.booked_courts ?? (m.status === 'booked' ? m.court_count : 0)
+    tag = b === 0 ? 'PLANNING' : b >= m.court_count ? (m.court_count > 1 ? '✓ COURTS BOOKED' : '✓ COURT BOOKED') : `✓ ${b} OF ${m.court_count} COURTS BOOKED`
+    tagColor = b === 0 ? '#8A94A3' : '#0E7F66'
     status = full ? `Full${m.waitlist_count ? ` · +${m.waitlist_count}` : ''}` : `${m.confirmed_count}/${m.size} in`
     badge = full ? { background: '#E5484D', color: '#fff' } : { background: '#0E9F7E', color: '#fff' }
   } else if (kind === 'completed') {
