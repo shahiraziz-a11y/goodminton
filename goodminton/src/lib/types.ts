@@ -77,6 +77,8 @@ export type HomeMatch = {
   courts: string | null
   games_count: number
   booked_courts: number
+  /** My place in it; null when I'm not in it (every match is listed). */
+  my_role: 'organiser' | 'confirmed' | 'waitlist' | null
   /** First names of the winners of the latest game logged in this match. */
   last_winners: string | null
 }

@@ -104,9 +104,10 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
   const firstOpen = courts.find(c => !c.booking.booked)
   const showGhost = nCourts < 4 && full && wc > 0 && !m.past
   const ghostSlots: Slot[] = Array.from({ length: per }, (_, i) => {
-    const w = isOrg ? m.waitlist?.[i] : undefined
+    const w = m.waitlist?.[i]
     if (i >= Math.min(wc, per)) return { kind: 'empty' }
-    return w ? { kind: 'wait', name: w.full_name, onRemove: () => remove(w.id, w.full_name.split(' ')[0]) } : { kind: 'wait', name: 'Waiting' }
+    if (!w) return { kind: 'wait', name: 'Waiting' }
+    return { kind: 'wait', name: w.full_name, onRemove: canRemove(w.id) ? () => remove(w.id, w.full_name.split(' ')[0]) : undefined }
   })
   const cn = Math.floor(m.confirmed_count / per)
   const finalLine = `Final: ${m.confirmed_count} players · ${cn} court${cn === 1 ? '' : 's'}`
@@ -145,7 +146,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
             if (error) { setBusy(false); flash(error.message) }
           }} />
           <span className="note" style={{ textAlign: 'center', textWrap: 'pretty' }}>
-            Your Google name is used, so there&apos;s nothing to type. You can see who&apos;s playing while spots are open. The court number unlocks once you&apos;re confirmed.
+            Your Google name is used, so there&apos;s nothing to type. You can see who&apos;s playing. The court number unlocks once you&apos;re confirmed.
           </span>
         </div>
       </Frame>
@@ -247,7 +248,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
         {!canSee && (
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '0 4px', color: '#8A94A3' }}>
             <LockIcon />
-            <span className="note" style={{ lineHeight: 1.4, textWrap: 'pretty' }}>Court number and costs are visible to confirmed players only. Player names are hidden once the match is full.</span>
+            <span className="note" style={{ lineHeight: 1.4, textWrap: 'pretty' }}>Court number and costs are visible to confirmed players only.</span>
           </div>
         )}
 
