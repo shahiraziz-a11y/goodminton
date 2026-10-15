@@ -25,6 +25,7 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
   const [slots, setSlots] = useState<(Person | null)[]>(() => courts?.[initialCourt]?.players ?? [null, null, null, null])
   const [singles, setSingles] = useState(false)
   const [win, setWin] = useState<'a' | 'b' | null>(null)
+  const [score, setScore] = useState({ a: '', b: '' })
   const [picking, setPicking] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const free = !courts
@@ -37,6 +38,7 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
     setCourt(initialCourt)
     setSlots(courts?.[initialCourt]?.players ?? (singles ? [null, null] : [null, null, null, null]))
     setWin(null)
+    setScore({ a: '', b: '' })
     setPicking(null)
   }
 
@@ -48,15 +50,21 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
   async function save() {
     if (!full) return flash(`Pick all ${slots.length} players`)
     if (!win) return flash(half === 1 ? 'Tap who won' : 'Tap the pair that won')
+    const [ra, rb] = [score.a.trim(), score.b.trim()]
+    if (!!ra !== !!rb) return flash('Enter both scores, or leave both empty')
+    const [na, nb] = [Number(ra), Number(rb)]
+    if (ra && (!Number.isInteger(na) || !Number.isInteger(nb) || na < 0 || nb < 0 || na > 99 || nb > 99)) return flash('Scores are 0 to 99')
+    if (ra && (na === nb || (na > nb) !== (win === 'a'))) return flash('The winners need the higher score')
     setBusy(true)
     const ids = slots.map(p => p!.id)
     const [sa, sb] = [ids.slice(0, half), ids.slice(half)]
     const { error } = await createClient().rpc('log_game', {
       p_match: matchId ?? null, p_a1: sa[0], p_a2: sa[1] ?? null, p_b1: sb[0], p_b2: sb[1] ?? null, p_winner: win,
+      p_score_a: ra ? na : null, p_score_b: rb ? nb : null,
     })
     setBusy(false)
     if (error) return flash(error.message)
-    flash(`${names(win === 'a' ? a : b)} win · leaderboard updated`)
+    flash(`${names(win === 'a' ? a : b)} win${ra ? ` ${Math.max(na, nb)}–${Math.min(na, nb)}` : ''} · leaderboard updated`)
     onClose()
     router.refresh()
   }
@@ -138,8 +146,22 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
         <span className="display" style={{ fontSize: 13, fontWeight: 800, color: '#8A94A3' }}>VS</span>
         <Pair side="b" ps={b} />
       </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr)', gap: 10, alignItems: 'center', marginTop: -6 }}>
+        {(['a', 'b'] as const).map((k, i) => (
+          <input key={k} className="field" inputMode="numeric" pattern="[0-9]*" maxLength={2} placeholder="Score" aria-label={`Score for ${k === 'a' ? 'left' : 'right'} side`}
+            value={score[k]} disabled={!full}
+            onChange={e => {
+              const next = { ...score, [k]: e.target.value.replace(/\D/g, '').slice(0, 2) }
+              setScore(next)
+              // Both scores in: the higher one won.
+              if (next.a && next.b && Number(next.a) !== Number(next.b)) setWin(Number(next.a) > Number(next.b) ? 'a' : 'b')
+            }}
+            style={{ height: 44, textAlign: 'center', fontSize: 16, gridColumn: i === 0 ? 1 : 3 }} />
+        ))}
+      </div>
+      <span className="note" style={{ textAlign: 'center', marginTop: -8 }}>Score is optional</span>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
-        <button className="btn-2" style={{ height: 56 }} disabled={!full} onClick={() => { setSlots(shuffled(slots)); setWin(null) }}>Shuffle</button>
+        <button className="btn-2" style={{ height: 56 }} disabled={!full} onClick={() => { setSlots(shuffled(slots)); setWin(null); setScore({ a: '', b: '' }) }}>Shuffle</button>
         <button className="btn" onClick={save} disabled={busy}>{busy ? 'Saving…' : 'Save result'}</button>
       </div>
     </Sheet>

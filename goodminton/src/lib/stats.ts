@@ -52,3 +52,32 @@ export function shuffled<T>(xs: T[]) {
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]] }
   return a
 }
+
+export const START_RATING = 1000
+
+/**
+ * Elo-style ratings: everyone starts at 1000; a side's strength is its players' average.
+ * Beating a stronger side earns more. With a score, a bigger margin counts a little more
+ * (up to 1.5x at 10+ points). Games must be newest first.
+ */
+export function ratings(games: Game[], k = 32): Record<string, number> {
+  const r: Record<string, number> = {}
+  const get = (id: string) => (r[id] ??= START_RATING)
+  for (const g of [...games].reverse()) {
+    const ra = g.a.reduce((s, id) => s + get(id), 0) / g.a.length
+    const rb = g.b.reduce((s, id) => s + get(id), 0) / g.b.length
+    const expectA = 1 / (1 + 10 ** ((rb - ra) / 400))
+    const margin = g.score_a != null && g.score_b != null ? 1 + Math.min(Math.abs(g.score_a - g.score_b), 10) / 20 : 1
+    const delta = k * margin * ((g.winner === 'a' ? 1 : 0) - expectA)
+    for (const id of g.a) r[id] = get(id) + delta
+    for (const id of g.b) r[id] = get(id) - delta
+  }
+  for (const id in r) r[id] = Math.round(r[id])
+  return r
+}
+
+/** Balance by rating: strongest with weakest, middle two together. */
+export function balancedByRating(ids: string[], rating: Record<string, number>) {
+  const o = [...ids].sort((a, b) => (rating[b] ?? START_RATING) - (rating[a] ?? START_RATING))
+  return [o[0], o[3], o[1], o[2]]
+}

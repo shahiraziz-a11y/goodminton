@@ -205,6 +205,7 @@ function MatchRow({ m, kind, money: led }: { m: HomeMatch; kind: Kind; money?: L
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {tag && <span style={{ ...tagStyle, color: tagColor }}>{tag}</span>}
             {kind === 'upcoming' && m.locked && <span style={{ ...tagStyle, color: '#D9622B' }}>LOCKED</span>}
+            {kind === 'upcoming' && m.weekly && <span style={{ ...tagStyle, color: '#5B6573' }}>↻ WEEKLY</span>}
             {kind === 'upcoming' && m.my_role === 'waitlist' && <span style={{ ...tagStyle, color: '#D6336C' }}>YOU&apos;RE ON THE WAITLIST</span>}
             {kind === 'upcoming' && !inIt && !m.locked && <span style={{ ...tagStyle, color: full ? '#D6336C' : '#0E7F66' }}>{full ? 'FULL · WAITLIST' : 'OPEN TO JOIN'}</span>}
           </div>

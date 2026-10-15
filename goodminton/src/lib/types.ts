@@ -47,6 +47,16 @@ export type MatchView = {
   /** Everyone who shares the costs: confirmed players plus liable ones. */
   split_ids: string[] | null
   court_info: CourtInfo[]
+  /** Part of a weekly series (this week or a later one exists). */
+  repeat_weekly: boolean
+  /** This match will make next week's when it starts. */
+  repeats: boolean
+  regulars_first: boolean
+  /** Until then, only last week's players get spots; others wait. */
+  regulars_until: string | null
+  is_regular: boolean
+  /** Games logged in this match, newest first. */
+  games: MatchGame[]
   /** True once a court is booked with a cost: only then are costs split. */
   split_ready: boolean
   /** Guest (no login) → who pays their share. */
@@ -78,6 +88,7 @@ export type HomeMatch = {
   courts: string | null
   games_count: number
   booked_courts: number
+  weekly: boolean
   /** My place in it; null when I'm not in it (every match is listed). */
   my_role: 'organiser' | 'confirmed' | 'waitlist' | null
   /** First names of the winners of the latest game logged in this match. */
@@ -110,6 +121,18 @@ export type Game = {
   a: string[]
   b: string[]
   winner: 'a' | 'b'
+  score_a?: number | null
+  score_b?: number | null
+}
+
+export type MatchGame = {
+  id: string
+  created_by: string
+  winner: 'a' | 'b'
+  score_a: number | null
+  score_b: number | null
+  a: { id: string; full_name: string }[]
+  b: { id: string; full_name: string }[]
 }
 
 export type Leaderboard = { games: Game[]; people: Record<string, string> }

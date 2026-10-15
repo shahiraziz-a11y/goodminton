@@ -1,0 +1,2 @@
+# Used by the Supabase CLI (the GitHub workflow applies supabase/migrations with it).
+project_id = "goodminton"

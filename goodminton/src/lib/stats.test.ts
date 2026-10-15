@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { balancedOrder, bestPairs, standings } from './stats.ts'
+import { balancedByRating, balancedOrder, bestPairs, ratings, standings, START_RATING } from './stats.ts'
 import type { Game } from './types.ts'
 
 const G = (a: string[], b: string[], winner: 'a' | 'b'): Game =>
@@ -43,4 +43,25 @@ test('balance pairs strongest with weakest', () => {
   const [x1, x2, y1, y2] = balancedOrder(['m', 'r', 'd', 'a'], t)
   assert.deepEqual([x1, x2], ['r', 'd'])
   assert.deepEqual([y1, y2].sort(), ['a', 'm'])
+})
+
+test('ratings: winners up, losers down, by the same amount', () => {
+  const r = ratings([{ id: '1', played_on: '', match_title: null, created_by: 'a', a: ['a', 'b'], b: ['c', 'd'], winner: 'a' }])
+  assert.equal(r.a, 1016); assert.equal(r.b, 1016); assert.equal(r.c, 984); assert.equal(r.d, 984)
+})
+
+test('ratings: beating a stronger side earns more; a big margin counts more', () => {
+  const g = (a: string[], b: string[], winner: 'a' | 'b', sa: number | null = null, sb: number | null = null) =>
+    ({ id: Math.random().toString(), played_on: '', match_title: null, created_by: 'x', a, b, winner, score_a: sa, score_b: sb })
+  // Newest first: x+y (strong after two wins) then lose to the underdogs.
+  const r = ratings([g(['x', 'y'], ['p', 'q'], 'b'), g(['x', 'y'], ['m', 'n'], 'a'), g(['x', 'y'], ['k', 'l'], 'a')])
+  assert.ok(r.p - START_RATING > 16, 'upset win earns more than 16')
+  const close = ratings([g(['a'], ['b'], 'a', 21, 19)]), rout = ratings([g(['a'], ['b'], 'a', 21, 5)])
+  assert.ok(rout.a > close.a, '21–5 counts more than 21–19')
+  assert.equal(rout.a - START_RATING, 24) // 16 x 1.5
+})
+
+test('balance by rating: best with worst', () => {
+  assert.deepEqual(balancedByRating(['a', 'b', 'c', 'd'], { a: 1100, b: 900, c: 1050, d: 1000 }), ['a', 'b', 'c', 'd'])
+  assert.deepEqual(balancedByRating(['n1', 'n2', 'n3', 'n4'], {}), ['n1', 'n4', 'n2', 'n3'])
 })

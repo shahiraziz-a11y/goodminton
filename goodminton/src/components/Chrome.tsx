@@ -76,7 +76,7 @@ export function Bars({ n, size, dark }: { n: number; size: number; dark?: boolea
   return <div className="bars">{Array.from({ length: size }, (_, i) => <span key={i} className={i < n ? 'on' : ''} />)}</div>
 }
 
-export function Seg<T extends string | number>({ options, value, onChange, height }: { options: { value: T; label: string }[]; value: T; onChange: (v: T) => void; height?: number }) {
+export function Seg<T extends string | number | boolean>({ options, value, onChange, height }: { options: { value: T; label: string }[]; value: T; onChange: (v: T) => void; height?: number }) {
   return (
     <div className="seg" role="radiogroup">
       {options.map(o => (

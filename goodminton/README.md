@@ -65,13 +65,50 @@ Alerts are written to `public.notifications` by database triggers. A Supabase Da
    - URL `https://<your-domain>/api/push`.
    - Header `x-push-secret` with the same secret value.
 
+4. **Check it:** on Home, once alerts are on, tap **Send test**. It reports how many devices it reached.
+
+## Reminders, weekly matches and the backup sweep
+
+Migration 0012 schedules `public.run_scheduled()` every 5 minutes with Supabase's **pg_cron**. On each run it:
+
+- Makes next week's copy of weekly matches.
+- Opens "regulars first" spots once that window ends.
+- Sends reminders: the day before and 2 hours before a match, the organiser when sign-ups close with an unbooked court, and a Monday nudge to anyone who owes money.
+- Sends any alert the webhook missed.
+
+The sweep needs to know the app's address and the push secret. Run this once in the SQL editor:
+
+```sql
+select public.set_alert_config('https://<your-domain>', '<PUSH_WEBHOOK_SECRET>');
+```
+
+To check the schedule: `select * from cron.job;`. To see recent runs: `select * from cron.job_run_details order by start_time desc limit 5;`.
+
+## Automatic database updates
+
+`.github/workflows/goodminton.yml` runs on every pull request: types, unit tests, build, and all database tests. After a merge to `main`, it applies any new `supabase/migrations` files to Supabase. That last step needs a one-time setup:
+
+1. Run every migration up to the latest one by hand (as before), then run `supabase/mark_migrations_applied.sql` in the SQL editor. This records them as applied.
+2. In Supabase, open **Connect** and copy the **Session pooler** connection string. Put your database password into it.
+3. In GitHub, go to **Settings → Secrets and variables → Actions → New repository secret**. Name it `SUPABASE_DB_URL` and paste the string.
+
+From then on, merging a PR that adds `0013_….sql` applies it automatically. Migrations must be numbered in order; the workflow checks this.
+
+## Errors from phones
+
+Uncaught errors on anyone's device are recorded in `public.app_errors` and kept for 30 days. To see the latest:
+
+```sql
+select created_at, page, message from public.app_errors order by created_at desc limit 50;
+```
+
 ## Tests
 
 ```bash
 npm test                                    # cost split and formatting (node:test)
-npm run test:db -- -h localhost -U postgres # SQL: join order, privacy per role, locking, alerts,
-                                            # second court, settlements, permissions, and
-                                            # 20 simultaneous joins on the last spots
+npm run test:db -- -h localhost -U postgres # SQL: join order, privacy, locking, alerts, booking
+                                            # courts one at a time, reminders, weekly matches,
+                                            # scores, simultaneous joins and bookings, upgrades
 ```
 
 The SQL tests need a local Postgres 15+ and stub Supabase's `auth` schema (`supabase/tests/auth_stub.sql`).
