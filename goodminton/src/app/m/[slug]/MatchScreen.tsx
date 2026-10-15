@@ -81,7 +81,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
       if (!p) return canAdd ? { kind: 'add', onTap: () => setAdding(true) } : { kind: 'empty' }
       if (!isVisible(p)) return { kind: 'anon' }
       const pp = person(p.id, p.full_name)
-      if (p.id === m.viewer.id) return { kind: 'mine', p: pp, onTap: !isOrg && !m.past ? () => setMySpot(true) : undefined }
+      if (p.id === m.viewer.id) return { kind: 'mine', p: pp, onTap: !m.past ? () => setMySpot(true) : undefined }
       return { kind: 'named', p: pp, onRemove: canRemove(p.id) ? () => remove(p.id, pp.first, !!ic?.booked) : undefined }
     })
     const canEdit = !!ic?.booked && (isOrg || ic.booked_by === m.viewer.id)
@@ -224,7 +224,19 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
             <button className="btn red" disabled={busy} onClick={() => rpc<{ position: number }>('join_match', { p_match: m.id }, r => flash(`You're #${r.position} on the waitlist`))}>Join waitlist</button>
           </div>
         )}
-        {role === 'waitlist' && (
+        {isOrg && !m.viewer.status && !m.past && (
+          <div className="card stack" style={{ padding: 20, gap: 14 }}>
+            <div className="stack" style={{ gap: 4 }}>
+              <span className="display" style={{ fontSize: 16, fontWeight: 700 }}>You&apos;re organising, not playing</span>
+              <span style={{ fontSize: 13, color: '#5B6573', lineHeight: 1.45 }}>You still run the match: edit it, book courts, add or remove players and see the costs.</span>
+            </div>
+            <button className="btn-2" style={{ color: '#0E7F66', fontWeight: 800 }} disabled={busy}
+              onClick={() => rpc<{ status: string; position?: number }>('join_match', { p_match: m.id }, r => flash(r.status === 'confirmed' ? "You're playing" : `You're #${r.position} on the waitlist`))}>
+              {full ? 'Join the waitlist' : "I'm playing after all"}
+            </button>
+          </div>
+        )}
+        {(role === 'waitlist' || m.viewer.status === 'waitlist') && (
           <div className="card stack" style={{ padding: 20, gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <span className="display" style={{ fontSize: 48, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: '#E5484D' }}>#{m.viewer.wait_pos}</span>
@@ -373,9 +385,22 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
       {conf && <BookSheet court={booking} onClose={() => setBooking(null)} m={m} rpc={rpc} count={courts.find(c => c.court === booking)?.count ?? 0} />}
       {isOrg && <EditSheet open={editing} onClose={() => setEditing(false)} m={m} rpc={rpc} />}
       {conf && <AddPlayerSheet open={adding} onClose={() => setAdding(false)} m={m} exclude={members} inviteMsg={L.inviteMsg} rpc={rpc} />}
-      {conf && !isOrg && (
+      {conf && (
         <Sheet open={mySpot} onClose={() => setMySpot(false)} title="You're in" subtitle={`${m.title} · ${L.dateLabel}, ${L.timeRange}`}>
-          {myCourtBooked ? (
+          {isOrg ? (
+            <div className="stack" style={{ gap: 12 }}>
+              <button className="btn-2" style={{ color: '#E0245E', fontWeight: 800 }} disabled={busy} onClick={() => {
+                if (myCourtBooked && !confirm('Your court is booked. You\'ll owe your share until someone takes your spot. Drop out anyway?')) return
+                setMySpot(false)
+                rpc<{ promoted: string | null; still_owes: boolean }>('leave_match', { p_match: m.id }, r =>
+                  flash(['You dropped out', r.promoted ? `spot passed to ${r.promoted.split(' ')[0]}` : '', r.still_owes ? 'you owe your share until someone takes it' : ''].filter(Boolean).join(' · ')))
+              }}>Drop out of playing</button>
+              <span style={{ fontSize: 13, color: '#5B6573', textAlign: 'center', lineHeight: 1.45 }}>
+                You stay the organiser and can still run the match. Your spot goes to the next person waiting.
+                {myCourtBooked ? ' Your court is booked, so you owe your share until someone takes your spot.' : ''}
+              </span>
+            </div>
+          ) : myCourtBooked ? (
             <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.45 }}>
               Your court&apos;s booked, so you&apos;re locked in. Ask {org.first} if you need to drop out. You&apos;ll still owe your share.
             </span>
