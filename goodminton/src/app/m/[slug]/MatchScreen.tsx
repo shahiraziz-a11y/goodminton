@@ -24,7 +24,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
   const router = useRouter()
   const { flash, celebrate } = useFeedback()
   const [busy, setBusy] = useState(false)
-  const [booking, setBooking] = useState(false)
+  const [booking, setBooking] = useState<number | null>(null)
   const [editing, setEditing] = useState(false)
   const [adding, setAdding] = useState(false)
   const [mySpot, setMySpot] = useState(false)
@@ -66,27 +66,42 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
   const per = perCourt(m.format)
   const nCourts = m.court_count
   const singles = m.format === 'singles'
-  const booked = m.status === 'booked'
+  const info = (c: number | undefined) => m.court_info?.find(x => x.court === c)
+  const nBooked = m.court_info?.filter(x => x.booked).length ?? 0
   const canAdd = conf && !m.past
   const canRemove = (id: string) => !m.past && id !== m.organiser.id && (isOrg || m.added_by[id] === m.viewer.id)
-  const courts = Array.from({ length: nCourts }, (_, c) => {
-    const group = m.players.slice(c * per, c * per + per)
+  const mine = m.players.find(p => isVisible(p) && p.id === m.viewer.id)
+  const myCourtBooked = !!info(mine?.court)?.booked
+  const courts = Array.from({ length: nCourts }, (_, ci) => {
+    const c = ci + 1
+    const ic = info(c)
+    const group = m.players.filter(p => p.court === c)
     const slots: Slot[] = Array.from({ length: per }, (_, i) => {
       const p = group[i]
       if (!p) return canAdd ? { kind: 'add', onTap: () => setAdding(true) } : { kind: 'empty' }
       if (!isVisible(p)) return { kind: 'anon' }
       const pp = person(p.id, p.full_name)
       if (p.id === m.viewer.id) return { kind: 'mine', p: pp, onTap: !isOrg && !m.past ? () => setMySpot(true) : undefined }
-      return { kind: 'named', p: pp, onRemove: canRemove(p.id) ? () => remove(p.id, pp.first) : undefined }
+      return { kind: 'named', p: pp, onRemove: canRemove(p.id) ? () => remove(p.id, pp.first, !!ic?.booked) : undefined }
     })
+    const canEdit = !!ic?.booked && (isOrg || ic.booked_by === m.viewer.id)
     return {
-      label: `Court ${c + 1} of ${nCourts}`,
-      num: canSee && m.courts ? courtNumber(m.courts, c) : null,
-      tbc: canSee && m.status === 'planning',
+      court: c,
+      label: `Court ${c} of ${nCourts}`,
+      num: canSee && ic?.booked && ic.label ? courtNumber(ic.label, 0) : null,
+      tbc: canSee && !ic?.booked,
       slots,
+      count: group.length,
       players: group.filter(isVisible).map(p => person(p.id, p.full_name)),
+      booking: ic?.booked
+        ? { booked: true, text: `✓ BOOKED${ic.booked_by_name ? ` BY ${ic.booked_by === m.viewer.id ? 'YOU' : ic.booked_by_name.split(' ')[0].toUpperCase()}` : ''}` }
+        : { booked: false, text: 'NOT BOOKED YET' },
+      action: !conf || m.past ? null
+        : !ic?.booked ? <button className="chip-btn go" onClick={() => setBooking(c)}>Book court {c}</button>
+        : canEdit ? <button className="chip-btn" onClick={() => setBooking(c)}>Edit</button> : null,
     }
   })
+  const firstOpen = courts.find(c => !c.booking.booked)
   const showGhost = nCourts < 4 && full && wc > 0 && !m.past
   const ghostSlots: Slot[] = Array.from({ length: per }, (_, i) => {
     const w = isOrg ? m.waitlist?.[i] : undefined
@@ -96,13 +111,16 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
   const cn = Math.floor(m.confirmed_count / per)
   const finalLine = `Final: ${m.confirmed_count} players · ${cn} court${cn === 1 ? '' : 's'}`
 
-  function remove(id: string, first: string) {
-    if (!confirm(`Remove ${first} from this match?${booked ? ` The court is booked: if nobody takes the spot, ${first} still owes their share.` : ''}`)) return
+  function remove(id: string, first: string, courtBooked = false) {
+    if (!confirm(`Remove ${first} from this match?${courtBooked ? ` Their court is booked: if nobody takes the spot, ${first} still owes their share.` : ''}`)) return
     rpc<{ promoted: string | null; still_owes: boolean }>('remove_player', { p_match: m.id, p_user: id }, r =>
       flash([`${first} removed`, r.still_owes ? 'still owes their share' : '', r.promoted ? `${r.promoted.split(' ')[0]} promoted` : ''].filter(Boolean).join(' · ')))
   }
 
-  const courtCards = courts.map((c, i) => <CourtCard key={i} label={c.label} num={c.num} tbc={c.tbc} slots={c.slots} dateLabel={L.dateLabel} start={L.start} end={L.end} />)
+  const courtCards = courts.map((c, i) => (
+    <CourtCard key={i} label={c.label} num={c.num} tbc={c.tbc} slots={c.slots} dateLabel={L.dateLabel} start={L.start} end={L.end}
+      booking={signedIn && !m.past ? c.booking : undefined} action={c.action} />
+  ))
 
   // Signed out: the invite landing.
   if (!signedIn) {
@@ -157,9 +175,11 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
           <span style={{ fontSize: 14, color: '#5B6573' }}>{m.venue || 'Venue TBC'} · {m.duration_min} min</span>
           {!m.past && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {booked
-                ? <span className="badge" style={{ background: '#E7F6F1', color: '#0E7F66' }}>✓ Court booked</span>
-                : <span className="badge" style={{ background: '#F1F3F6', color: '#5B6573' }}>Planning · court not booked yet</span>}
+              {nBooked === 0
+                ? <span className="badge" style={{ background: '#F1F3F6', color: '#5B6573' }}>Planning · {nCourts > 1 ? 'courts' : 'court'} not booked yet</span>
+                : <span className="badge" style={{ background: '#E7F6F1', color: '#0E7F66' }}>
+                    {nBooked === nCourts ? (nCourts > 1 ? '✓ All courts booked' : '✓ Court booked') : `✓ ${nBooked} of ${nCourts} courts booked`}
+                  </span>}
               {m.locked && <span className="badge" style={{ background: '#E5484D', color: '#fff' }}>Sign-ups closed</span>}
             </div>
           )}
@@ -238,22 +258,19 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
                 <span className="eyebrow">Organiser tools</span>
                 <button className="chip-btn" onClick={() => setEditing(true)}>Edit match</button>
               </div>
-              {booked ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span className="stack" style={{ flex: 1, gap: 2 }}>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: '#0E7F66' }}>✓ Court booked</span>
-                    <span style={{ fontSize: 12, color: '#5B6573' }}>Players are locked in. Only you can remove someone.</span>
-                  </span>
-                  <button className="chip-btn" onClick={() => setBooking(true)}>Edit details</button>
+              {!firstOpen ? (
+                <div className="stack" style={{ gap: 2 }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: '#0E7F66' }}>✓ {nCourts > 1 ? 'All courts booked' : 'Court booked'}</span>
+                  <span style={{ fontSize: 12, color: '#5B6573' }}>Players are locked in. Only you can remove someone. Edit a booking on its court card.</span>
                 </div>
               ) : (
                 <div className="stack" style={{ gap: 10 }}>
                   <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.4 }}>
-                    {full ? `${m.size} in. Book the court${nCourts > 1 ? 's' : ''}, then add the details here.`
-                      : nCourts > 1 && cn >= 1 ? `${m.confirmed_count}/${m.size} in · enough for ${cn} of ${nCourts} courts. Book ${cn} now, or wait for ${per - (m.confirmed_count % per)} more for another.`
-                      : `Book once you have ${per}. ${per - m.confirmed_count} to go.`}
+                    {nCourts > 1
+                      ? `${nBooked} of ${nCourts} courts booked. Book each court once you've booked it at the venue; it doesn't have to be full. Only players on a booked court are locked in.`
+                      : firstOpen.count >= per ? `${m.size} in. Book the court, then add the details here.` : `${firstOpen.count}/${per} in. You can book now or wait for ${per - firstOpen.count} more.`}
                   </span>
-                  <button className="btn" style={{ height: 48, fontSize: 15 }} onClick={() => setBooking(true)}>Court booked · add details</button>
+                  <button className="btn" style={{ height: 48, fontSize: 15 }} onClick={() => setBooking(firstOpen.court)}>Book court {firstOpen.court}{nCourts > 1 ? ` · ${firstOpen.count}/${per} in` : ''}</button>
                 </div>
               )}
               <div style={{ borderTop: '1px solid rgba(0,0,0,.06)' }} />
@@ -280,10 +297,10 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
                   <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: '#D9622B' }}>{per} WAITING · EVEN NUMBERS</span>
                   <span className="display" style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-.02em', lineHeight: 1.2 }}>Make it {m.size + per} on {nCourts + 1} courts</span>
                   <span style={{ fontSize: 14, color: '#4A5462', lineHeight: 1.45 }}>
-                    {booked ? `Book another court and all ${per} waiting players are confirmed. Its cost joins the split.` : `All ${per} waiting players are confirmed. When you book, book ${nCourts + 1} courts.`}
+                    All {per} waiting players are confirmed on court {nCourts + 1}. Book it whenever you&apos;re ready; until then they can still drop out.
                   </span>
                 </div>
-                <button className="btn red" disabled={busy} onClick={() => rpc('upgrade_match', { p_match: m.id }, () => { flash(`Now ${m.size + per} players on ${nCourts + 1} courts`); celebrate() })}>{booked ? `I've booked court ${nCourts + 1}` : 'Open another court'}</button>
+                <button className="btn red" disabled={busy} onClick={() => rpc('upgrade_match', { p_match: m.id }, () => { flash(`Now ${m.size + per} players on ${nCourts + 1} courts`); celebrate() })}>Open court {nCourts + 1}</button>
               </div>
             )}
             {nCourts < 4 && full && wc > 0 && wc < per && (
@@ -300,7 +317,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
                 <span className="display" style={{ fontSize: 18, fontWeight: 700 }}>{finalLine}</span>
               </div>
             )}
-            {booked && (
+            {nBooked > 0 && (
               <div className="card stack" style={{ padding: '18px 20px', gap: 4 }}>
                 <span className="eyebrow">Venue</span>
                 <span style={{ fontSize: 16, fontWeight: 700 }}>{m.venue}</span>
@@ -352,14 +369,14 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
         )}
       </div>
 
-      {isOrg && <BookSheet open={booking} onClose={() => setBooking(false)} m={m} rpc={rpc} />}
+      {conf && <BookSheet court={booking} onClose={() => setBooking(null)} m={m} rpc={rpc} count={courts.find(c => c.court === booking)?.count ?? 0} />}
       {isOrg && <EditSheet open={editing} onClose={() => setEditing(false)} m={m} rpc={rpc} />}
       {conf && <AddPlayerSheet open={adding} onClose={() => setAdding(false)} m={m} exclude={members} inviteMsg={L.inviteMsg} rpc={rpc} />}
       {conf && !isOrg && (
         <Sheet open={mySpot} onClose={() => setMySpot(false)} title="You're in" subtitle={`${m.title} · ${L.dateLabel}, ${L.timeRange}`}>
-          {booked ? (
+          {myCourtBooked ? (
             <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.45 }}>
-              The court&apos;s booked, so you&apos;re locked in. Ask {org.first} if you need to drop out. You&apos;ll still owe your share.
+              Your court&apos;s booked, so you&apos;re locked in. Ask {org.first} if you need to drop out. You&apos;ll still owe your share.
             </span>
           ) : (
             <div className="stack" style={{ gap: 12 }}>
@@ -399,8 +416,8 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
         <span className="eyebrow">Cost split</span>
         <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.45 }}>
           {m.status === 'booked'
-            ? `Starts once the court cost is entered.${isOrg ? ' Add it under Edit details.' : ''}`
-            : `Starts once the court is booked and its cost is entered.${isOrg ? '' : ` ${personOf(m.organiser.id).first} will add it.`}`}
+            ? 'Starts once a booked court has its cost entered. Tap Edit on the court card to add it.'
+            : 'Starts once a court is booked and its cost is entered. Whoever books a court pays for it, and it\'s split between the players on booked courts.'}
         </span>
       </div>
     )
@@ -415,6 +432,9 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
         </div>
         <span style={{ fontSize: 12, color: '#5B6573', fontWeight: 600, paddingBottom: 4 }}>each · {fmt(tr.total)} total</span>
       </div>
+      {meId && !(m.split_ids ?? []).includes(meId) && m.viewer.role === 'confirmed' && (
+        <span className="note" style={{ marginTop: -6 }}>Your court isn&apos;t booked yet, so you&apos;re not paying anything yet. Once it&apos;s booked, everyone on booked courts shares the total.</span>
+      )}
       <div className="stack" style={{ gap: 12 }}>
         {(m.expenses ?? []).map((e, i) => (
           <div key={e.id ?? i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
@@ -489,66 +509,59 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
   )
 }
 
-/** Organiser marks the court booked and adds the details. Running it again edits them. */
-function BookSheet({ open, onClose, m, rpc }: { open: boolean; onClose: () => void; m: MatchView; rpc: Rpc }) {
+/** Book one court (or edit its booking). Whoever books it pays for it. */
+function BookSheet({ court, onClose, m, rpc, count }: { court: number | null; onClose: () => void; m: MatchView; rpc: Rpc; count: number }) {
   const { flash } = useFeedback()
-  const [f, setF] = useState({ venue: m.venue, courts: m.courts ?? '', parking: m.parking ?? '', cost: m.court_cost ? String(m.court_cost) : '' })
-  // Pick up changes made elsewhere (e.g. a court added) each time the sheet opens.
-  const [wasOpen, setWasOpen] = useState(open)
-  if (open !== wasOpen) {
-    setWasOpen(open)
-    if (open) setF({ venue: m.venue, courts: m.courts ?? '', parking: m.parking ?? '', cost: m.court_cost ? String(m.court_cost) : '' })
-  }
-  const set = (k: 'venue' | 'courts' | 'parking' | 'cost') => (e: { target: { value: string } }) => setF(x => ({ ...x, [k]: e.target.value }))
+  const ic = m.court_info?.find(x => x.court === court)
+  const booked = !!ic?.booked
+  const init = () => ({ venue: m.venue, label: ic?.label ?? '', parking: m.parking ?? '', cost: String(ic?.cost ?? (m.court_cost || '')) })
+  const [f, setF] = useState(init)
+  const [was, setWas] = useState(court)
+  if (court !== was) { setWas(court); if (court) setF(init()) }
+  const set = (k: 'venue' | 'label' | 'parking' | 'cost') => (e: { target: { value: string } }) => setF(x => ({ ...x, [k]: e.target.value }))
   const cost = Number(f.cost || 0)
-  const booked = m.status === 'booked'
   const per = perCourt(m.format)
-  // How many courts to book: on first booking, default to the courts we can fill.
-  const fillable = Math.max(1, Math.min(m.court_count, Math.floor(m.confirmed_count / per)))
-  const [book, setBook] = useState(booked ? m.court_count : fillable)
-  if (open !== wasOpen && open) setBook(booked ? m.court_count : fillable)
-  const nCourts = booked ? m.court_count : book
-  const size = nCourts * per
-  const moving = Math.max(0, m.confirmed_count - size)
-  const dropping = m.court_count - nCourts
+  const others = m.court_info?.filter(x => x.booked && x.court !== court) ?? []
+  const otherLabels = others.map(x => x.label).filter(Boolean).join(' & ')
+  const canCancel = booked && (m.viewer.role === 'organiser' || ic?.booked_by === m.viewer.id)
+  if (!court) return null
   return (
-    <Sheet open={open} onClose={onClose} title={booked ? 'Court details' : 'Court booked'}
-      subtitle={booked ? 'Update what the players see.' : 'Players get locked in once you save. Only you can remove someone after this.'}>
-      {!booked && m.court_count > 1 && (
-        <div className="stack" style={{ gap: 10 }}>
-          <span className="eyebrow">Courts booked</span>
-          <Seg options={Array.from({ length: m.court_count }, (_, i) => ({ value: i + 1, label: `${i + 1} of ${m.court_count}` }))} value={book} onChange={setBook} />
-          <span className="note" style={{ color: moving ? '#D9622B' : undefined }}>
-            {m.confirmed_count} signed up.{' '}
-            {dropping > 0 ? `Court${dropping > 1 ? 's' : ''} ${Array.from({ length: dropping }, (_, i) => nCourts + i + 1).join(' & ')} will be dropped. ` : ''}
-            {moving > 0 ? `${moving === 1 ? 'The last person to join moves' : `The last ${moving} to join move`} to the front of the waitlist; another court opens once ${per} are waiting.` : ''}
-          </span>
-        </div>
+    <Sheet open={court !== null} onClose={onClose} title={booked ? `Court ${court} details` : `Book court ${court}`}
+      subtitle={booked ? 'Update what the players see.' : `The ${count} player${count === 1 ? '' : 's'} on this court get locked in. You pay for it; the cost is split between everyone on booked courts.`}>
+      {!booked && count < per && (
+        <span className="note" style={{ color: '#D9622B', marginTop: -6 }}>
+          {count} of {per} on this court so far. You can still book it: the open spot{per - count > 1 ? 's stay' : ' stays'} open for anyone to join.
+        </span>
       )}
       <label className="label"><span className="eyebrow">Venue</span>
         <input className="field" value={f.venue} onChange={set('venue')} placeholder="e.g. Al Quoz Sports Hall" maxLength={120} /></label>
-      <label className="label"><span className="eyebrow">{nCourts > 1 ? 'Court numbers' : 'Court number'}</span>
-        <input className="field" value={f.courts} onChange={set('courts')} placeholder={nCourts > 1 ? `e.g. ${Array.from({ length: nCourts }, (_, i) => `Court ${i + 3}`).join(' & ')}` : 'e.g. Court 3'} maxLength={60} />
-        {nCourts > 1 && <span className="note">Just the first one is fine: the next numbers are filled in.</span>}</label>
+      <label className="label"><span className="eyebrow">Court number</span>
+        <input className="field" value={f.label} onChange={set('label')} placeholder="e.g. Court 3" maxLength={30} />
+        {otherLabels && <span className="note">Already booked: {otherLabels}</span>}</label>
       <label className="label"><span className="eyebrow">Parking notes · optional</span>
         <input className="field" value={f.parking} onChange={set('parking')} placeholder="e.g. Free parking behind the hall" maxLength={200} /></label>
-      <label className="label"><span className="eyebrow">Court cost · per court</span>
+      <label className="label"><span className="eyebrow">Cost of this court</span>
         <div className="field-wrap">
           <span style={{ fontWeight: 800, color: '#0E7F66', fontSize: 14 }}>{m.currency}</span>
           <input type="number" inputMode="decimal" min={0} value={f.cost} onChange={set('cost')} placeholder="0" style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', color: '#12161C', fontSize: 16, outline: 'none' }} />
         </div>
-        <span className="note">{money(cost * nCourts, m.currency)} for {nCourts} court{nCourts > 1 ? 's' : ''} · {money((cost * nCourts) / size, m.currency)} per player · in the cost split as paid by you</span>
+        <span className="note">In the cost split as paid by {booked && ic?.booked_by !== m.viewer.id ? (ic?.booked_by_name?.split(' ')[0] ?? 'the booker') : 'you'}.</span>
       </label>
       <button className="btn" onClick={() => {
-        if (!f.venue.trim() || !f.courts.trim()) return flash('Add the venue and court number')
+        if (!f.venue.trim() || !f.label.trim()) return flash('Add the venue and court number')
         if (Number.isNaN(cost) || cost < 0) return flash('Court cost must be a number')
-        if (moving > 0 && !confirm(`Book ${nCourts} of ${m.court_count} courts? ${moving === 1 ? 'The last person to join moves' : `The last ${moving} to join move`} to the waitlist.`)) return
         onClose()
-        rpc<{ demoted: number }>('book_match', {
-          p_match: m.id, p_venue: f.venue.trim(), p_courts: f.courts.trim(), p_parking: f.parking.trim(), p_court_cost: cost,
-          p_court_count: booked ? null : nCourts,
-        }, r => flash(booked ? 'Details updated' : ['Court booked · players locked in', r?.demoted ? `${r.demoted} moved to the waitlist` : ''].filter(Boolean).join(' · ')))
-      }}>{booked ? 'Save details' : `Save · lock in ${Math.min(m.confirmed_count, size)} players`}</button>
+        rpc<{ new: boolean }>('book_court', {
+          p_match: m.id, p_court: court, p_venue: f.venue.trim(), p_label: f.label.trim(), p_parking: f.parking.trim(), p_cost: cost,
+        }, r => flash(r.new ? `Court ${court} booked · its players are locked in` : 'Details updated'))
+      }}>{booked ? 'Save details' : `Book court ${court} · lock in ${count}`}</button>
+      {canCancel && (
+        <button className="link-btn" style={{ alignSelf: 'center', color: '#E0245E' }} onClick={() => {
+          if (!confirm(`Cancel the booking for court ${court}? Its cost leaves the split and its players can drop out again.`)) return
+          onClose()
+          rpc('cancel_court', { p_match: m.id, p_court: court }, () => flash(`Court ${court} booking cancelled`))
+        }}>Cancel this booking</button>
+      )}
     </Sheet>
   )
 }
@@ -563,7 +576,7 @@ function EditSheet({ open, onClose, m, rpc }: { open: boolean; onClose: () => vo
   const size = f.courts * perCourt(f.format)
   const moving = Math.max(0, m.confirmed_count - size)
   return (
-    <Sheet open={open} onClose={onClose} title="Edit match" subtitle={m.status === 'booked' ? 'Court booked · changing courts updates the cost split' : 'Planning'}>
+    <Sheet open={open} onClose={onClose} title="Edit match" subtitle={m.status === 'booked' ? 'Dropping a booked court cancels its booking and cost' : 'Planning'}>
       <label className="label"><span className="eyebrow">Match name</span>
         <input className="field" value={f.title} onChange={e => setF(x => ({ ...x, title: e.target.value }))} maxLength={80} /></label>
       <FormatPicker format={f.format} courts={f.courts} onChange={(format: Format, courts) => setF(x => ({ ...x, format, courts }))} />

@@ -3,12 +3,15 @@ export const perCourt = (f: Format) => (f === 'singles' ? 2 : 4)
 
 export type Role = 'anon' | 'outsider' | 'organiser' | 'confirmed' | 'waitlist'
 
-export type VisiblePlayer = { id: string; full_name: string; promoted: boolean; joined_at: string; is_guest?: boolean }
-export type HiddenPlayer = { hidden: true }
+export type VisiblePlayer = { id: string; full_name: string; promoted: boolean; joined_at: string; is_guest?: boolean; court: number }
+export type HiddenPlayer = { hidden: true; court: number }
 export type MatchPlayer = VisiblePlayer | HiddenPlayer
 
 export type Expense = { id?: string; label?: string; amount: number; paid_by: string }
 export type Settlement = { from: string; to: string; amount: number }
+
+/** One per court. Number, cost and booker are only sent to confirmed players. */
+export type CourtInfo = { court: number; booked: boolean; label?: string; cost?: number; booked_by?: string; booked_by_name?: string }
 
 /** Shape returned by the get_match RPC. Private fields are null unless the viewer may see them. */
 export type MatchView = {
@@ -42,7 +45,8 @@ export type MatchView = {
   liable: { id: string; full_name: string }[] | null
   /** Everyone who shares the costs: confirmed players plus liable ones. */
   split_ids: string[] | null
-  /** True once the court is booked with a cost: only then are costs split. */
+  court_info: CourtInfo[]
+  /** True once a court is booked with a cost: only then are costs split. */
   split_ready: boolean
   /** Guest (no login) → who pays their share. */
   billed_to: Record<string, string> | null
@@ -72,6 +76,7 @@ export type HomeMatch = {
   /** Court numbers, for confirmed players only. */
   courts: string | null
   games_count: number
+  booked_courts: number
   /** First names of the winners of the latest game logged in this match. */
   last_winners: string | null
 }

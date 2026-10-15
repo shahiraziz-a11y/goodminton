@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Avatar } from './Avatar'
 import { LockIcon } from './Chrome'
 import type { Person } from '@/lib/people'
@@ -24,10 +25,14 @@ type Props = {
   tbc?: boolean
   ghost?: boolean
   footer?: string
+  /** "✓ Booked by Ann" / "Not booked yet", under the court. */
+  booking?: { text: string; booked: boolean }
+  /** e.g. the Book button. */
+  action?: ReactNode
 }
 
 /** A court card: number, time, and a top-down court with players either side of the net. */
-export function CourtCard({ label, num, dateLabel, start, end, slots, tbc, ghost, footer }: Props) {
+export function CourtCard({ label, num, dateLabel, start, end, slots, tbc, ghost, footer, booking, action }: Props) {
   return (
     <div className="card" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14, opacity: ghost ? 0.85 : 1 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 10 }}>
@@ -58,6 +63,12 @@ export function CourtCard({ label, num, dateLabel, start, end, slots, tbc, ghost
         <Half slots={slots.slice(slots.length / 2)} side="right" />
       </div>
       {footer && <span style={{ fontSize: 13, color: '#D9622B', fontWeight: 600 }}>{footer}</span>}
+      {(booking || action) && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, minHeight: 32 }}>
+          {booking && <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.04em', color: booking.booked ? '#0E7F66' : '#8A94A3' }}>{booking.text}</span>}
+          {action}
+        </div>
+      )}
     </div>
   )
 }
