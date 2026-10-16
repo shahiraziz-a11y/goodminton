@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { reportError } from '@/lib/report'
+import { createClient } from '@/lib/supabase/client'
 import { useFeedback } from './Feedback'
 import { enablePush, pushState, type PushState } from '@/lib/push'
 
@@ -15,9 +17,17 @@ export function PwaSetup() {
     }
     const keep = (e: Event) => { e.preventDefault(); window.__installPrompt = e as InstallEvent; window.dispatchEvent(new Event('installable')) }
     const done = () => { window.__installPrompt = null; window.dispatchEvent(new Event('installable')) }
+    // Uncaught errors on anyone's phone get recorded (see /api/report).
+    const onError = (e: ErrorEvent) => reportError(e.message, e.error?.stack)
+    const onReject = (e: PromiseRejectionEvent) => reportError(String((e.reason as Error)?.message ?? e.reason), (e.reason as Error)?.stack)
     window.addEventListener('beforeinstallprompt', keep)
     window.addEventListener('appinstalled', done)
-    return () => { window.removeEventListener('beforeinstallprompt', keep); window.removeEventListener('appinstalled', done) }
+    window.addEventListener('error', onError)
+    window.addEventListener('unhandledrejection', onReject)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', keep); window.removeEventListener('appinstalled', done)
+      window.removeEventListener('error', onError); window.removeEventListener('unhandledrejection', onReject)
+    }
   }, [])
   return null
 }
@@ -97,6 +107,7 @@ export function AlertsCard({ compact, reason }: { compact?: boolean; reason?: st
     pushState().then(setState, () => setState('unsupported'))
   }, [compact])
 
+  if (state === 'on' && !compact) return <TestAlertRow />
   if (!state || state === 'unsupported' || state === 'on') return null
   if (!compact && state !== 'off') return null // Home: the install card covers iPhone; blocked needs settings
 
@@ -146,3 +157,36 @@ const BellIcon = ({ size = 18 }: { size?: number }) => (
     <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
   </svg>
 )
+
+/** Alerts are on: a quiet row to check they actually arrive. */
+function TestAlertRow() {
+  const { flash } = useFeedback()
+  const [phase, setPhase] = useState<'idle' | 'sending' | 'ok' | 'stuck'>('idle')
+  async function test() {
+    setPhase('sending')
+    const db = createClient()
+    const { data: id, error } = await db.rpc('send_test_alert')
+    if (error) { setPhase('idle'); return flash(error.message) }
+    // Delivery is usually instant; the backup sweep runs every 5 minutes.
+    for (let i = 0; i < 10; i++) {
+      await new Promise(r => setTimeout(r, 2000))
+      const { data } = await db.rpc('alert_status', { p_id: id })
+      const st = data as { sent: boolean; devices: number | null } | null
+      if (st?.sent) {
+        setPhase(st.devices ? 'ok' : 'stuck')
+        return flash(st.devices ? `Sent to ${st.devices} device${st.devices > 1 ? 's' : ''}` : 'Sent, but no device accepted it. Turn alerts off and on again.')
+      }
+    }
+    setPhase('stuck')
+    flash('Not delivered yet. It may arrive within 5 minutes.')
+  }
+  return (
+    <div className="panel" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 14 }}>
+      <BellIcon />
+      <span style={{ flex: 1, fontSize: 13, color: '#5B6573' }}>
+        {phase === 'ok' ? 'Alerts are working on this device' : phase === 'stuck' ? 'Test alert hasn\'t arrived yet' : 'Alerts are on for this device'}
+      </span>
+      <button className="chip-btn" disabled={phase === 'sending'} onClick={test}>{phase === 'sending' ? 'Sending…' : 'Send test'}</button>
+    </div>
+  )
+}

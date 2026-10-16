@@ -1,0 +1,83 @@
+# Goodminton: check every pull request, and apply database changes when main changes.
+name: Goodminton
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: goodminton-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: goodminton
+
+jobs:
+  app:
+    name: Types, unit tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: goodminton/package-lock.json
+      - run: npm ci
+      - name: Migrations are numbered 0001, 0002, … with no gaps or repeats
+        run: |
+          i=0
+          for f in supabase/migrations/*.sql; do
+            i=$((i + 1)); want=$(printf '%04d' "$i")
+            case "$(basename "$f")" in "${want}_"*) ;; *) echo "::error file=$f::expected a file starting ${want}_"; exit 1 ;; esac
+          done
+      - run: npx tsc --noEmit
+      - run: npm test
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+          NEXT_PUBLIC_SITE_URL: https://example.com
+
+  database:
+    name: Database tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - run: supabase/tests/run.sh -h localhost -U postgres
+
+  migrate:
+    name: Apply database changes to Supabase
+    # Only after a merge to main, and only once SUPABASE_DB_URL is added as a repository secret.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [app, database]
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Apply new migrations
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::notice::SUPABASE_DB_URL isn't set, so database changes weren't applied. See README: Automatic database updates."
+            exit 0
+          fi
+          supabase db push --db-url "$SUPABASE_DB_URL" --yes

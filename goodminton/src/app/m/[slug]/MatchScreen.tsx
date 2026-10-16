@@ -12,13 +12,13 @@ import { LogResultSheet } from '@/components/LogResultSheet'
 import { loadPlayers } from '@/components/PlayerPicker'
 import { AlertsCard } from '@/components/Pwa'
 import { Sheet } from '@/components/Sheet'
-import { balancedOrder, shuffled, standings } from '@/lib/stats'
-import { courtNumber, localDateTime, money } from '@/lib/format'
-import { matchLabels, whatsappUrl } from '@/lib/match'
+import { balancedByRating, ratings, shuffled } from '@/lib/stats'
+import { courtNumber, fmtTime, localDateTime, money } from '@/lib/format'
+import { gameLine, matchLabels, matchSummary, whatsappUrl } from '@/lib/match'
 import { person, type Person } from '@/lib/people'
 import { transfersOf } from '@/lib/split'
 import { createClient, signInWithGoogle } from '@/lib/supabase/client'
-import { isVisible, perCourt, type Format, type Leaderboard, type MatchView, type PlayerOption } from '@/lib/types'
+import { isVisible, perCourt, type Format, type Leaderboard, type MatchGame, type MatchView, type PlayerOption } from '@/lib/types'
 
 export function MatchScreen({ m, link, started }: { m: MatchView; link: string; started: boolean }) {
   const router = useRouter()
@@ -182,6 +182,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
                     {nBooked === nCourts ? (nCourts > 1 ? '✓ All courts booked' : '✓ Court booked') : `✓ ${nBooked} of ${nCourts} courts booked`}
                   </span>}
               {m.locked && <span className="badge" style={{ background: '#E5484D', color: '#fff' }}>Sign-ups closed</span>}
+              {m.repeat_weekly && <span className="badge" style={{ background: '#F1F3F6', color: '#5B6573' }}>↻ Weekly</span>}
             </div>
           )}
         </div>
@@ -206,7 +207,18 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
             <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.45 }}>{org.first} has locked the final count. Keep an eye on the group in case a spot opens.</span>
           </div>
         )}
-        {outsider && open && !full && (
+        {outsider && open && m.regulars_until && !m.is_regular && (
+          <div className="card stack" style={{ padding: 20, gap: 14 }}>
+            <div className="stack" style={{ gap: 6 }}>
+              <span className="display" style={{ fontSize: 17, fontWeight: 700 }}>Regulars first</span>
+              <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.45 }}>
+                Last week&apos;s players can claim spots until {fmtTime(m.regulars_until, m.timezone)}. Join now and you&apos;re in line for any spot left after that.
+              </span>
+            </div>
+            <button className="btn" disabled={busy} onClick={() => rpc<{ position: number }>('join_match', { p_match: m.id }, r => flash(`You're #${r.position} in line`))}>Get in line</button>
+          </div>
+        )}
+        {outsider && open && !full && !(m.regulars_until && !m.is_regular) && (
           <div className="stack" style={{ gap: 10 }}>
             <span style={{ fontSize: 14, color: '#5B6573', textAlign: 'center' }}>Signed in as <b style={{ color: '#12161C' }}>{me?.name}</b></span>
             <button className="btn" disabled={busy} onClick={() => rpc<{ status: string; filled: boolean; position?: number }>('join_match', { p_match: m.id }, r => {
@@ -215,7 +227,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
             })}>Confirm I&apos;m playing</button>
           </div>
         )}
-        {outsider && open && full && (
+        {outsider && open && full && !(m.regulars_until && !m.is_regular) && (
           <div className="card stack" style={{ padding: 20, gap: 16 }}>
             <div className="stack" style={{ gap: 6 }}>
               <span className="display" style={{ fontSize: 17, fontWeight: 700 }}>Match is full</span>
@@ -287,6 +299,14 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
                 </div>
               )}
               <div style={{ borderTop: '1px solid rgba(0,0,0,.06)' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ flex: 1, fontSize: 14, color: '#5B6573', lineHeight: 1.35 }}>
+                  {m.repeats ? `Repeats weekly${m.regulars_first ? ' · regulars first' : ''}. Next week's match appears when this one starts.` : 'One-off match'}
+                </span>
+                <button className="chip-btn" disabled={busy} onClick={() => rpc('set_repeat', { p_match: m.id, p_weekly: !m.repeats, p_regulars_first: true },
+                  () => flash(m.repeats ? 'Stopped repeating' : 'Repeats weekly · regulars first'))}>{m.repeats ? 'Stop repeating' : 'Repeat weekly'}</button>
+              </div>
+              <div style={{ borderTop: '1px solid rgba(0,0,0,.06)' }} />
               {m.locked ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ flex: 1, fontSize: 14, fontWeight: 800 }}>{finalLine}</span>
@@ -322,6 +342,8 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
           </>
         )}
 
+        {m.games.length > 0 && <Results m={m} link={link} dateLabel={L.dateLabel} canRemove={(g) => isOrg || g.created_by === m.viewer.id} rpc={rpc} busy={busy} />}
+
         {canSee && tr && (
           <>
             {m.locked && !m.past && (
@@ -351,8 +373,8 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
                     <button className="chip-btn" disabled={busy} onClick={async () => {
                       const { data, error } = await createClient().rpc('get_leaderboard')
                       if (error) return flash(error.message)
-                      const order = balancedOrder(c.players.map(p => p.id), standings((data as Leaderboard).games))
-                      rpc('set_court_order', { p_match: m.id, p_ids: order }, () => flash('Balanced by win rate'))
+                      const order = balancedByRating(c.players.map(p => p.id), ratings((data as Leaderboard).games))
+                      rpc('set_court_order', { p_match: m.id, p_ids: order }, () => flash('Balanced by rating'))
                     }}>Balance</button>
                   </div>
                 ))}
@@ -697,5 +719,35 @@ function AddPlayerSheet({ open, onClose, m, exclude, inviteMsg, rpc }: {
       {all === null && <span className="note">Loading players…</span>}
       <a className="btn-2" href={whatsappUrl(inviteMsg)} target="_blank" rel="noreferrer" style={{ height: 46, color: '#128A5C' }}>Send invite link on WhatsApp</a>
     </Sheet>
+  )
+}
+
+/** Games logged in this match, and the summary to post to the group. */
+function Results({ m, link, dateLabel, canRemove, rpc, busy }: {
+  m: MatchView; link: string; dateLabel: string; canRemove: (g: MatchGame) => boolean; rpc: Rpc; busy: boolean
+}) {
+  const { flash } = useFeedback()
+  const [all, setAll] = useState(false)
+  const shown = all ? m.games : m.games.slice(0, 5)
+  return (
+    <div className="card stack" style={{ padding: '18px 20px', gap: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span className="eyebrow">Results</span>
+        <span style={{ fontSize: 12, color: '#5B6573', fontWeight: 600 }}>{m.games.length} game{m.games.length === 1 ? '' : 's'}</span>
+      </div>
+      {shown.map(g => (
+        <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ flex: 1, fontSize: 14, lineHeight: 1.35 }}>{gameLine(g)}</span>
+          {canRemove(g) && (
+            <button aria-label="Remove result" disabled={busy} onClick={() => {
+              if (!confirm('Remove this result? It also comes off the leaderboard.')) return
+              rpc('delete_game', { p_game: g.id }, () => flash('Result removed'))
+            }} style={{ border: 'none', background: 'none', color: '#8A94A3', fontSize: 18, lineHeight: 1, padding: 2, flex: 'none' }}>×</button>
+          )}
+        </div>
+      ))}
+      {m.games.length > shown.length && <button className="link-btn" style={{ alignSelf: 'flex-start', color: '#0E7F66' }} onClick={() => setAll(true)}>Show all {m.games.length}</button>}
+      <a className="btn-2" href={whatsappUrl(matchSummary(m.title, dateLabel, m.games, link))} target="_blank" rel="noreferrer" style={{ height: 46, color: '#128A5C' }}>Share summary on WhatsApp</a>
+    </div>
   )
 }

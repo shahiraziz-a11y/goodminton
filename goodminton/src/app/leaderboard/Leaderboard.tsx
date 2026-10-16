@@ -8,7 +8,7 @@ import { useFeedback } from '@/components/Feedback'
 import { LogResultSheet } from '@/components/LogResultSheet'
 import { fmtDate } from '@/lib/format'
 import { person } from '@/lib/people'
-import { bestPairs, standings } from '@/lib/stats'
+import { bestPairs, ratings, standings, START_RATING } from '@/lib/stats'
 import { createClient } from '@/lib/supabase/client'
 import type { Leaderboard as Data } from '@/lib/types'
 
@@ -19,7 +19,12 @@ export function Leaderboard({ meId, meName, data }: { meId: string; meName: stri
   const { flash } = useFeedback()
   const [logging, setLogging] = useState(false)
   const who = (id: string) => person(id, data.people[id] ?? 'Player')
-  const table = standings(data.games).map((s, i) => ({ ...s, rank: i + 1, p: who(s.id) }))
+  // Ranked by rating (beating strong pairs counts more); wins and losses shown alongside.
+  const rating = ratings(data.games)
+  const table = standings(data.games)
+    .map(s => ({ ...s, rating: rating[s.id] ?? START_RATING }))
+    .sort((a, b) => b.rating - a.rating || b.w - a.w)
+    .map((s, i) => ({ ...s, rank: i + 1, p: who(s.id) }))
   const podium = [table[1], table[0], table[2]].filter(Boolean)
   const pairs = bestPairs(data.games)
   const recent = data.games.slice(0, 8)
@@ -66,7 +71,7 @@ export function Leaderboard({ meId, meName, data }: { meId: string; meName: stri
             </div>
 
             <div className="stack" style={{ gap: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="eyebrow">Standings</span><span className="eyebrow">Win %</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="eyebrow">Standings</span><span className="eyebrow">Rating</span></div>
               <div className="card" style={{ padding: '4px 18px' }}>
                 {table.map(r => (
                   <div key={r.id} className="row-line" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0' }}>
@@ -74,10 +79,10 @@ export function Leaderboard({ meId, meName, data }: { meId: string; meName: stri
                     <Avatar p={r.p} size={34} />
                     <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
                       <span style={{ fontSize: 14, fontWeight: 700 }}>{r.p.name}</span>
-                      <span style={{ fontSize: 12, color: '#5B6573' }}>{r.w}W · {r.l}L{r.id === meId ? ' · You' : ''}</span>
+                      <span style={{ fontSize: 12, color: '#5B6573' }}>{r.w}W · {r.l}L · {Math.round(r.pct * 100)}%{r.id === meId ? ' · You' : ''}</span>
                     </span>
                     <span style={{ fontSize: 10, fontWeight: 800, padding: '4px 7px', borderRadius: 99, background: r.hot ? '#E5484D' : '#F1F3F6', color: r.hot ? '#fff' : '#5B6573' }}>{r.streak}</span>
-                    <span className="display" style={{ width: 42, textAlign: 'right', fontSize: 13, fontWeight: 700 }}>{Math.round(r.pct * 100)}%</span>
+                    <span className="display" style={{ width: 48, textAlign: 'right', fontSize: 13, fontWeight: 700 }}>{r.rating}</span>
                   </div>
                 ))}
               </div>
@@ -116,7 +121,10 @@ export function Leaderboard({ meId, meName, data }: { meId: string; meName: stri
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr)', gap: 10, alignItems: 'center' }}>
                         <span style={{ fontSize: 14, fontWeight: aWin ? 800 : 500, color: aWin ? '#12161C' : '#5B6573' }}>{nm(g.a)}</span>
-                        <span className="display panel" style={{ fontWeight: 800, padding: '6px 10px', borderRadius: 10, whiteSpace: 'nowrap', fontSize: 11 }}>{aWin ? 'BEAT' : 'LOST TO'}</span>
+                        <span className="display panel" style={{ fontWeight: 800, padding: '6px 10px', borderRadius: 10, whiteSpace: 'nowrap', fontSize: 11, textAlign: 'center' }}>
+                          {aWin ? 'BEAT' : 'LOST TO'}
+                          {g.score_a != null && g.score_b != null && <span style={{ display: 'block', fontSize: 12, marginTop: 2 }}>{g.score_a}–{g.score_b}</span>}
+                        </span>
                         <span style={{ fontSize: 14, fontWeight: aWin ? 500 : 800, color: aWin ? '#5B6573' : '#12161C', textAlign: 'right' }}>{nm(g.b)}</span>
                       </div>
                     </div>
