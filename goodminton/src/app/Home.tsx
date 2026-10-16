@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { Bars, Frame, GoogleButton } from '@/components/Chrome'
 import { useFeedback } from '@/components/Feedback'
+import { EmailToggle } from '@/components/EmailToggle'
 import { AlertsCard, InstallCard } from '@/components/Pwa'
 import { LogResultSheet } from '@/components/LogResultSheet'
 import { Sheet } from '@/components/Sheet'
@@ -72,6 +73,7 @@ export function Home({ meId, meName, matches, ledger }: { meId: string; meName: 
         <BalanceRow total={bal.total} currency={ledger[0]?.currency ?? CURRENCY} />
         <InstallCard />
         <AlertsCard />
+        <EmailToggle />
       </div>
       <Sheet open={choosing} onClose={() => setChoosing(false)} title="What's up?">
         <Link href="/new" className="card sheet-option" onClick={() => setChoosing(false)}>

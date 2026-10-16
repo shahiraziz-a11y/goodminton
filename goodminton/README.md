@@ -84,6 +84,24 @@ select public.set_alert_config('https://<your-domain>', '<PUSH_WEBHOOK_SECRET>')
 
 To check the schedule: `select * from cron.job;`. To see recent runs: `select * from cron.job_run_details order by start_time desc limit 5;`.
 
+## Email updates
+
+Alongside app alerts, everyone gets emails, sent from your Gmail, when:
+
+- a new match is created and they're a regular;
+- someone joins or drops out of a match they're in (bundled into one email per match, 5 minutes after the first change);
+- a court is booked (venue, court, time and line-up).
+
+Each email has a "Stop these emails" link, and Home has an **Email updates** switch.
+
+Setup:
+1. Google account → **Security** → turn on **2-Step Verification**.
+2. Go to myaccount.google.com/apppasswords, create an app password named "Goodminton", and copy the 16 letters.
+3. In Vercel, add `GMAIL_USER` (your Gmail address) and `GMAIL_APP_PASSWORD` (the 16 letters), then redeploy.
+4. Run migration `0013_email_updates.sql` (or merge, if automatic database updates are on). It uses the same `set_alert_config` setting as alerts.
+
+Gmail allows about 500 emails a day. Until Gmail is set up, emails wait in `public.email_outbox` and are sent once it is.
+
 ## Automatic database updates
 
 `.github/workflows/goodminton.yml` runs on every pull request: types, unit tests, build, and all database tests. After a merge to `main`, it applies any new `supabase/migrations` files to Supabase. That last step needs a one-time setup:
