@@ -1,5 +1,6 @@
--- 1. Alerts that reach people: a test alert, and a backup sweep that sends any
---    alert the database webhook missed.
+-- 1. Alerts that reach people: the database sends each new alert to the app
+--    straight away (no webhook needed), a 5-minute sweep retries any that failed,
+--    and a test alert to check it all works.
 -- 2. Reminders on a schedule: the day before and 2 hours before a match, the
 --    organiser when sign-ups close with an unbooked court, and a weekly nudge to
 --    anyone who owes money.
@@ -33,7 +34,7 @@ begin
   if coalesce(length(p_push_secret), 0) < 16 then raise exception 'Paste the PUSH_WEBHOOK_SECRET from Vercel'; end if;
   insert into public.app_config values ('site_url', rtrim(p_site_url, '/')) on conflict (key) do update set value = excluded.value;
   insert into public.app_config values ('push_secret', p_push_secret) on conflict (key) do update set value = excluded.value;
-  return 'Saved. Alerts will also be swept every 5 minutes.';
+  return 'Saved. New alerts are sent straight away, and retried every 5 minutes if needed.';
 end $$;
 
 -- ---------------------------------------------------------------------------
@@ -79,6 +80,29 @@ begin
           jsonb_build_object('Content-Type', 'application/json', 'x-push-secret', v_secret);
   return true;
 end $$;
+
+-- Send each new alert straight away: the database calls the app itself (no Supabase
+-- webhook needed). If a webhook is also set up, the app sends each alert only once.
+create or replace function public.send_alert_now() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  v_url text := (select value from public.app_config where key = 'site_url');
+  v_secret text := (select value from public.app_config where key = 'push_secret');
+begin
+  if v_url is null or v_secret is null or to_regproc('net.http_post') is null then return null; end if;
+  execute 'select net.http_post(url := $1, body := $2, headers := $3)'
+    using v_url || '/api/push',
+          jsonb_build_object('type', 'INSERT', 'table', 'notifications', 'record', to_jsonb(new)),
+          jsonb_build_object('Content-Type', 'application/json', 'x-push-secret', v_secret);
+  return null;
+exception when others then
+  return null; -- never block the action that caused the alert; the 5-minute sweep retries
+end $$;
+
+drop trigger if exists notifications_send_now on public.notifications;
+create trigger notifications_send_now
+  after insert on public.notifications
+  for each row execute function public.send_alert_now();
 
 -- ---------------------------------------------------------------------------
 -- 2. Reminders
@@ -561,6 +585,7 @@ end $$;
 
 revoke all on function public.set_alert_config(text, text) from public, anon, authenticated;
 revoke all on function public.flush_alerts() from public, anon, authenticated;
+revoke all on function public.send_alert_now() from public, anon, authenticated;
 revoke all on function public.remind_once(text, uuid, uuid, text, text, text, text) from public, anon, authenticated;
 revoke all on function public.match_balances() from public, anon, authenticated;
 revoke all on function public.send_reminders(timestamptz) from public, anon, authenticated;
