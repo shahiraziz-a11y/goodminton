@@ -100,14 +100,15 @@ export function AlertsCard({ compact, reason }: { compact?: boolean; reason?: st
   const { flash } = useFeedback()
   const [state, setState] = useState<PushState | null>(null)
   const [busy, setBusy] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
   useEffect(() => {
-    let dismissed = false
-    if (!compact) store(() => { dismissed = localStorage.getItem(ALERTS_DISMISS_KEY) === '1' })
-    if (dismissed) return
+    // Dismissing hides the "Turn on" prompt only; once alerts are on, the test row still shows.
+    if (!compact) store(() => setDismissed(localStorage.getItem(ALERTS_DISMISS_KEY) === '1'))
     pushState().then(setState, () => setState('unsupported'))
   }, [compact])
 
   if (state === 'on' && !compact) return <TestAlertRow />
+  if (!compact && dismissed) return null
   if (!state || state === 'unsupported' || state === 'on') return null
   if (!compact && state !== 'off') return null // Home: the install card covers iPhone; blocked needs settings
 
@@ -146,7 +147,7 @@ export function AlertsCard({ compact, reason }: { compact?: boolean; reason?: st
         <span style={{ fontSize: 12, color: '#5B6573', lineHeight: 1.4 }}>Know when people join, the court is booked, or you move up the waitlist.</span>
       </span>
       <button className="chip-btn go" disabled={busy} onClick={turnOn}>Turn on</button>
-      <button onClick={() => { store(() => localStorage.setItem(ALERTS_DISMISS_KEY, '1')); setState(null) }} aria-label="Dismiss"
+      <button onClick={() => { store(() => localStorage.setItem(ALERTS_DISMISS_KEY, '1')); setDismissed(true) }} aria-label="Dismiss"
         style={{ border: 'none', background: 'none', color: '#8A94A3', fontSize: 20, lineHeight: 1, padding: 4, flex: 'none' }}>×</button>
     </div>
   )
