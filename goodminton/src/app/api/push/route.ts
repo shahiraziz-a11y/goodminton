@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { timingSafeEqual } from 'node:crypto'
 import webpush from 'web-push'
 import { SUPABASE_URL } from '@/lib/supabase/env'
+import { authorised } from '@/lib/webhook'
 
 /**
  * Called by a Supabase Database Webhook for each new row in public.notifications, and every
@@ -10,12 +10,6 @@ import { SUPABASE_URL } from '@/lib/supabase/env'
  */
 type Row = { id: string; user_id: string; kind: string; title: string; body: string; url: string; match_id: string | null; sent_at: string | null }
 
-function authorised(req: Request) {
-  const want = process.env.PUSH_WEBHOOK_SECRET ?? ''
-  const got = req.headers.get('x-push-secret') ?? ''
-  if (!want || got.length !== want.length) return false
-  return timingSafeEqual(Buffer.from(got), Buffer.from(want))
-}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Db = SupabaseClient<any, 'public', any>

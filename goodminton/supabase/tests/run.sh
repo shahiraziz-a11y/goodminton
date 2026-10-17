@@ -22,6 +22,7 @@ psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f court_booking_more.sql
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f organiser_dropout.sql
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f pairing.sql
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f scheduled.sql
+psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f email_flow.sql
 ./concurrency.sh "$@" -d "$DB"
 ./concurrency_booking.sh "$@" -d "$DB"
 ./upgrade_0009.sh "$@"
