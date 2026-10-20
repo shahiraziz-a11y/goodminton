@@ -12,6 +12,8 @@ export type Slot =
   | { kind: 'empty' }
   /** An open spot the viewer can fill by adding someone. */
   | { kind: 'add'; onTap: () => void }
+  /** An open spot someone not yet in the match can tap to join on this court. */
+  | { kind: 'claim'; onTap: () => void; disabled?: boolean }
 
 type Props = {
   label: string
@@ -113,6 +115,13 @@ function SlotView({ s }: { s: Slot }) {
           style={{ ...center, gap: 6, border: 'none', background: 'transparent', color: 'rgba(255,255,255,.75)', cursor: 'pointer' }}>
           <span style={{ width: 22, height: 22, borderRadius: '50%', border: '1.5px dashed rgba(255,255,255,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, lineHeight: 1 }}>+</span>
           <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.14em' }}>ADD</span>
+        </button>
+      )
+    case 'claim':
+      return (
+        <button type="button" onClick={s.onTap} disabled={s.disabled} aria-label="Claim this spot"
+          style={{ ...center, border: 'none', background: 'transparent', cursor: 'pointer', padding: '0 6px' }}>
+          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.06em', padding: '7px 11px', borderRadius: 99, background: '#5FE3BE', color: '#0A2622', whiteSpace: 'nowrap' }}>Tap to join</span>
         </button>
       )
     case 'anon':

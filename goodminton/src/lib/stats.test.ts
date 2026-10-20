@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { balancedByRating, balancedOrder, bestPairs, ratings, standings, START_RATING } from './stats.ts'
+import { balancedByRating, balancedOrder, bestPairs, biggestRivalry, myPartners, pairRecords, pairTable, ratings, standings, START_RATING, winsToPass } from './stats.ts'
 import type { Game } from './types.ts'
 
 const G = (a: string[], b: string[], winner: 'a' | 'b'): Game =>
@@ -64,4 +64,40 @@ test('ratings: beating a stronger side earns more; a big margin counts more', ()
 test('balance by rating: best with worst', () => {
   assert.deepEqual(balancedByRating(['a', 'b', 'c', 'd'], { a: 1100, b: 900, c: 1050, d: 1000 }), ['a', 'b', 'c', 'd'])
   assert.deepEqual(balancedByRating(['n1', 'n2', 'n3', 'n4'], {}), ['n1', 'n4', 'n2', 'n3'])
+})
+
+test('pair table needs 3 games together and ranks by win rate', () => {
+  const gs = [
+    G(['a', 'b'], ['c', 'd'], 'a'),
+    G(['b', 'a'], ['d', 'c'], 'a'),
+    G(['a', 'b'], ['c', 'd'], 'b'),
+    G(['a', 'b'], ['e', 'f'], 'a'),
+    G(['e', 'f'], ['c', 'd'], 'a'),
+    G(['x', 'y'], ['e', 'f'], 'a'),
+  ]
+  const t = pairTable(gs)
+  assert.deepEqual(t.map(p => p.ids.join('')), ['ab', 'ef', 'cd'])
+  assert.deepEqual([t[0].w, t[0].l, t[0].streak], [3, 1, 2])
+  assert.equal(pairRecords(gs).find(p => p.ids.join('') === 'xy')?.w, 1)
+  assert.ok(!t.some(p => p.ids.join('') === 'xy'), 'one game is not enough to rank')
+})
+
+test('wins to pass the pair above', () => {
+  assert.equal(winsToPass({ w: 1, l: 2 }, 0.5), 2) // 3/5 = 60% > 50%
+  assert.equal(winsToPass({ w: 2, l: 2 }, 0.5), 1)
+  assert.equal(winsToPass({ w: 3, l: 1 }, 0.5), 1)
+  assert.equal(winsToPass({ w: 1, l: 1 }, 1), null)
+})
+
+test('my partners and the biggest rivalry', () => {
+  const gs = [
+    G(['a', 'b'], ['c', 'd'], 'b'),
+    G(['a', 'b'], ['c', 'd'], 'a'),
+    G(['d', 'c'], ['b', 'a'], 'b'),
+    G(['a', 'c'], ['b', 'd'], 'a'),
+  ]
+  assert.deepEqual(myPartners(gs, 'a').map(p => [p.partner, p.w, p.l]), [['c', 1, 0], ['b', 2, 1]])
+  const r = biggestRivalry(gs)
+  assert.deepEqual(r && [r.l, r.r, r.lw, r.rw, r.lastWinner], [['a', 'b'], ['c', 'd'], 2, 1, 'r'])
+  assert.equal(biggestRivalry(gs.slice(3)), null)
 })
