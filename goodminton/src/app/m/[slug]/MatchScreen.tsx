@@ -70,6 +70,12 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
   const nBooked = m.court_info?.filter(x => x.booked).length ?? 0
   const canAdd = conf && !m.past
   const canRemove = (id: string) => !m.past && id !== m.organiser.id && (isOrg || m.added_by[id] === m.viewer.id)
+  // Not in the match yet: tap an open spot to join on that court (not during regulars' first dibs).
+  const canClaim = outsider && open && !full && !(m.regulars_until && !m.is_regular)
+  const join = (court?: number) => rpc<{ status: string; filled: boolean; position?: number }>('join_match', { p_match: m.id, p_court: court ?? null }, r => {
+    flash(r.status === 'confirmed' ? "You're confirmed" : `You're #${r.position} on the waitlist`)
+    if (r.filled) celebrate()
+  })
   const mine = m.players.find(p => isVisible(p) && p.id === m.viewer.id)
   const myCourtBooked = !!info(mine?.court)?.booked
   const courts = Array.from({ length: nCourts }, (_, ci) => {
@@ -78,7 +84,8 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
     const group = m.players.filter(p => p.court === c)
     const slots: Slot[] = Array.from({ length: per }, (_, i) => {
       const p = group[i]
-      if (!p) return canAdd ? { kind: 'add', onTap: () => setAdding(true) } : { kind: 'empty' }
+      if (!p) return canAdd ? { kind: 'add', onTap: () => setAdding(true) }
+        : canClaim ? { kind: 'claim', onTap: () => join(c), disabled: busy } : { kind: 'empty' }
       if (!isVisible(p)) return { kind: 'anon' }
       const pp = person(p.id, p.full_name)
       if (p.id === m.viewer.id) return { kind: 'mine', p: pp, onTap: !m.past ? () => setMySpot(true) : undefined }
@@ -221,10 +228,8 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
         {outsider && open && !full && !(m.regulars_until && !m.is_regular) && (
           <div className="stack" style={{ gap: 10 }}>
             <span style={{ fontSize: 14, color: '#5B6573', textAlign: 'center' }}>Signed in as <b style={{ color: '#12161C' }}>{me?.name}</b></span>
-            <button className="btn" disabled={busy} onClick={() => rpc<{ status: string; filled: boolean; position?: number }>('join_match', { p_match: m.id }, r => {
-              flash(r.status === 'confirmed' ? "You're confirmed" : `You're #${r.position} on the waitlist`)
-              if (r.filled) celebrate()
-            })}>Confirm I&apos;m playing</button>
+            <button className="btn" disabled={busy} onClick={() => join()}>Confirm I&apos;m playing</button>
+            <span className="note" style={{ textAlign: 'center' }}>Or tap an open spot on a court to pick where you play.</span>
           </div>
         )}
         {outsider && open && full && !(m.regulars_until && !m.is_regular) && (
