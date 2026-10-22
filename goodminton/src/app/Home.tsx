@@ -13,7 +13,7 @@ import { person } from '@/lib/people'
 import { balancesFor, transfersOf } from '@/lib/split'
 import { signInWithGoogle } from '@/lib/supabase/client'
 import { CURRENCY } from '@/lib/supabase/env'
-import { perCourt, type HomeMatch, type LedgerMatch } from '@/lib/types'
+import { perCourt, type HomeMatch, type HomeStats, type LedgerMatch } from '@/lib/types'
 
 export function SignIn({ failed, reason }: { failed?: boolean; reason?: string }) {
   const { flash } = useFeedback()
@@ -47,7 +47,7 @@ export function SignIn({ failed, reason }: { failed?: boolean; reason?: string }
   )
 }
 
-export function Home({ meId, meName, matches, ledger }: { meId: string; meName: string; matches: HomeMatch[]; ledger: LedgerMatch[] }) {
+export function Home({ meId, meName, matches, ledger, stats }: { meId: string; meName: string; matches: HomeMatch[]; ledger: LedgerMatch[]; stats: HomeStats | null }) {
   const me = person(meId, meName)
   const bal = balancesFor(meId, ledger)
   const [choosing, setChoosing] = useState(false)
@@ -64,6 +64,7 @@ export function Home({ meId, meName, matches, ledger }: { meId: string; meName: 
           </div>
           <button className="btn" aria-label="New match or log a game" onClick={() => setChoosing(true)} style={{ width: 52, height: 52, borderRadius: 18, fontSize: 28, fontWeight: 600, lineHeight: 1, padding: 0 }}>+</button>
         </div>
+        {stats && <StatsCard s={stats} />}
         {groups.map(g => <Group key={g.kind} g={g} ledger={bySlug} />)}
         {!matches.length && (
           <div className="card" style={{ padding: 28, textAlign: 'center', color: '#5B6573', fontSize: 14 }}>
@@ -142,6 +143,36 @@ function Group({ g, ledger }: { g: GroupData; ledger: Map<string, LedgerMatch> }
 }
 
 /** Slim money summary under the matches; hidden when everyone is square. */
+/** Weeks in a row with a game, and lifetime totals. Hidden until you've played. */
+function StatsCard({ s }: { s: HomeStats }) {
+  if (!s.matches_played && !s.games_played) return null
+  const w = s.week_streak
+  const note = !w ? 'Play this week to start a streak'
+    : s.played_this_week ? 'Played this week ✓'
+    : 'Play this week to keep it going'
+  const tile = (big: string | number, label: string) => (
+    <div className="stack" style={{ flex: 1, minWidth: 0, gap: 2, padding: '12px 10px', borderRadius: 14, background: 'rgba(255,255,255,.07)' }}>
+      <span className="display" style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-.03em', lineHeight: 1 }}>{big}</span>
+      <span style={{ fontSize: 11, fontWeight: 700, color: '#A9B2BF' }}>{label}</span>
+    </div>
+  )
+  return (
+    <div style={{ background: '#0F3D35', color: '#fff', borderRadius: 22, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span style={{ fontSize: 30, lineHeight: 1, filter: w ? undefined : 'grayscale(1)', opacity: w ? 1 : 0.5 }} aria-hidden>🔥</span>
+        <span className="stack" style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <span className="display" style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-.02em' }}>{w} week{w === 1 ? '' : 's'} in a row</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: s.played_this_week ? '#5FE3BE' : '#BFE9DC' }}>{note}</span>
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        {tile(s.matches_played, `match${s.matches_played === 1 ? '' : 'es'} played`)}
+        {tile(s.games_played, `game${s.games_played === 1 ? '' : 's'} logged`)}
+      </div>
+    </div>
+  )
+}
+
 function BalanceRow({ total, currency }: { total: number; currency: string }) {
   if (Math.abs(total) < 0.01) return null
   const owed = total > 0

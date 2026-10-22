@@ -8,7 +8,7 @@ import { useFeedback } from '@/components/Feedback'
 import { LogResultSheet } from '@/components/LogResultSheet'
 import { fmtDate } from '@/lib/format'
 import { person, type Person } from '@/lib/people'
-import { biggestRivalry, myPartners, pairRecords, pairTable, ratings, standings, START_RATING, winsToPass, type PairRecord } from '@/lib/stats'
+import { biggestRivalry, myPartners, pairRecords, pairTable, ratings, standings, START_RATING, type PairRecord } from '@/lib/stats'
 import { createClient } from '@/lib/supabase/client'
 import type { Leaderboard as Data } from '@/lib/types'
 
@@ -38,12 +38,6 @@ export function Leaderboard({ meId, meName, data }: { meId: string; meName: stri
   const table = pairTable(data.games, MIN_GAMES)
   const all = pairRecords(data.games)
   const doubles = data.games.filter(g => g.a.length === 2).length
-  const podium = [table[1], table[0], table[2]].map((q, i) => q && { q, rank: [2, 1, 3][i] }).filter(Boolean) as { q: PairRecord; rank: number }[]
-  const chase = table.slice(3).map((q, k) => {
-    const above = table[k + 2]
-    const need = winsToPass(q, above.pct)
-    return { q, rank: k + 4, tag: need == null ? `Chasing an unbeaten #${k + 3}` : `${q.streak ? 'Won last game · ' : ''}${need} win${need > 1 ? 's' : ''} to pass #${k + 3}`, hot: q.streak > 0 }
-  })
   const partners = myPartners(data.games, meId)
   const rival = biggestRivalry(data.games)
 
@@ -96,7 +90,7 @@ export function Leaderboard({ meId, meName, data }: { meId: string; meName: stri
           </>
         ) : (
           <>
-            {/* The arena: dark court-green header with the podium. */}
+            {/* Dark court-green header. */}
             <div style={{ margin: '-8px -18px 0', background: '#0F3D35', color: '#fff', padding: '14px 18px 18px', display: 'flex', flexDirection: 'column', gap: 18, borderRadius: '0 0 32px 32px', overflow: 'hidden', position: 'relative' }}>
               <div style={{ position: 'absolute', left: 18, right: 18, top: 0, bottom: 0, borderLeft: '1.5px solid rgba(255,255,255,.08)', borderRight: '1.5px solid rgba(255,255,255,.08)', pointerEvents: 'none' }} />
               <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
@@ -108,33 +102,46 @@ export function Leaderboard({ meId, meName, data }: { meId: string; meName: stri
                 </div>
                 {logBtn(true)}
               </div>
-              {podium.length ? (
-                <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, alignItems: 'end' }}>
-                  {[0, 1, 2].map(col => {
-                    const pd = podium.find(x => x.rank === [2, 1, 3][col])
-                    if (!pd) return <div key={col} />
-                    const d = duo(pd.q.ids)
-                    const first = pd.rank === 1
+              {!table.length && (
+                <span style={{ position: 'relative', fontSize: 13, color: '#BFE9DC', fontWeight: 600, lineHeight: 1.4 }}>
+                  Pairs rank after {MIN_GAMES} doubles games together. Keep logging results.
+                </span>
+              )}
+            </div>
+
+            {table.length > 0 && (
+              <div className="stack" style={{ gap: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span className="eyebrow">Pair standings</span>
+                  <span style={{ fontSize: 11, color: '#8A94A3', fontWeight: 600 }}>{MIN_GAMES}+ games together</span>
+                </div>
+                <div className="stack" style={{ gap: 8 }}>
+                  {table.map((q, i) => {
+                    const d = duo(q.ids)
+                    const rank = i + 1
+                    const first = rank === 1
+                    const top = rank <= 3
+                    const edge = first ? '#0F3D35' : top ? '#E8F7F2' : '#fff'
                     return (
-                      <div key={col} className="stack" style={{ alignItems: 'center', gap: 8, minWidth: 0 }}>
-                        {first && <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '.16em', padding: '4px 8px', borderRadius: 99, background: '#E5484D', color: '#fff' }}>CHAMPS</span>}
-                        <Duo a={d.a} b={d.b} size={first ? 46 : 36} edge="#0F3D35" />
-                        <span style={{ fontSize: 12, fontWeight: 800, textAlign: 'center', lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.names}</span>
-                        <div className="stack" style={{ width: '100%', height: first ? 118 : pd.rank === 2 ? 88 : 68, borderRadius: 16, background: first ? '#5FE3BE' : 'rgba(255,255,255,.10)', color: first ? '#0A2622' : '#fff', alignItems: 'center', paddingTop: 12, gap: 2 }}>
-                          <span className="display" style={{ fontSize: first ? 34 : 24, fontWeight: 800, lineHeight: 1, letterSpacing: '-.04em' }}>{pd.rank}</span>
-                          <span style={{ fontSize: 12, fontWeight: 800 }}>{pctOf(pd.q.pct)}</span>
-                          <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.75 }}>{pd.q.w}–{pd.q.l}</span>
-                        </div>
+                      <div key={q.ids.join()} style={{ background: edge, color: first ? '#fff' : '#12161C', boxShadow: d.mine ? `0 0 0 2px ${first ? '#5FE3BE' : '#0E9F7E'}` : top ? 'none' : '0 0 0 1px #E6E9EE', borderRadius: 18, padding: top ? '14px' : '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span className="display" style={{ fontSize: top ? 22 : 18, fontWeight: 800, width: 24, flex: 'none', color: first ? '#5FE3BE' : top ? '#0E7F66' : '#C5CDD8' }}>{rank}</span>
+                        <Duo a={d.a} b={d.b} size={top ? 34 : 30} edge={edge} />
+                        <span className="stack" style={{ gap: 3, flex: 1, minWidth: 0 }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                            <span style={{ fontSize: 14, fontWeight: d.mine || top ? 800 : 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.names}{d.mine ? ' · You' : ''}</span>
+                          </span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: first ? '#BFE9DC' : '#5B6573' }}>
+                            {first && <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '.14em', padding: '3px 7px', borderRadius: 99, background: '#E5484D', color: '#fff', flex: 'none' }}>CHAMPS</span>}
+                            {q.w} won · {q.l} lost
+                          </span>
+                        </span>
+                        <span className="display" style={{ fontSize: top ? 16 : 14, fontWeight: 800, flex: 'none', color: first ? '#5FE3BE' : '#12161C' }}>{pctOf(q.pct)}</span>
                       </div>
                     )
                   })}
                 </div>
-              ) : (
-                <span style={{ position: 'relative', fontSize: 13, color: '#BFE9DC', fontWeight: 600, lineHeight: 1.4 }}>
-                  Pairs make the podium after {MIN_GAMES} doubles games together. Keep logging results.
-                </span>
-              )}
-            </div>
+              </div>
+            )}
 
             {partners.length > 0 && (
               <div style={{ background: '#12161C', color: '#fff', borderRadius: 24, padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -192,28 +199,6 @@ export function Leaderboard({ meId, meName, data }: { meId: string; meName: stri
                 </div>
               )
             })()}
-
-            {chase.length > 0 && (
-              <div className="stack" style={{ gap: 12 }}>
-                <span className="eyebrow">The chase</span>
-                <div className="stack" style={{ gap: 8 }}>
-                  {chase.map(ch => {
-                    const d = duo(ch.q.ids)
-                    return (
-                      <div key={ch.q.ids.join()} style={{ background: '#fff', boxShadow: d.mine ? '0 0 0 1.5px #0E9F7E' : '0 0 0 1px #E6E9EE', borderRadius: 18, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span className="display" style={{ fontSize: 18, fontWeight: 800, color: '#C5CDD8', width: 22, flex: 'none' }}>{ch.rank}</span>
-                        <Duo a={d.a} b={d.b} size={30} edge="#fff" />
-                        <span className="stack" style={{ gap: 2, flex: 1, minWidth: 0 }}>
-                          <span style={{ fontSize: 14, fontWeight: d.mine ? 800 : 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.names}{d.mine ? ' · You' : ''}</span>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: ch.hot ? '#0E7F66' : '#5B6573' }}>{ch.tag}</span>
-                        </span>
-                        <span className="display" style={{ fontSize: 14, fontWeight: 700, flex: 'none' }}>{pctOf(ch.q.pct)}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
 
             {awards.length > 0 && (
               <div className="stack" style={{ gap: 12 }}>
