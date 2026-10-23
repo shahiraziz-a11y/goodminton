@@ -112,14 +112,6 @@ export function pairTable(games: Game[], min = 3): PairRecord[] {
     .sort((a, b) => b.pct - a.pct || (b.w + b.l) - (a.w + a.l) || b.w - a.w)
 }
 
-/** Wins in a row a pair needs to move above a win rate; null when it can't (the pair above is unbeaten). */
-export function winsToPass(p: { w: number; l: number }, above: number): number | null {
-  if (above >= 1) return null
-  // Smallest k with (w + k) / (w + l + k) > above.
-  const k = Math.floor((above * (p.w + p.l) - p.w) / (1 - above)) + 1
-  return Math.max(1, k)
-}
-
 /** How I do with each partner, best first. */
 export function myPartners(games: Game[], me: string) {
   return pairRecords(games)

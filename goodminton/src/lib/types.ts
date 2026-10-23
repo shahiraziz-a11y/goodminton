@@ -95,6 +95,9 @@ export type HomeMatch = {
   last_winners: string | null
 }
 
+/** Home stats from my_stats: weeks in a row with a game (Dubai weeks, Monday start) and lifetime totals. */
+export type HomeStats = { week_streak: number; played_this_week: boolean; matches_played: number; games_played: number }
+
 export type LedgerMatch = {
   id: string
   slug: string
