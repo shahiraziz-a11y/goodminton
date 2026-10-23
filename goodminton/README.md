@@ -31,7 +31,7 @@ Built from the Claude Design handoff (`../project/Courtside Light.dc.html`; the 
   - The home screen shows an "Add to Home Screen" card: a one-tap Install on Android and Chrome, and Share-sheet steps on iPhone. It disappears once installed or dismissed.
   - A service worker caches only static files and shows an offline page when there's no signal. Match data is always fetched live.
 
-Not built yet (they're in the design): the "Still in?" check-in, weekly repeat, regulars first, and late-drop tags.
+Not built yet (they're in the design): the "Still in?" check-in and late-drop tags.
 
 ## Setup
 
@@ -72,7 +72,6 @@ Alerts are written to `public.notifications` by database triggers. A Supabase Da
 Migration 0012 schedules `public.run_scheduled()` every 5 minutes with Supabase's **pg_cron**. On each run it:
 
 - Makes next week's copy of weekly matches.
-- Opens "regulars first" spots once that window ends.
 - Sends reminders: the day before and 2 hours before a match, the organiser when sign-ups close with an unbooked court, and a Monday nudge to anyone who owes money.
 - Sends any alert the webhook missed.
 

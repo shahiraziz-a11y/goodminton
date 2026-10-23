@@ -111,7 +111,7 @@ select public.send_reminders('2026-10-26 06:30+00');
 select pg_temp.check(pg_temp.debts() = 0, 'settled: no nudge');
 
 -- ===========================================================================
--- 3. Weekly matches with regulars first
+-- 3. Weekly matches (no regulars-first window)
 -- ===========================================================================
 set role authenticated;
 select pg_temp.as_user('org');
@@ -136,22 +136,20 @@ select pg_temp.check((select string_agg(split_part(p.email, '@', 1), ',') from p
                        where mp.match_id = :'next_id') = 'org', 'organiser in; nobody else yet');
 select pg_temp.check(cardinality((select regulars from public.matches where id = :'next_id')) = 3, 'regulars: org, a, b (not the guest)');
 select pg_temp.check(pg_temp.kinds('a') = 'repeat' and pg_temp.kinds('b') = 'repeat' and pg_temp.kinds('org') = '', 'regulars told');
-select pg_temp.check((select body from public.notifications where user_id = pg_temp.uid('a')) like '%first dibs for 12 hours.', 'mentions first dibs');
--- Inside the window: regulars get in, others wait even though there's room.
+select pg_temp.check((select body from public.notifications where user_id = pg_temp.uid('a')) like '%Tap to join.', 'no first dibs');
+select pg_temp.check((select regulars_until from public.matches where id = :'next_id') is null
+                 and not (select regulars_first from public.matches where id = :'next_id'), 'no regulars window, even when asked for');
+-- Anyone gets straight in while there's room.
 set role authenticated;
 select pg_temp.as_user('c');
-select public.join_match(:'next_id') as j \gset
-select pg_temp.check((:'j'::jsonb ->> 'status') = 'waitlist' and (:'j'::jsonb ->> 'regulars_until') is not null, 'newcomer waits during first dibs');
+select public.join_match(:'next_id') ->> 'status' as s \gset
+select pg_temp.check(:'s' = 'confirmed', 'newcomer gets straight in');
 select pg_temp.as_user('a');
 select public.join_match(:'next_id') ->> 'status' as s \gset
-select pg_temp.check(:'s' = 'confirmed', 'regular gets straight in');
+select pg_temp.check(:'s' = 'confirmed', 'last week''s player gets straight in');
 select public.get_match(:'next_slug') as v \gset
-select pg_temp.check((:'v'::jsonb ->> 'is_regular') = 'true' and (:'v'::jsonb ->> 'repeat_weekly') = 'true' and (:'v'::jsonb ->> 'regulars_until') is not null, 'match shows weekly and first dibs');
--- Window over: Cara moves into the free spot.
+select pg_temp.check((:'v'::jsonb ->> 'repeat_weekly') = 'true' and (:'v'::jsonb ->> 'regulars_until') is null, 'match shows weekly, no window');
 reset role;
-select public.roll_recurring(now() + interval '13 hours');
-select pg_temp.check((select status from public.match_players where match_id = :'next_id' and user_id = pg_temp.uid('c')) = 'confirmed', 'first dibs over: waitlist moves up');
-select pg_temp.check((select regulars_until from public.matches where id = :'next_id') is null, 'window cleared');
 set role authenticated;
 select pg_temp.as_user('d');
 select public.join_match(:'next_id') ->> 'status' as s \gset
@@ -173,7 +171,7 @@ update public.matches set starts_at = now() - interval '5 minutes' where id = pg
 select public.roll_recurring();
 select pg_temp.check((select count(*) from public.match_players mp join public.matches m on m.id = mp.match_id
                        where m.title = 'Weekly 2' and m.starts_at > now()) = 0, 'organiser not playing: not added');
-select pg_temp.check((select regulars_until from public.matches where title = 'Weekly 2' and starts_at > now()) is null, 'no first dibs when off');
+select pg_temp.check((select regulars_until from public.matches where title = 'Weekly 2' and starts_at > now()) is null, 'no first dibs');
 
 -- ===========================================================================
 -- 4. Scores

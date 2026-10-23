@@ -16,7 +16,7 @@ export function CreateMatch() {
   const [busy, setBusy] = useState(false)
   const [f, setF] = useState({
     format: 'doubles' as Format, courts: 1, title: 'Saturday Doubles', venue: '',
-    date: nextSaturday(), time: '19:00', duration: 90, closes: 6, weekly: false, regulars: true,
+    date: nextSaturday(), time: '19:00', duration: 90, closes: 6, weekly: false,
   })
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF(x => ({ ...x, [k]: v }))
 
@@ -32,7 +32,7 @@ export function CreateMatch() {
     if (f.weekly) {
       const db = createClient()
       const { data: m } = await db.rpc('get_match', { p_slug: data })
-      const { error: e2 } = await db.rpc('set_repeat', { p_match: (m as { id: string }).id, p_weekly: true, p_regulars_first: f.regulars })
+      const { error: e2 } = await db.rpc('set_repeat', { p_match: (m as { id: string }).id, p_weekly: true, p_regulars_first: false })
       if (e2) flash(`Match created, but repeating wasn't saved: ${e2.message}`)
     }
     router.push(`/m/${data}/share`)
@@ -64,11 +64,7 @@ export function CreateMatch() {
           <span className="eyebrow">Repeats</span>
           <Seg options={[{ value: false, label: 'Just once' }, { value: true, label: 'Every week' }]} value={f.weekly} onChange={v => set('weekly', v)} />
           {f.weekly && (
-            <>
-              <span className="note">Next week&apos;s match appears automatically once this one starts. Nothing is booked until you book it.</span>
-              <Seg options={[{ value: true, label: 'Regulars first' }, { value: false, label: 'Open to all' }]} value={f.regulars} onChange={v => set('regulars', v)} />
-              <span className="note">{f.regulars ? 'This week\'s players get the first 12 hours to claim a spot; others join the waitlist until then.' : 'Anyone can take a spot as soon as it appears.'}</span>
-            </>
+            <span className="note">Next week&apos;s match appears automatically once this one starts, open to everyone. This week&apos;s players get told. Nothing is booked until you book it.</span>
           )}
         </div>
         <button className="btn" onClick={create} disabled={busy}>{busy ? 'Creating…' : 'Create plan & get link'}</button>

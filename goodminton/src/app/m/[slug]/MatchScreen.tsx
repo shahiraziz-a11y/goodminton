@@ -13,7 +13,7 @@ import { loadPlayers } from '@/components/PlayerPicker'
 import { AlertsCard } from '@/components/Pwa'
 import { Sheet } from '@/components/Sheet'
 import { balancedByRating, ratings, shuffled } from '@/lib/stats'
-import { courtNumber, fmtTime, localDateTime, money } from '@/lib/format'
+import { courtNumber, localDateTime, money } from '@/lib/format'
 import { gameLine, matchLabels, matchSummary, whatsappUrl } from '@/lib/match'
 import { person, type Person } from '@/lib/people'
 import { transfersOf } from '@/lib/split'
@@ -70,8 +70,8 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
   const nBooked = m.court_info?.filter(x => x.booked).length ?? 0
   const canAdd = conf && !m.past
   const canRemove = (id: string) => !m.past && id !== m.organiser.id && (isOrg || m.added_by[id] === m.viewer.id)
-  // Not in the match yet: tap an open spot to join on that court (not during regulars' first dibs).
-  const canClaim = outsider && open && !full && !(m.regulars_until && !m.is_regular)
+  // Not in the match yet: tap an open spot to join on that court.
+  const canClaim = outsider && open && !full
   const join = (court?: number) => rpc<{ status: string; filled: boolean; position?: number }>('join_match', { p_match: m.id, p_court: court ?? null }, r => {
     flash(r.status === 'confirmed' ? "You're confirmed" : `You're #${r.position} on the waitlist`)
     if (r.filled) celebrate()
@@ -214,25 +214,14 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
             <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.45 }}>{org.first} has locked the final count. Keep an eye on the group in case a spot opens.</span>
           </div>
         )}
-        {outsider && open && m.regulars_until && !m.is_regular && (
-          <div className="card stack" style={{ padding: 20, gap: 14 }}>
-            <div className="stack" style={{ gap: 6 }}>
-              <span className="display" style={{ fontSize: 17, fontWeight: 700 }}>Regulars first</span>
-              <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.45 }}>
-                Last week&apos;s players can claim spots until {fmtTime(m.regulars_until, m.timezone)}. Join now and you&apos;re in line for any spot left after that.
-              </span>
-            </div>
-            <button className="btn" disabled={busy} onClick={() => rpc<{ position: number }>('join_match', { p_match: m.id }, r => flash(`You're #${r.position} in line`))}>Get in line</button>
-          </div>
-        )}
-        {outsider && open && !full && !(m.regulars_until && !m.is_regular) && (
+        {outsider && open && !full && (
           <div className="stack" style={{ gap: 10 }}>
             <span style={{ fontSize: 14, color: '#5B6573', textAlign: 'center' }}>Signed in as <b style={{ color: '#12161C' }}>{me?.name}</b></span>
             <button className="btn" disabled={busy} onClick={() => join()}>Confirm I&apos;m playing</button>
             <span className="note" style={{ textAlign: 'center' }}>Or tap an open spot on a court to pick where you play.</span>
           </div>
         )}
-        {outsider && open && full && !(m.regulars_until && !m.is_regular) && (
+        {outsider && open && full && (
           <div className="card stack" style={{ padding: 20, gap: 16 }}>
             <div className="stack" style={{ gap: 6 }}>
               <span className="display" style={{ fontSize: 17, fontWeight: 700 }}>Match is full</span>
@@ -268,6 +257,29 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
 
         {!m.past && (conf || role === 'waitlist') && (
           <AlertsCard compact reason={isOrg ? 'Get alerts when people join or drop out' : role === 'waitlist' ? 'Get an alert the moment you move up' : 'Get alerts if the court, time or players change'} />
+        )}
+
+        {wc > 0 && !showGhost && !m.past && (
+          <div className="stack" style={{ gap: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span className="eyebrow">Waitlist</span>
+              <span style={{ fontSize: 11, color: '#8A94A3', fontWeight: 600 }}>{full ? 'next in line for a spot' : 'moving into free spots'}</span>
+            </div>
+            <div className="card" style={{ padding: '4px 16px' }}>
+              {(m.waitlist ?? Array.from({ length: wc }, () => null)).map((w, i) => (
+                <div key={w?.id ?? i} className="row-line" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0' }}>
+                  <span className="display" style={{ width: 22, fontSize: 13, fontWeight: 800, color: '#E5484D', flex: 'none' }}>#{i + 1}</span>
+                  {w ? <Avatar p={person(w.id, w.full_name)} size={28} font={10} /> : <span className="avatar" style={{ width: 28, height: 28, background: '#C5CDD8' }} />}
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: w?.id === m.viewer.id ? 800 : 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {w ? `${w.full_name}${w.id === m.viewer.id ? ' · You' : ''}` : 'Waiting'}
+                  </span>
+                  {w && canRemove(w.id) && (
+                    <button className="link-btn" style={{ fontSize: 12, color: '#8A94A3' }} onClick={() => remove(w.id, w.full_name.split(' ')[0])}>Remove</button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {showGhost && (
@@ -306,10 +318,10 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
               <div style={{ borderTop: '1px solid rgba(0,0,0,.06)' }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ flex: 1, fontSize: 14, color: '#5B6573', lineHeight: 1.35 }}>
-                  {m.repeats ? `Repeats weekly${m.regulars_first ? ' · regulars first' : ''}. Next week's match appears when this one starts.` : 'One-off match'}
+                  {m.repeats ? "Repeats weekly. Next week's match appears when this one starts." : 'One-off match'}
                 </span>
-                <button className="chip-btn" disabled={busy} onClick={() => rpc('set_repeat', { p_match: m.id, p_weekly: !m.repeats, p_regulars_first: true },
-                  () => flash(m.repeats ? 'Stopped repeating' : 'Repeats weekly · regulars first'))}>{m.repeats ? 'Stop repeating' : 'Repeat weekly'}</button>
+                <button className="chip-btn" disabled={busy} onClick={() => rpc('set_repeat', { p_match: m.id, p_weekly: !m.repeats, p_regulars_first: false },
+                  () => flash(m.repeats ? 'Stopped repeating' : 'Repeats weekly'))}>{m.repeats ? 'Stop repeating' : 'Repeat weekly'}</button>
               </div>
               <div style={{ borderTop: '1px solid rgba(0,0,0,.06)' }} />
               {m.locked ? (
