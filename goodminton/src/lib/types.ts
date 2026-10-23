@@ -51,8 +51,8 @@ export type MatchView = {
   repeat_weekly: boolean
   /** This match will make next week's when it starts. */
   repeats: boolean
+  /** Old "regulars first" fields: always off since migration 0016. */
   regulars_first: boolean
-  /** Until then, only last week's players get spots; others wait. */
   regulars_until: string | null
   is_regular: boolean
   /** Games logged in this match, newest first. */

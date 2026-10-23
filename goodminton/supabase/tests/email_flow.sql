@@ -110,7 +110,7 @@ select pg_temp.check((select bool_and(send_after <= now()) from public.email_out
 select pg_temp.check((select subject from public.email_outbox where kind = 'court_booked' limit 1) like 'Court booked: E1 · %', 'subject');
 
 -- ===========================================================================
--- New matches: the organiser's recent players, or last week's regulars
+-- New matches: the organiser's recent players, or last week's players
 -- ===========================================================================
 delete from public.email_outbox;
 set role authenticated;
@@ -138,7 +138,7 @@ select pg_temp.as_user('');  -- the scheduler runs signed out
 select public.roll_recurring();
 select pg_temp.check((select string_agg(split_part(p.email, '@', 1), ',' order by p.email) from public.email_outbox e join public.profiles p on p.id = e.user_id
                        join public.matches m on m.id = e.match_id where m.title = 'Weekly E' and e.kind = 'new_match') = 'b,e', 'weekly: regulars told');
-select pg_temp.check((select body from public.email_outbox where kind = 'new_match' limit 1) like '%first dibs for 12 hours.%', 'mentions first dibs');
+select pg_temp.check((select body from public.email_outbox where kind = 'new_match' limit 1) not like '%first dibs%', 'no first dibs');
 
 -- ===========================================================================
 -- Played matches, privacy
