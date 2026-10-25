@@ -85,7 +85,7 @@ select public.add_player(:'mid', null, 'Uncle Raj') as j \gset
 select pg_temp.check((:'j'::jsonb ->> 'status') = 'waitlist', 'guest waits when full');
 select public.add_player(:'mid', :'ben', null) ->> 'status' as s \gset
 select pg_temp.check(:'s' = 'waitlist', 'circle member added back');
-select pg_temp.check(pg_temp.fails(format('select public.add_player(%L, %L, null)', :'mid', :'stranger')) like '%played with%', 'cannot add strangers');
+select pg_temp.check(pg_temp.fails(format('select public.add_player(%L, %L, null)', :'mid', :'stranger')) like '%in this group%', 'cannot add strangers');
 select pg_temp.check(pg_temp.fails(format('select public.add_player(%L, null, %L)', :'mid', '  ')) like '%name%', 'guest needs a name');
 select public.my_players() as pl \gset
 select pg_temp.check(exists (select 1 from jsonb_array_elements(:'pl'::jsonb) x where x ->> 'full_name' = 'Uncle Raj' and (x ->> 'is_guest')::boolean), 'guest in my players');
@@ -121,7 +121,7 @@ select pg_temp.check((:'card'::jsonb ->> 'courts') = 'Court 4', 'confirmed see c
 -- Logging from home: anyone in my circle, guests included; never strangers.
 select pg_temp.as_user('org');
 select public.log_game(null, :'org', :'raj', :'ben', :'eve', 'a') as g2 \gset
-select pg_temp.check(pg_temp.fails(format('select public.log_game(null, %L, %L, %L, %L, %L)', :'org', :'raj', :'ben', :'stranger', 'a')) like '%played with%', 'no strangers in home games');
+select pg_temp.check(pg_temp.fails(format('select public.log_game(null, %L, %L, %L, %L, %L)', :'org', :'raj', :'ben', :'stranger', 'a')) like '%must be in the group%', 'no strangers in home games');
 select pg_temp.check(pg_temp.fails(format('select public.log_game(null, %L, %L, %L, %L, %L)', :'org', :'org', :'ben', :'eve', 'a')) like '%players_check%', 'four different players');
 
 -- Leaderboard visibility.

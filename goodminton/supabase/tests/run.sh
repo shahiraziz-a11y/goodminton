@@ -26,6 +26,8 @@ psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f email_flow.sql
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f tap_spot.sql
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f home_stats.sql
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f no_regulars.sql
+psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f groups.sql
 ./concurrency.sh "$@" -d "$DB"
 ./concurrency_booking.sh "$@" -d "$DB"
 ./upgrade_0009.sh "$@"
+./upgrade_0017.sh "$@"

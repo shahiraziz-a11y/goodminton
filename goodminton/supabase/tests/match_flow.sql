@@ -83,9 +83,14 @@ select pg_temp.check((:'v'::jsonb -> 'players' -> 1 ->> 'full_name') = 'Priya Te
 select pg_temp.check((:'v'::jsonb -> 'waitlist' -> 0 ->> 'full_name') = 'Dev Test', 'outsider sees the waitlist');
 select pg_temp.check((:'v'::jsonb ->> 'courts') is null and (:'v'::jsonb -> 'expenses') = 'null'::jsonb, 'outsider: court and costs hidden');
 
--- Outsider's home list has the match even though they're not in it.
+-- Outsider's home list: not there until they're in the match's group; then listed, not in it, no court.
+select pg_temp.check(not exists (select 1 from jsonb_array_elements(public.my_matches()) x where x ->> 'slug' = :'slug'), 'outsider outside the group: not listed');
+reset role;
+select public.join_group((select g.invite_code from public.groups g join public.matches m on m.group_id = g.id where m.slug = :'slug')) is not null as ok
+  from (select set_config('request.jwt.claim.sub', (select id::text from public.profiles where email = 'aisha@gmail.com'), false)) s \gset
+set role authenticated;
 select x as card from jsonb_array_elements(public.my_matches()) x where x ->> 'slug' = :'slug' \gset
-select pg_temp.check(:'card' <> '' and (:'card'::jsonb ->> 'my_role') is null and (:'card'::jsonb ->> 'courts') is null, 'outsider home: listed, not in it, no court');
+select pg_temp.check(:'card' <> '' and (:'card'::jsonb ->> 'my_role') is null and (:'card'::jsonb ->> 'courts') is null, 'group member home: listed, not in it, no court');
 select pg_temp.as_user('dev');
 select x ->> 'my_role' as r from jsonb_array_elements(public.my_matches()) x where x ->> 'slug' = :'slug' \gset
 select pg_temp.check(:'r' = 'waitlist', 'waitlist home role');

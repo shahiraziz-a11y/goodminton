@@ -110,14 +110,19 @@ select pg_temp.check((select bool_and(send_after <= now()) from public.email_out
 select pg_temp.check((select subject from public.email_outbox where kind = 'court_booked' limit 1) like 'Court booked: E1 · %', 'subject');
 
 -- ===========================================================================
--- New matches: the organiser's recent players, or last week's players
+-- New matches: everyone in the match's group
 -- ===========================================================================
 delete from public.email_outbox;
 set role authenticated;
 select pg_temp.as_user('org');
 select public.create_match('E2', 'doubles', 1, '', (now() + interval '5 days')::date, '19:00', 'Asia/Dubai', 90, 6);
-select pg_temp.check(pg_temp.to('E2', 'new_match') = 'a,d', 'recent confirmed players told (not the organiser, not waitlisted Cara, not Off who switched off)');
 reset role;
+select pg_temp.check(pg_temp.to('E2', 'new_match') = (select string_agg(split_part(p.email, '@', 1), ',' order by p.email)
+                       from public.group_members gm join public.profiles p on p.id = gm.user_id
+                      where gm.group_id = (select group_id from public.matches where title = 'E2')
+                        and not p.is_guest and p.email not like 'org@%' and p.email not like 'off@%'),
+                     'group told (not the organiser, not guests, not Off who switched off)');
+select pg_temp.check(pg_temp.to('E2', 'new_match') like '%c%', 'waitlisted Cara is in the group, so told');
 select pg_temp.check((select body from public.email_outbox where kind = 'new_match' limit 1) like 'Org set up E2 for %' || chr(10) || '4 spots, doubles on 1 court.%Tap to join.', 'new match body');
 select pg_temp.check(not exists (select 1 from public.email_outbox where user_id = pg_temp.uid('stranger')), 'strangers never told');
 -- A stranger's new match doesn't email our group.
@@ -137,7 +142,12 @@ update public.matches set starts_at = now() - interval '5 minutes' where id = pg
 select pg_temp.as_user('');  -- the scheduler runs signed out
 select public.roll_recurring();
 select pg_temp.check((select string_agg(split_part(p.email, '@', 1), ',' order by p.email) from public.email_outbox e join public.profiles p on p.id = e.user_id
-                       join public.matches m on m.id = e.match_id where m.title = 'Weekly E' and e.kind = 'new_match') = 'b,e', 'weekly: regulars told');
+                       join public.matches m on m.id = e.match_id where m.title = 'Weekly E' and e.kind = 'new_match')
+                   = (select string_agg(split_part(p.email, '@', 1), ',' order by p.email)
+                        from public.group_members gm join public.profiles p on p.id = gm.user_id
+                       where gm.group_id = (select group_id from public.matches where title = 'Weekly E' order by starts_at desc limit 1)
+                         and not p.is_guest and p.email not like 'org@%' and p.email not like 'off@%'), 'weekly: the group told');
+select pg_temp.check((select count(distinct group_id) from public.matches where title = 'Weekly E') = 1, 'weekly copy stays in its group');
 select pg_temp.check((select body from public.email_outbox where kind = 'new_match' limit 1) not like '%first dibs%', 'no first dibs');
 
 -- ===========================================================================
