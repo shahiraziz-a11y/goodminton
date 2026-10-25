@@ -9,6 +9,7 @@ import { Sheet } from './Sheet'
 import { person, type Person } from '@/lib/people'
 import { shuffled } from '@/lib/stats'
 import { createClient } from '@/lib/supabase/client'
+import type { MyGroup } from '@/lib/types'
 
 type Court = { label: string; players: Person[] }
 
@@ -16,8 +17,10 @@ type Court = { label: string; players: Person[] }
  * "Log result" from the design: two pairs, tap the winners, save.
  * With `courts` (from a match) the players are fixed per court; without, pick any 4 from your players.
  */
-export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, initialCourt = 0 }: {
+export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, initialCourt = 0, groups = [], defaultGroup }: {
   open: boolean; onClose: () => void; matchId?: string; matchTitle?: string; courts?: Court[]; initialCourt?: number
+  /** Without a match: the game goes in one of these groups, and players come from it. */
+  groups?: MyGroup[]; defaultGroup?: string | null
 }) {
   const router = useRouter()
   const { flash } = useFeedback()
@@ -29,6 +32,7 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
   const [picking, setPicking] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const free = !courts
+  const [group, setGroup] = useState<string | null>(defaultGroup ?? groups[0]?.id ?? null)
 
   // Reset when reopened on another court.
   const [lastKey, setLastKey] = useState('')
@@ -60,7 +64,7 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
     const [sa, sb] = [ids.slice(0, half), ids.slice(half)]
     const { error } = await createClient().rpc('log_game', {
       p_match: matchId ?? null, p_a1: sa[0], p_a2: sa[1] ?? null, p_b1: sb[0], p_b2: sb[1] ?? null, p_winner: win,
-      p_score_a: ra ? na : null, p_score_b: rb ? nb : null,
+      p_score_a: ra ? na : null, p_score_b: rb ? nb : null, ...(!matchId && group ? { p_group: group } : {}),
     })
     setBusy(false)
     if (error) return flash(error.message)
@@ -70,7 +74,7 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
   }
 
   async function newGuest(name: string) {
-    const { data, error } = await createClient().rpc('create_guest', { p_name: name })
+    const { data, error } = await createClient().rpc('create_guest', group ? { p_name: name, p_group: group } : { p_name: name })
     if (error) return flash(error.message)
     loadPlayers(true)
     place(person(data as string, name))
@@ -84,7 +88,7 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
   if (picking !== null) {
     return (
       <Sheet open={open} onClose={() => setPicking(null)} title={`Pick player ${picking + 1} of ${slots.length}`} subtitle={half === 1 ? (picking === 0 ? 'Left side' : 'Right side') : picking < 2 ? 'Left pair' : 'Right pair'}>
-        <PlayerPicker exclude={slots.filter((p, i) => p && i !== picking).map(p => p!.id)} onPick={p => place(person(p.id, p.full_name))} onNew={newGuest} newLabel="Add guest" />
+        <PlayerPicker exclude={slots.filter((p, i) => p && i !== picking).map(p => p!.id)} onPick={p => place(person(p.id, p.full_name))} onNew={newGuest} newLabel="Add guest" group={free ? group : undefined} />
         <button className="btn-2" onClick={() => setPicking(null)}>Back</button>
       </Sheet>
     )
@@ -128,6 +132,12 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
             }}>{c.label}</button>
           ))}
         </div>
+      )}
+      {free && groups.length > 1 && (
+        <select className="field" aria-label="Group" value={group ?? ''} style={{ height: 44 }}
+          onChange={e => { setGroup(e.target.value); setSlots(singles ? [null, null] : [null, null, null, null]); setWin(null) }}>
+          {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+        </select>
       )}
       {free && (
         <div className="seg">

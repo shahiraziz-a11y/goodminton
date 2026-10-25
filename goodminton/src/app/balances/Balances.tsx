@@ -17,9 +17,13 @@ export function Balances({ meId, meName, ledger, origin }: { meId: string; meNam
   const router = useRouter()
   const { flash } = useFeedback()
   const [busy, setBusy] = useState(false)
+  // Splitwise-style: everyone across all groups, or one group at a time.
+  const groupsHere = [...new Map(ledger.filter(l => l.group_id).map(l => [l.group_id!, l.group_name ?? 'Group'])).entries()]
+  const [gf, setGf] = useState('all')
+  const shown = gf === 'all' ? ledger : ledger.filter(l => l.group_id === gf)
   const cur = ledger[0]?.currency ?? CURRENCY
   const fmt = (n: number) => money(n, cur)
-  const { net, lines, total } = balancesFor(meId, ledger)
+  const { net, lines, total } = balancesFor(meId, shown)
   const names: Record<string, string> = Object.assign({}, ...ledger.map(m => m.people))
   const friend = (id: string) => person(id, names[id] ?? 'Player')
   const list = Object.entries(net).filter(([, v]) => Math.abs(v) > 0.005)
@@ -43,10 +47,18 @@ export function Balances({ meId, meName, ledger, origin }: { meId: string; meNam
     <Frame me={person(meId, meName)} tab="balances">
       <div className="screen">
         <span className="h1">Balances</span>
+        {groupsHere.length > 1 && (
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '0 -18px', padding: '0 18px 2px', scrollbarWidth: 'none' }}>
+            {[['all', 'All groups'] as const, ...groupsHere].map(([id, name]) => (
+              <button key={id} className="chip-btn" onClick={() => setGf(id)}
+                style={{ flex: 'none', height: 34, background: gf === id ? '#12161C' : '#fff', color: gf === id ? '#fff' : '#12161C', boxShadow: gf === id ? 'none' : '0 0 0 1px #E6E9EE' }}>{name}</button>
+            ))}
+          </div>
+        )}
         <div className="stack" style={{ borderRadius: 28, padding: '26px 22px', background: '#F7F8FA', boxShadow: '0 0 0 1px #E6E9EE', gap: 8 }}>
           <span className="eyebrow">{total >= 0 ? 'You are owed' : 'You owe'}</span>
           <span className="display" style={{ fontSize: 44, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: '#0B8A6B' }}>{fmt(Math.abs(total))}</span>
-          <span className="note">Across all matches, unsettled</span>
+          <span className="note">{gf === 'all' ? 'Across all groups, unsettled' : `In ${groupsHere.find(([id]) => id === gf)?.[1]}, unsettled`}</span>
         </div>
         {!list.length && <div className="card" style={{ padding: 24, textAlign: 'center', color: '#5B6573', fontSize: 14 }}>All square with everyone.</div>}
         <div className="stack" style={{ gap: 14 }}>
@@ -80,7 +92,7 @@ export function Balances({ meId, meName, ledger, origin }: { meId: string; meNam
                 <div key={`${l.match.id}:${l.transfer.from}>${l.transfer.to}`} className="row-line" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0' }}>
                   <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
                     <span style={{ fontSize: 14, fontWeight: 700 }}>{l.owedToMe ? `${friend(l.other).first} owes you` : `You owe ${friend(l.other).first}`}</span>
-                    <span style={{ fontSize: 12, color: '#5B6573' }}>{fmtDate(l.match.starts_at, l.match.timezone)} · {l.match.title}</span>
+                    <span style={{ fontSize: 12, color: '#5B6573' }}>{fmtDate(l.match.starts_at, l.match.timezone)} · {l.match.title}{gf === 'all' && groupsHere.length > 1 && l.match.group_name ? ` · ${l.match.group_name}` : ''}</span>
                   </span>
                   <span style={{ fontSize: 14, fontWeight: 800 }}>{fmt(l.transfer.settled ? l.transfer.amount : l.transfer.open)}</span>
                   <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', color: l.transfer.settled ? '#0E7F66' : '#D6336C', width: 36, textAlign: 'right' }}>

@@ -190,6 +190,9 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
                   </span>}
               {m.locked && <span className="badge" style={{ background: '#E5484D', color: '#fff' }}>Sign-ups closed</span>}
               {m.repeat_weekly && <span className="badge" style={{ background: '#F1F3F6', color: '#5B6573' }}>↻ Weekly</span>}
+              {m.group && (m.is_member
+                ? <Link href={`/groups/${m.group.id}`} className="badge" style={{ background: '#E8F7F2', color: '#0E7F66' }}>{m.group.name}</Link>
+                : <span className="badge" style={{ background: '#E8F7F2', color: '#0E7F66' }}>{m.group.name}</span>)}
             </div>
           )}
         </div>
@@ -217,6 +220,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
         {outsider && open && !full && (
           <div className="stack" style={{ gap: 10 }}>
             <span style={{ fontSize: 14, color: '#5B6573', textAlign: 'center' }}>Signed in as <b style={{ color: '#12161C' }}>{me?.name}</b></span>
+            {m.group && !m.is_member && <span className="note" style={{ textAlign: 'center' }}>Joining also adds you to <b>{m.group.name}</b>, so you&apos;ll see its matches.</span>}
             <button className="btn" disabled={busy} onClick={() => join()}>Confirm I&apos;m playing</button>
             <span className="note" style={{ textAlign: 'center' }}>Or tap an open spot on a court to pick where you play.</span>
           </div>
@@ -388,7 +392,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
                     <span style={{ flex: 1, fontSize: 13, fontWeight: 800, minWidth: 0 }}>{nCourts > 1 ? `Court ${i + 1}` : 'Court'}</span>
                     <button className="chip-btn" disabled={busy} onClick={() => rpc('set_court_order', { p_match: m.id, p_ids: shuffled(c.players.map(p => p.id)) }, () => flash('Pairs shuffled'))}>Shuffle</button>
                     <button className="chip-btn" disabled={busy} onClick={async () => {
-                      const { data, error } = await createClient().rpc('get_leaderboard')
+                      const { data, error } = await createClient().rpc('get_leaderboard', m.group ? { p_group: m.group.id } : {})
                       if (error) return flash(error.message)
                       const order = balancedByRating(c.players.map(p => p.id), ratings((data as Leaderboard).games))
                       rpc('set_court_order', { p_match: m.id, p_ids: order }, () => flash('Balanced by rating'))
@@ -682,7 +686,7 @@ function AddPlayerSheet({ open, onClose, m, exclude, inviteMsg, rpc }: {
   const [name, setName] = useState('')
   const [wasOpen, setWasOpen] = useState(open)
   if (open !== wasOpen) { setWasOpen(open); if (open) setName('') }
-  useEffect(() => { if (open) loadPlayers().then(setAll, e => flash(e.message)) }, [open, flash])
+  useEffect(() => { if (open) loadPlayers(false, m.group?.id).then(setAll, e => flash(e.message)) }, [open, flash])
 
   const left = m.size - m.confirmed_count
   const term = name.trim().toLowerCase()

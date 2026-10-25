@@ -8,15 +8,16 @@ import { useFeedback } from '@/components/Feedback'
 import { nextSaturday } from '@/lib/format'
 import { createClient } from '@/lib/supabase/client'
 import { CURRENCY } from '@/lib/supabase/env'
-import type { Format } from '@/lib/types'
+import type { Format, MyGroup } from '@/lib/types'
 
-export function CreateMatch() {
+export function CreateMatch({ groups = [], initialGroup }: { groups?: MyGroup[]; initialGroup?: string | null }) {
   const router = useRouter()
   const { flash } = useFeedback()
   const [busy, setBusy] = useState(false)
   const [f, setF] = useState({
     format: 'doubles' as Format, courts: 1, title: 'Saturday Doubles', venue: '',
     date: nextSaturday(), time: '19:00', duration: 90, closes: 6, weekly: false,
+    group: (groups.find(g => g.id === initialGroup) ?? groups[0])?.id ?? null as string | null,
   })
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF(x => ({ ...x, [k]: v }))
 
@@ -27,6 +28,7 @@ export function CreateMatch() {
       p_title: f.title.trim(), p_format: f.format, p_court_count: f.courts, p_venue: f.venue.trim(),
       p_date: f.date, p_time: f.time, p_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       p_duration_min: f.duration, p_rsvp_close_hours: f.closes, p_currency: CURRENCY,
+      ...(f.group ? { p_group: f.group } : {}),
     })
     if (error) { setBusy(false); return flash(error.message) }
     if (f.weekly) {
@@ -42,6 +44,13 @@ export function CreateMatch() {
     <Frame back="/" tab="home">
       <div className="screen" style={{ gap: 24 }}>
         <span className="h1">New match</span>
+        {groups.length > 1 && (
+          <Field label="Group" hint="Everyone in this group can see and join the match.">
+            <select className="field" value={f.group ?? ''} onChange={e => set('group', e.target.value)}>
+              {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+            </select>
+          </Field>
+        )}
         <FormatPicker format={f.format} courts={f.courts} onChange={(format, courts) => setF(x => ({ ...x, format, courts }))} />
         <Field label="Match name"><input className="field" value={f.title} onChange={e => set('title', e.target.value)} maxLength={80} /></Field>
         <Field label="Venue · optional" hint="Not booked yet? Leave it. You'll add the venue, court and cost when you book.">

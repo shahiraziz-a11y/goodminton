@@ -70,7 +70,7 @@ input[type=date]::-webkit-calendar-picker-indicator, input[type=time]::-webkit-c
   width: 100%; max-width: 430px;
   background: rgba(244,246,249,.88); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid rgba(0,0,0,.06);
-  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  display: grid; grid-template-columns: repeat(4, 1fr);
   padding: 10px 0 calc(16px + env(safe-area-inset-bottom));
 }
 .tab { border: none; background: transparent; font-weight: 600; font-size: 11px; color: var(--faint); display: flex; flex-direction: column; align-items: center; gap: 4px; }
