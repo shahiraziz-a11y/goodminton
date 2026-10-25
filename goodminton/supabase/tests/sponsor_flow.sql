@@ -54,7 +54,7 @@ select pg_temp.check(:'s' = 'confirmed', 'ann added guest Raj');
 reset role; select id as raj from public.profiles where full_name = 'Raj' and is_guest \gset
 set role authenticated;
 -- Ann adds Bob (a real user she knows from... a previous match).
-select pg_temp.check(pg_temp.fails(format('select public.add_player(%L, %L, null)', :'mid', :'bob')) like '%played with%', 'circle rule still applies');
+select pg_temp.check(pg_temp.fails(format('select public.add_player(%L, %L, null)', :'mid', :'bob')) like '%in this group%', 'circle rule still applies');
 select pg_temp.as_user('bob'); select public.join_match(:'mid');
 
 -- Who pays for whom.
