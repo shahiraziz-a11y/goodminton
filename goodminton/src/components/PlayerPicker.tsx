@@ -7,29 +7,31 @@ import { person } from '@/lib/people'
 import { createClient } from '@/lib/supabase/client'
 import type { PlayerOption } from '@/lib/types'
 
-/** Loads the people you've played with (plus your guests) once per page. */
-let cache: Promise<PlayerOption[]> | null = null
-export function loadPlayers(refresh = false) {
-  if (!cache || refresh) {
-    cache = Promise.resolve(createClient().rpc('my_players')).then(({ data, error }) => {
-      if (error) { cache = null; throw error }
+/** Loads the people in a group (or all my groups) once per page. */
+const cache = new Map<string, Promise<PlayerOption[]>>()
+export function loadPlayers(refresh = false, group?: string | null) {
+  const k = group ?? ''
+  if (refresh) cache.clear()
+  if (!cache.has(k)) {
+    cache.set(k, Promise.resolve(createClient().rpc('my_players', group ? { p_group: group } : {})).then(({ data, error }) => {
+      if (error) { cache.delete(k); throw error }
       return (data ?? []) as PlayerOption[]
-    })
+    }))
   }
-  return cache
+  return cache.get(k)!
 }
 
 /**
  * Search your players and pick one, or type a new name to add them as a guest.
  * `onPick` gets an existing player; `onNew` gets a typed name (the caller decides how to create it).
  */
-export function PlayerPicker({ exclude = [], onPick, onNew, newLabel = 'Add as new player' }: {
-  exclude?: string[]; onPick: (p: PlayerOption) => void; onNew?: (name: string) => void; newLabel?: string
+export function PlayerPicker({ exclude = [], onPick, onNew, newLabel = 'Add as new player', group }: {
+  exclude?: string[]; onPick: (p: PlayerOption) => void; onNew?: (name: string) => void; newLabel?: string; group?: string | null
 }) {
   const { flash } = useFeedback()
   const [all, setAll] = useState<PlayerOption[] | null>(null)
   const [q, setQ] = useState('')
-  useEffect(() => { loadPlayers().then(setAll, e => flash(e.message)) }, [flash])
+  useEffect(() => { setAll(null); loadPlayers(false, group).then(setAll, e => flash(e.message)) }, [flash, group])
 
   const list = useMemo(() => {
     const term = q.trim().toLowerCase()

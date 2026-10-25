@@ -10,7 +10,7 @@ import type { Person } from '@/lib/people'
  * Page frame: frosted top bar, content, and the bottom tabs whenever someone is signed in
  * (`me` or `tab` given). `tab` picks the highlighted tab; anything else counts as Matches.
  */
-export function Frame({ children, back, me, tab }: { children: ReactNode; back?: string; me?: Person | null; tab?: 'home' | 'board' | 'balances' }) {
+export function Frame({ children, back, me, tab }: { children: ReactNode; back?: string; me?: Person | null; tab?: 'home' | 'board' | 'balances' | 'groups' }) {
   const tabs = !!tab || !!me
   return (
     <div className={`app${tabs ? ' has-tabs' : ''}`}>
@@ -46,7 +46,7 @@ function TopBar({ back, me }: { back?: string; me?: Person | null }) {
   )
 }
 
-function TabBar({ active }: { active: 'home' | 'board' | 'balances' }) {
+function TabBar({ active }: { active: 'home' | 'board' | 'balances' | 'groups' }) {
   return (
     <nav className="tabbar">
       <Link href="/" className={`tab${active === 'home' ? ' sel' : ''}`}>
@@ -60,6 +60,10 @@ function TabBar({ active }: { active: 'home' | 'board' | 'balances' }) {
       <Link href="/balances" className={`tab${active === 'balances' ? ' sel' : ''}`}>
         <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="6.5" width="20" height="14" rx="3" /><path d="M3 11h20M7.5 16h4" /></svg>
         Balances
+      </Link>
+      <Link href="/groups" className={`tab${active === 'groups' ? ' sel' : ''}`}>
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9.5" cy="9" r="3.5" /><circle cx="18" cy="10" r="2.8" /><path d="M3 21c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M16.5 15.6c2.9-.4 5.6 1 6.3 4.4" /></svg>
+        Groups
       </Link>
     </nav>
   )

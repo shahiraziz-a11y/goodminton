@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Bars, Frame, GoogleButton } from '@/components/Chrome'
 import { useFeedback } from '@/components/Feedback'
 import { EmailToggle } from '@/components/EmailToggle'
@@ -13,7 +13,7 @@ import { person } from '@/lib/people'
 import { balancesFor, transfersOf } from '@/lib/split'
 import { signInWithGoogle } from '@/lib/supabase/client'
 import { CURRENCY } from '@/lib/supabase/env'
-import { perCourt, type HomeMatch, type HomeStats, type LedgerMatch } from '@/lib/types'
+import { perCourt, type HomeMatch, type HomeStats, type LedgerMatch, type MyGroup } from '@/lib/types'
 
 export function SignIn({ failed, reason }: { failed?: boolean; reason?: string }) {
   const { flash } = useFeedback()
@@ -47,12 +47,18 @@ export function SignIn({ failed, reason }: { failed?: boolean; reason?: string }
   )
 }
 
-export function Home({ meId, meName, matches, ledger, stats }: { meId: string; meName: string; matches: HomeMatch[]; ledger: LedgerMatch[]; stats: HomeStats | null }) {
+export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { meId: string; meName: string; matches: HomeMatch[]; ledger: LedgerMatch[]; stats: HomeStats | null; myGroups?: MyGroup[] }) {
   const me = person(meId, meName)
   const bal = balancesFor(meId, ledger)
   const [choosing, setChoosing] = useState(false)
   const [logging, setLogging] = useState(false)
-  const groups = groupMatches(matches)
+  // Which group's matches to show (remembered on this phone); 'all' when you're in several.
+  const [gf, setGf] = useState('all')
+  useEffect(() => { try { const v = localStorage.getItem('home-group'); if (v && (v === 'all' || myGroups.some(g => g.id === v))) setGf(v) } catch {} }, [myGroups])
+  const pickGroup = (v: string) => { setGf(v); try { localStorage.setItem('home-group', v) } catch {} }
+  const many = myGroups.length > 1
+  const shownMatches = gf === 'all' ? matches : matches.filter(m => m.group_id === gf)
+  const groups = groupMatches(shownMatches)
   const bySlug = new Map(ledger.map(l => [l.slug, l]))
   return (
     <Frame me={me} tab="home">
@@ -65,10 +71,20 @@ export function Home({ meId, meName, matches, ledger, stats }: { meId: string; m
           <button className="btn" aria-label="New match or log a game" onClick={() => setChoosing(true)} style={{ width: 52, height: 52, borderRadius: 18, fontSize: 28, fontWeight: 600, lineHeight: 1, padding: 0 }}>+</button>
         </div>
         {stats && <StatsCard s={stats} />}
-        {groups.map(g => <Group key={g.kind} g={g} ledger={bySlug} />)}
-        {!matches.length && (
+        {many && (
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '0 -18px', padding: '0 18px 2px', scrollbarWidth: 'none' }}>
+            {[{ id: 'all', name: 'All groups' }, ...myGroups].map(g => (
+              <button key={g.id} className="chip-btn" onClick={() => pickGroup(g.id)}
+                style={{ flex: 'none', height: 34, background: gf === g.id ? '#12161C' : '#fff', color: gf === g.id ? '#fff' : '#12161C', boxShadow: gf === g.id ? 'none' : '0 0 0 1px #E6E9EE' }}>{g.name}</button>
+            ))}
+          </div>
+        )}
+        {groups.map(g => <Group key={g.kind} g={g} ledger={bySlug} showGroup={many && gf === 'all'} />)}
+        {!shownMatches.length && (
           <div className="card" style={{ padding: 28, textAlign: 'center', color: '#5B6573', fontSize: 14 }}>
-            No matches yet. Tap + to organise one, or open a link from a friend to join theirs.
+            {myGroups.length
+              ? 'No matches yet. Tap + to organise one.'
+              : <>No matches yet. Tap + to organise one, or open a group invite link from a friend. <Link href="/groups" style={{ color: '#0E7F66', fontWeight: 700 }}>Groups</Link></>}
           </div>
         )}
         <BalanceRow total={bal.total} currency={ledger[0]?.currency ?? CURRENCY} />
@@ -92,7 +108,7 @@ export function Home({ meId, meName, matches, ledger, stats }: { meId: string; m
           </span>
         </button>
       </Sheet>
-      <LogResultSheet open={logging} onClose={() => setLogging(false)} />
+      <LogResultSheet open={logging} onClose={() => setLogging(false)} groups={myGroups} defaultGroup={gf !== 'all' ? gf : myGroups[0]?.id} />
     </Frame>
   )
 }
@@ -122,7 +138,7 @@ function groupMatches(matches: HomeMatch[]): GroupData[] {
   }).filter(g => g.items.length)
 }
 
-function Group({ g, ledger }: { g: GroupData; ledger: Map<string, LedgerMatch> }) {
+function Group({ g, ledger, showGroup }: { g: GroupData; ledger: Map<string, LedgerMatch>; showGroup?: boolean }) {
   const [all, setAll] = useState(false)
   const shown = all ? g.items : g.items.slice(0, g.show)
   return (
@@ -132,7 +148,7 @@ function Group({ g, ledger }: { g: GroupData; ledger: Map<string, LedgerMatch> }
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase' }}>{g.label}</span>
         <span style={{ fontSize: 11, fontWeight: 700, color: '#8A94A3' }}>{g.items.length}</span>
       </div>
-      {shown.map(m => <MatchRow key={m.slug} m={m} kind={g.kind} money={ledger.get(m.slug)} />)}
+      {shown.map(m => <MatchRow key={m.slug} m={m} kind={g.kind} money={ledger.get(m.slug)} showGroup={showGroup} />)}
       {g.items.length > shown.length && (
         <button className="link-btn" style={{ alignSelf: 'flex-start', color: '#0E7F66', padding: '0 4px' }} onClick={() => setAll(true)}>
           Show {g.items.length - shown.length} more
@@ -187,7 +203,7 @@ function BalanceRow({ total, currency }: { total: number; currency: string }) {
 
 const tagStyle = { fontSize: 10, fontWeight: 800, letterSpacing: '.08em' } as const
 
-function MatchRow({ m, kind, money: led }: { m: HomeMatch; kind: Kind; money?: LedgerMatch }) {
+function MatchRow({ m, kind, money: led, showGroup }: { m: HomeMatch; kind: Kind; money?: LedgerMatch; showGroup?: boolean }) {
   const full = m.confirmed_count >= m.size
   const venue = m.venue || 'Venue TBC'
   const when = `${fmtDate(m.starts_at, m.timezone)}, ${fmtTime(m.starts_at, m.timezone)}`
@@ -236,6 +252,7 @@ function MatchRow({ m, kind, money: led }: { m: HomeMatch; kind: Kind; money?: L
           <span className="display" style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-.01em', lineHeight: 1.2, textDecoration: kind === 'abandoned' ? 'line-through' : 'none' }}>{m.title}</span>
           <span style={{ fontSize: 13, color: '#5B6573' }}>{sub}</span>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {showGroup && m.group_name && <span style={{ ...tagStyle, color: '#12161C' }}>{m.group_name.toUpperCase()}</span>}
             {tag && <span style={{ ...tagStyle, color: tagColor }}>{tag}</span>}
             {kind === 'upcoming' && m.locked && <span style={{ ...tagStyle, color: '#D9622B' }}>LOCKED</span>}
             {kind === 'upcoming' && m.weekly && <span style={{ ...tagStyle, color: '#5B6573' }}>↻ WEEKLY</span>}

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Avatar } from '@/components/Avatar'
@@ -10,7 +11,7 @@ import { fmtDate } from '@/lib/format'
 import { person, type Person } from '@/lib/people'
 import { biggestRivalry, myPartners, pairRecords, pairTable, ratings, standings, START_RATING, type PairRecord } from '@/lib/stats'
 import { createClient } from '@/lib/supabase/client'
-import type { Leaderboard as Data } from '@/lib/types'
+import type { Leaderboard as Data, MyGroup } from '@/lib/types'
 
 const fmtDay = (d: string) => fmtDate(d + 'T12:00:00Z', 'UTC')
 const pctOf = (x: number) => `${Math.round(x * 100)}%`
@@ -26,7 +27,7 @@ function Duo({ a, b, size, edge }: { a: Person; b: Person; size: number; edge: s
   )
 }
 
-export function Leaderboard({ meId, meName, data }: { meId: string; meName: string; data: Data }) {
+export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string; meName: string; data: Data; groups?: MyGroup[] }) {
   const router = useRouter()
   const { flash } = useFeedback()
   const [logging, setLogging] = useState(false)
@@ -79,6 +80,7 @@ export function Leaderboard({ meId, meName, data }: { meId: string; meName: stri
       <div className="screen" style={{ gap: 22 }}>
         {!data.games.length ? (
           <>
+            <GroupChips groups={groups} current={data.group?.id} dark={false} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 10 }}>
               <span className="h1">Leaderboard</span>
               {logBtn(false)}
@@ -93,6 +95,7 @@ export function Leaderboard({ meId, meName, data }: { meId: string; meName: stri
             {/* Dark court-green header. */}
             <div style={{ margin: '-8px -18px 0', background: '#0F3D35', color: '#fff', padding: '14px 18px 18px', display: 'flex', flexDirection: 'column', gap: 18, borderRadius: '0 0 32px 32px', overflow: 'hidden', position: 'relative' }}>
               <div style={{ position: 'absolute', left: 18, right: 18, top: 0, bottom: 0, borderLeft: '1.5px solid rgba(255,255,255,.08)', borderRight: '1.5px solid rgba(255,255,255,.08)', pointerEvents: 'none' }} />
+              <GroupChips groups={groups} current={data.group?.id} dark />
               <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
                 <div className="stack" style={{ gap: 6 }}>
                   <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.16em', textTransform: 'uppercase', color: '#5FE3BE' }}>
@@ -275,7 +278,26 @@ export function Leaderboard({ meId, meName, data }: { meId: string; meName: stri
           </>
         )}
       </div>
-      <LogResultSheet open={logging} onClose={() => setLogging(false)} />
+      <LogResultSheet open={logging} onClose={() => setLogging(false)} groups={groups} defaultGroup={data.group?.id} />
     </Frame>
+  )
+}
+
+/** Switch between my groups' leaderboards (only when I'm in more than one). */
+function GroupChips({ groups, current, dark }: { groups: MyGroup[]; current?: string; dark: boolean }) {
+  if (groups.length < 2) return null
+  return (
+    <div style={{ position: 'relative', display: 'flex', gap: 8, overflowX: 'auto', margin: '0 -18px', padding: '0 18px 2px', scrollbarWidth: 'none' }}>
+      {groups.map(g => {
+        const sel = g.id === current
+        return (
+          <Link key={g.id} href={`/leaderboard?group=${g.id}`} replace className="chip-btn"
+            style={{ flex: 'none', height: 32, display: 'flex', alignItems: 'center', fontSize: 12,
+              background: sel ? (dark ? '#5FE3BE' : '#12161C') : (dark ? 'rgba(255,255,255,.10)' : '#fff'),
+              color: sel ? (dark ? '#0A2622' : '#fff') : (dark ? '#fff' : '#12161C'),
+              boxShadow: sel || dark ? 'none' : '0 0 0 1px #E6E9EE' }}>{g.name}</Link>
+        )
+      })}
+    </div>
   )
 }

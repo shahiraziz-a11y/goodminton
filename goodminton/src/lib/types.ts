@@ -57,6 +57,9 @@ export type MatchView = {
   is_regular: boolean
   /** Games logged in this match, newest first. */
   games: MatchGame[]
+  /** The group this match belongs to; joining the match also joins the group. */
+  group: { id: string; name: string } | null
+  is_member: boolean
   /** True once a court is booked with a cost: only then are costs split. */
   split_ready: boolean
   /** Guest (no login) → who pays their share. */
@@ -89,6 +92,8 @@ export type HomeMatch = {
   games_count: number
   booked_courts: number
   weekly: boolean
+  group_id: string | null
+  group_name: string | null
   /** My place in it; null when I'm not in it (every match is listed). */
   my_role: 'organiser' | 'confirmed' | 'waitlist' | null
   /** First names of the winners of the latest game logged in this match. */
@@ -100,6 +105,8 @@ export type HomeStats = { week_streak: number; played_this_week: boolean; matche
 
 export type LedgerMatch = {
   id: string
+  group_id?: string | null
+  group_name?: string | null
   slug: string
   title: string
   starts_at: string
@@ -138,4 +145,10 @@ export type MatchGame = {
   b: { id: string; full_name: string }[]
 }
 
-export type Leaderboard = { games: Game[]; people: Record<string, string> }
+export type Leaderboard = { games: Game[]; people: Record<string, string>; group?: { id: string; name: string } | null }
+
+/** From my_groups: newest activity first. */
+export type MyGroup = { id: string; name: string; my_role: 'owner' | 'member'; members: number; last_match: string | null }
+export type GroupMember = { id: string; full_name: string; is_guest: boolean; role: 'owner' | 'member' }
+export type GroupDetail = { id: string; name: string; invite_code: string; owner_id: string; my_role: 'owner' | 'member'; members: GroupMember[] }
+export type GroupPreview = { id: string; name: string; owner: string; members: number; is_member: boolean }
