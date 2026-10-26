@@ -8,6 +8,7 @@ import { Frame, GoogleButton, LockIcon, Seg } from '@/components/Chrome'
 import { CourtCard, type Slot } from '@/components/Court'
 import { useFeedback } from '@/components/Feedback'
 import { FormatPicker } from '@/components/FormatPicker'
+import { GamePlan } from '@/components/GamePlan'
 import { LogResultSheet } from '@/components/LogResultSheet'
 import { loadPlayers } from '@/components/PlayerPicker'
 import { AlertsCard } from '@/components/Pwa'
@@ -225,6 +226,8 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
             {canAdd && <button className="row-btn" onClick={() => setAdding(true)}>+ Add player</button>}
           </div>
         )}
+
+        {canSee && <GamePlan m={m} />}
 
         {outsider && m.locked && !m.past && (
           <div className="card stack" style={{ padding: 20, gap: 6 }}>

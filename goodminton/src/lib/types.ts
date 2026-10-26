@@ -60,6 +60,8 @@ export type MatchView = {
   /** The group this match belongs to; joining the match also joins the group. */
   group: { id: string; name: string } | null
   is_member: boolean
+  /** The game plan (players only): one entry per game, by round then court. */
+  plan?: PlanEntry[] | null
   /** True once a court is booked with a cost: only then are costs split. */
   split_ready: boolean
   /** Guest (no login) → who pays their share. */
@@ -152,3 +154,15 @@ export type MyGroup = { id: string; name: string; my_role: 'owner' | 'member'; m
 export type GroupMember = { id: string; full_name: string; is_guest: boolean; role: 'owner' | 'member' }
 export type GroupDetail = { id: string; name: string; invite_code: string; owner_id: string; my_role: 'owner' | 'member'; members: GroupMember[] }
 export type GroupPreview = { id: string; name: string; owner: string; members: number; is_member: boolean }
+
+export type PlanEntry = {
+  id: string
+  round: number
+  court: number
+  game_id: string | null
+  a: { id: string; full_name: string }[]
+  b: { id: string; full_name: string }[]
+  winner: 'a' | 'b' | null
+  score_a: number | null
+  score_b: number | null
+}

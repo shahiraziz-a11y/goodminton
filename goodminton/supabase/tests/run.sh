@@ -28,6 +28,7 @@ psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f home_stats.sql
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f no_regulars.sql
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f groups.sql
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f extras.sql
+psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f game_plan.sql
 ./concurrency.sh "$@" -d "$DB"
 ./concurrency_booking.sh "$@" -d "$DB"
 ./upgrade_0009.sh "$@"
