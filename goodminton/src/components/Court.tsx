@@ -31,10 +31,12 @@ type Props = {
   booking?: { text: string; booked: boolean }
   /** e.g. the Book button. */
   action?: ReactNode
+  /** Extra players beyond the court's size, who rotate in. */
+  extras?: { p: Person; mine?: boolean; onRemove?: () => void }[]
 }
 
 /** A court card: number, time, and a top-down court with players either side of the net. */
-export function CourtCard({ label, num, dateLabel, start, end, slots, tbc, ghost, footer, booking, action }: Props) {
+export function CourtCard({ label, num, dateLabel, start, end, slots, tbc, ghost, footer, booking, action, extras = [] }: Props) {
   return (
     <div className="card" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14, opacity: ghost ? 0.85 : 1 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 10 }}>
@@ -64,6 +66,21 @@ export function CourtCard({ label, num, dateLabel, start, end, slots, tbc, ghost
         <div className="court-net" />
         <Half slots={slots.slice(slots.length / 2)} side="right" />
       </div>
+      {extras.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '10px 12px', borderRadius: 14, background: '#E8F7F2' }}>
+          <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.12em', color: '#0E7F66' }}>+{extras.length} ROTATING</span>
+          {extras.map(x => (
+            <span key={x.p.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 8px 3px 3px', borderRadius: 99, background: x.mine ? '#0E9F7E' : '#fff', color: x.mine ? '#fff' : '#12161C' }}>
+              <Avatar p={x.p} size={22} font={9} />
+              <span style={{ fontSize: 12, fontWeight: 700 }}>{x.p.first}{x.mine ? ' · You' : ''}</span>
+              {x.onRemove && (
+                <button type="button" aria-label={`Remove ${x.p.first}`} onClick={x.onRemove}
+                  style={{ border: 'none', background: 'none', color: x.mine ? '#fff' : '#8A94A3', fontSize: 14, lineHeight: 1, padding: 0, cursor: 'pointer' }}>×</button>
+              )}
+            </span>
+          ))}
+        </div>
+      )}
       {footer && <span style={{ fontSize: 13, color: '#D9622B', fontWeight: 600 }}>{footer}</span>}
       {(booking || action) && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, minHeight: 32 }}>

@@ -171,6 +171,9 @@ select pg_temp.as_user('samir');  select public.set_settled(:'mid', :'samir', :'
 reset role; select pg_temp.check((select count(*) from public.settlements) = 0, 'unsettle'); set role authenticated;
 
 -- Ledger and home lists.
+-- Costs are split once sign-ups close: before that, nobody owes anything.
+select pg_temp.check(jsonb_array_length(public.my_ledger()) = 0, 'no split before sign-ups close');
+select pg_temp.as_user('rohan'); select public.set_lock(:'mid', true);
 select pg_temp.as_user('dev');    select public.my_ledger() as l \gset
 select pg_temp.check(jsonb_array_length(:'l'::jsonb) = 1 and jsonb_array_length(:'l'::jsonb -> 0 -> 'expenses') = 3, 'ledger: one row per booked court plus shuttles');
 select pg_temp.as_user('priya');  select public.my_ledger() as l \gset

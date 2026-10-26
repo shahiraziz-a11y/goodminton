@@ -98,8 +98,11 @@ select pg_temp.check(jsonb_array_length(:'v'::jsonb -> 'split_ids') = 4
                  and jsonb_array_length(:'v'::jsonb -> 'liable') = 1
                  and (:'v'::jsonb -> 'liable' -> 0 ->> 'full_name') = 'Rita', 'split: 3 players plus Rita');
 select pg_temp.as_user('rita');
+select pg_temp.check(not exists (select 1 from jsonb_array_elements(public.my_ledger()) x where x ->> 'id' = :'mid'), 'nothing owed before sign-ups close');
+reset role; update public.matches set lock_state = 'locked' where id = :'mid'; set role authenticated;
 select public.my_ledger() as l \gset
 select pg_temp.check(exists (select 1 from jsonb_array_elements(:'l'::jsonb) x where x ->> 'id' = :'mid'), 'Rita sees what she owes');
+reset role; update public.matches set lock_state = 'auto' where id = :'mid'; set role authenticated;
 select pg_temp.check(pg_temp.fails(format('select public.waive_share(%L, %L)', :'mid', :'rita')) like '%Only the organiser%', 'only organiser waives');
 -- A later joiner takes the empty spot: Rita is cleared.
 select pg_temp.as_user('uma'); select public.join_match(:'mid');

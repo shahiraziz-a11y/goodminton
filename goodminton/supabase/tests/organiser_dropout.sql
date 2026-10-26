@@ -67,8 +67,10 @@ select pg_temp.check(:'r' = 'organiser', 'still on the organiser''s home page');
 -- Still runs it: books, edits, locks, adds and removes players.
 select public.book_court(pg_temp.mid('Run it'), 1, 'Hall', 'Court 3', '', 100);
 select pg_temp.check(pg_temp.split('Run it') = 'a,b,c,d', 'four players share; organiser does not');
+reset role; update public.matches set lock_state = 'locked' where id = pg_temp.mid('Run it'); set role authenticated;
 select public.my_ledger() as l \gset
-select pg_temp.check(exists (select 1 from jsonb_array_elements(:'l'::jsonb) x where x ->> 'id' = pg_temp.mid('Run it')::text), 'organiser sees what they''re owed');
+select pg_temp.check(exists (select 1 from jsonb_array_elements(:'l'::jsonb) x where x ->> 'id' = pg_temp.mid('Run it')::text), 'organiser sees what they''re owed (once locked)');
+reset role; update public.matches set lock_state = 'auto' where id = pg_temp.mid('Run it'); set role authenticated;
 select public.update_match(pg_temp.mid('Run it'), 'Run it', 'doubles', 1, (now() + interval '3 days')::date, '21:00', 90, 6);
 select public.set_lock(pg_temp.mid('Run it'), true);
 select public.add_player(pg_temp.mid('Run it'), null, 'Walk In');

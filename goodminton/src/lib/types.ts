@@ -3,7 +3,7 @@ export const perCourt = (f: Format) => (f === 'singles' ? 2 : 4)
 
 export type Role = 'anon' | 'outsider' | 'organiser' | 'confirmed' | 'waitlist'
 
-export type VisiblePlayer = { id: string; full_name: string; promoted: boolean; joined_at: string; is_guest?: boolean; court: number }
+export type VisiblePlayer = { id: string; full_name: string; promoted: boolean; joined_at: string; is_guest?: boolean; court: number; extra?: boolean }
 export type HiddenPlayer = { hidden: true; court: number }
 export type MatchPlayer = VisiblePlayer | HiddenPlayer
 

@@ -62,7 +62,10 @@ reset role;
 update public.matches set created_at = now() - interval '2 days', starts_at = now() + interval '20 hours' where id = pg_temp.mid('Tomorrow');
 delete from public.notifications;
 -- 20 hours out: the day-before reminder, once, to confirmed players with a device.
-select pg_temp.check(public.send_reminders() = 5, 'day-before to org, a, b, c, d');
+select public.send_reminders();
+-- Only the day-before ones count here (on a Monday the weekly debt nudge also goes out).
+select pg_temp.check((select count(*) from public.notifications where kind = 'reminder_day') = 5, 'day-before to org, a, b, c, d');
+delete from public.notifications where kind = 'reminder_debt';
 select pg_temp.check(public.send_reminders() = 0, 'not sent twice');
 select pg_temp.check(pg_temp.kinds('a') = 'reminder_day' and pg_temp.kinds('nodevice') = '', 'player reminded; no device, no alert');
 select pg_temp.check((select title from public.notifications where user_id = pg_temp.uid('d')) like '🏸 Tomorrow · %', 'reminder title');
@@ -83,7 +86,9 @@ select public.create_match('Last minute', 'doubles', 1, 'Hall', (now() + interva
 reset role;
 update public.matches set starts_at = now() + interval '10 hours' where id = pg_temp.mid('Last minute');
 delete from public.notifications;
-select pg_temp.check(public.send_reminders() = 0, 'no day-before for a just-made match');
+select public.send_reminders();
+select pg_temp.check(not exists (select 1 from public.notifications where kind = 'reminder_day' and match_id = pg_temp.mid('Last minute')), 'no day-before for a just-made match');
+delete from public.notifications where kind = 'reminder_debt';  -- today's Monday nudge, if today is a Monday
 
 -- Money: Monday 10:30 Dubai, everyone who owes gets one nudge that week.
 -- 'Tomorrow' has court 1 booked by Ann for 100, shared by org, a, b, c: 25 each.
