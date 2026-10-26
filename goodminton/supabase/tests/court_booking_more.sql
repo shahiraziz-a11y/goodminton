@@ -101,6 +101,9 @@ select pg_temp.as_user('e'); select public.join_match(pg_temp.mid('A'));
 -- Dan drops out of court 2 after booking court 1: he's still owed for court 1.
 select pg_temp.as_user('d'); select public.leave_match(pg_temp.mid('A'));
 select pg_temp.check(pg_temp.court_costs('A') = '1:d:100' and pg_temp.split('A') = 'org,a,b,c', 'A: booking stays with Dan');
+-- Balances appear once sign-ups close (locked here for the check, then reopened).
+select pg_temp.check(not exists (select 1 from jsonb_array_elements(public.my_ledger()) x where x ->> 'id' = pg_temp.mid('A')::text), 'A: nothing owed before sign-ups close');
+reset role; update public.matches set lock_state = 'locked' where id = pg_temp.mid('A'); set role authenticated;
 select public.my_ledger() as l \gset
 select pg_temp.check(exists (select 1 from jsonb_array_elements(:'l'::jsonb) x where x ->> 'id' = pg_temp.mid('A')::text), 'A: Dan still sees what he''s owed');
 select pg_temp.as_user('e');
@@ -109,6 +112,7 @@ select pg_temp.check(not exists (select 1 from jsonb_array_elements(:'l'::jsonb)
 select pg_temp.as_user('a');
 select public.my_ledger() as l \gset
 select pg_temp.check(exists (select 1 from jsonb_array_elements(:'l'::jsonb) x where x ->> 'id' = pg_temp.mid('A')::text), 'A: court 1 player owes');
+reset role; update public.matches set lock_state = 'auto' where id = pg_temp.mid('A'); set role authenticated;
 
 -- ===========================================================================
 -- B. Double booking, editing and cancelling: only the booker or the organiser.
@@ -180,7 +184,11 @@ select pg_temp.check(pg_temp.fails(format('select public.add_expense(%L, %L, 30)
 select pg_temp.as_user('a'); select public.book_court(pg_temp.mid('C'), 1, 'Big Hall', 'Court 1', '', 60);
 select pg_temp.as_user('b');
 select public.get_match(pg_temp.slug('C')) ->> 'split_ready' as r \gset
-select pg_temp.check(:'r' = 'true', 'C: split starts with a cost');
+select pg_temp.check(:'r' = 'false', 'C: cost entered, but no split until sign-ups close');
+reset role; update public.matches set lock_state = 'locked' where id = pg_temp.mid('C'); set role authenticated;
+select public.get_match(pg_temp.slug('C')) ->> 'split_ready' as r \gset
+select pg_temp.check(:'r' = 'true', 'C: split once locked');
+reset role; update public.matches set lock_state = 'auto' where id = pg_temp.mid('C'); set role authenticated;
 select public.add_expense(pg_temp.mid('C'), 'Shuttles', 30);
 
 -- Spot opens on booked court 1: the first in line takes it and is locked in at once.

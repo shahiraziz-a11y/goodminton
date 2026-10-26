@@ -17,7 +17,7 @@ export function matchLabels(m: Pick<MatchView, 'title' | 'size' | 'starts_at' | 
     timeRange: `${start} – ${fmtTime(end, tz)}`,
     left,
     spotsLine: left > 0 ? `${left} of ${m.size} spots left` : `Full · ${wc} on waitlist`,
-    statusMsg: `${m.title}: ${m.confirmed_count}/${m.size} in${left > 0 ? `, ${left} spot${left > 1 ? 's' : ''} left` : ', full'}${wc ? ` · ${wc} waiting` : ''}. ${link}`,
+    statusMsg: `${m.title}: ${m.confirmed_count > m.size ? `full + ${m.confirmed_count - m.size} extra` : `${m.confirmed_count}/${m.size} in`}${left > 0 ? `, ${left} spot${left > 1 ? 's' : ''} left` : m.confirmed_count > m.size ? '' : ', full'}${wc ? ` · ${wc} waiting` : ''}. ${link}`,
     inviteMsg: `Badminton, ${dateLabel}, ${start}. ${m.size} spots, first in get them. Tap to join: ${link}`,
   }
 }

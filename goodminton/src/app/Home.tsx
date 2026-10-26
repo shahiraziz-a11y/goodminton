@@ -222,7 +222,7 @@ function MatchRow({ m, kind, money: led, showGroup }: { m: HomeMatch; kind: Kind
     const b = m.booked_courts ?? (m.status === 'booked' ? m.court_count : 0)
     tag = b === 0 ? 'PLANNING' : b >= m.court_count ? (m.court_count > 1 ? '✓ COURTS BOOKED' : '✓ COURT BOOKED') : `✓ ${b} OF ${m.court_count} COURTS BOOKED`
     tagColor = b === 0 ? '#8A94A3' : '#0E7F66'
-    status = full ? `Full${m.waitlist_count ? ` · +${m.waitlist_count}` : ''}` : `${m.confirmed_count}/${m.size} in`
+    status = m.confirmed_count > m.size ? `Full · +${m.confirmed_count - m.size} extra` : full ? `Full${m.waitlist_count ? ` · +${m.waitlist_count}` : ''}` : `${m.confirmed_count}/${m.size} in`
     badge = full ? { background: '#E5484D', color: '#fff' } : { background: '#0E9F7E', color: '#fff' }
   } else if (kind === 'completed') {
     if (led) {

@@ -100,6 +100,11 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
       slots,
       count: group.length,
       players: group.filter(isVisible).map(p => person(p.id, p.full_name)),
+      // Beyond the court's size: let in by the organiser, they rotate.
+      extras: group.slice(per).filter(isVisible).map(p => {
+        const pp = person(p.id, p.full_name)
+        return { p: pp, mine: p.id === m.viewer.id, onRemove: canRemove(p.id) ? () => remove(p.id, pp.first, !!ic?.booked) : undefined }
+      }),
       booking: ic?.booked
         ? { booked: true, text: `✓ BOOKED${ic.booked_by_name ? ` BY ${ic.booked_by === m.viewer.id ? 'YOU' : ic.booked_by_name.split(' ')[0].toUpperCase()}` : ''}` }
         : { booked: false, text: 'NOT BOOKED YET' },
@@ -108,6 +113,16 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
         : canEdit ? <button className="chip-btn" onClick={() => setBooking(c)}>Edit</button> : null,
     }
   })
+  // Organiser: a waitlisted person can play as an extra (rotating) on a court with fewer than 2 extras.
+  const extraCourts = courts.filter(c => c.count < per + 2).map(c => c.court)
+  const [lettingIn, setLettingIn] = useState<{ id: string; first: string } | null>(null)
+  function letIn(id: string, first: string, court?: number) {
+    if (court == null && extraCourts.length > 1) return setLettingIn({ id, first })
+    const c = court ?? extraCourts[0]
+    if (court == null && !confirm(`Let ${first} play on court ${c} as an extra? They'll rotate in and share the cost.`)) return
+    setLettingIn(null)
+    rpc<{ on_court: number }>('allow_extra', { p_match: m.id, p_user: id, p_court: c }, r => flash(`${first} is in · ${r.on_court} on court ${c}, rotating`))
+  }
   const firstOpen = courts.find(c => !c.booking.booked)
   const showGhost = nCourts < 4 && full && wc > 0 && !m.past
   const ghostSlots: Slot[] = Array.from({ length: per }, (_, i) => {
@@ -127,7 +142,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
 
   const courtCards = courts.map((c, i) => (
     <CourtCard key={i} label={c.label} num={c.num} tbc={c.tbc} slots={c.slots} dateLabel={L.dateLabel} start={L.start} end={L.end}
-      booking={signedIn && !m.past ? c.booking : undefined} action={c.action} />
+      booking={signedIn && !m.past ? c.booking : undefined} action={c.action} extras={c.extras} />
   ))
 
   // Signed out: the invite landing.
@@ -200,7 +215,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
         {courtCards}
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
-          <span className="display" style={{ fontSize: 14, fontWeight: 700 }}>{m.confirmed_count}/{m.size} confirmed</span>
+          <span className="display" style={{ fontSize: 14, fontWeight: 700 }}>{m.confirmed_count > m.size ? `Full · +${m.confirmed_count - m.size} extra` : `${m.confirmed_count}/${m.size} confirmed`}</span>
           <span style={{ fontSize: 13, color: '#5B6573', fontWeight: 600 }}>{wc ? `${wc} waiting` : 'No waitlist'}</span>
         </div>
         {canSee && (canLog || !started || canAdd) && (
@@ -263,7 +278,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
           <AlertsCard compact reason={isOrg ? 'Get alerts when people join or drop out' : role === 'waitlist' ? 'Get an alert the moment you move up' : 'Get alerts if the court, time or players change'} />
         )}
 
-        {wc > 0 && !showGhost && !m.past && (
+        {wc > 0 && (!showGhost || isOrg) && !m.past && (
           <div className="stack" style={{ gap: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <span className="eyebrow">Waitlist</span>
@@ -277,6 +292,9 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
                   <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: w?.id === m.viewer.id ? 800 : 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {w ? `${w.full_name}${w.id === m.viewer.id ? ' · You' : ''}` : 'Waiting'}
                   </span>
+                  {w && isOrg && extraCourts.length > 0 && (
+                    <button className="chip-btn go" style={{ height: 30, fontSize: 12 }} disabled={busy} onClick={() => letIn(w.id, w.full_name.split(' ')[0])}>Let in</button>
+                  )}
                   {w && canRemove(w.id) && (
                     <button className="link-btn" style={{ fontSize: 12, color: '#8A94A3' }} onClick={() => remove(w.id, w.full_name.split(' ')[0])}>Remove</button>
                   )}
@@ -427,6 +445,13 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
 
       {conf && <BookSheet court={booking} onClose={() => setBooking(null)} m={m} rpc={rpc} count={courts.find(c => c.court === booking)?.count ?? 0} />}
       {isOrg && <EditSheet open={editing} onClose={() => setEditing(false)} m={m} rpc={rpc} />}
+      <Sheet open={!!lettingIn} onClose={() => setLettingIn(null)} title={`Let ${lettingIn?.first ?? ''} in`} subtitle="As an extra: they rotate in and share the cost. Up to 2 extra per court.">
+        {extraCourts.map(c => (
+          <button key={c} className="btn-2" disabled={busy} onClick={() => lettingIn && letIn(lettingIn.id, lettingIn.first, c)}>
+            Court {c} · {courts[c - 1].count} playing
+          </button>
+        ))}
+      </Sheet>
       {conf && <AddPlayerSheet open={adding} onClose={() => setAdding(false)} m={m} exclude={members} inviteMsg={L.inviteMsg} rpc={rpc} />}
       {conf && (
         <Sheet open={mySpot} onClose={() => setMySpot(false)} title="You're in" subtitle={`${m.title} · ${L.dateLabel}, ${L.timeRange}`}>
@@ -480,11 +505,14 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
   const guests = Object.entries(m.billed_to ?? {})
 
   if (!m.split_ready) {
+    const hasCost = m.court_info?.some(c => c.booked && (c.cost ?? 0) > 0)
     return (
       <div className="card stack" style={{ padding: 20, gap: 6 }}>
         <span className="eyebrow">Cost split</span>
         <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.45 }}>
-          {m.status === 'booked'
+          {hasCost
+            ? `Costs are split when sign-ups close (${m.rsvp_close_hours}h before the start, or when the organiser taps Lock now), so late changes and extra players are included. Until then nobody owes anything.`
+            : m.status === 'booked'
             ? 'Starts once a booked court has its cost entered. Tap Edit on the court card to add it.'
             : 'Starts once a court is booked and its cost is entered. Whoever books a court pays for it, and it\'s split between the players on booked courts.'}
         </span>

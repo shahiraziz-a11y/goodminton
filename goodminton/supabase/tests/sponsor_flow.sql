@@ -66,7 +66,7 @@ select pg_temp.check((:'v'::jsonb ->> 'split_ready') = 'false', 'no split before
 select pg_temp.check(pg_temp.names(array(select jsonb_array_elements_text(:'v'::jsonb -> 'split_ids'))::uuid[]) = 'Olly,Ann,Ann,Bob', 'Ann pays her share and Raj''s');
 
 -- No costs before booking.
-select pg_temp.check(pg_temp.fails(format('select public.add_expense(%L, %L, 40)', :'mid', 'Shuttles')) like '%once the court is booked%', 'no expenses before booking');
+select pg_temp.check(pg_temp.fails(format('select public.add_expense(%L, %L, 40)', :'mid', 'Shuttles')) like '%once a court is booked%', 'no expenses before booking');
 select public.my_ledger() as l \gset
 select pg_temp.check(not exists (select 1 from jsonb_array_elements(:'l'::jsonb) x where x ->> 'id' = :'mid'), 'unbooked match not in balances');
 
@@ -81,6 +81,8 @@ select pg_temp.as_user('olly');
 select public.book_match(:'mid', 'Hall', 'Court 1', '', 120);
 select pg_temp.as_user('ann');
 select public.add_expense(:'mid', 'Shuttles', 40);
+select pg_temp.check(not exists (select 1 from jsonb_array_elements(public.my_ledger()) x where x ->> 'id' = :'mid'), 'shared once sign-ups close');
+select pg_temp.as_user('olly'); select public.set_lock(:'mid', true); select pg_temp.as_user('ann');
 select public.my_ledger() as l \gset
 select pg_temp.check((select pg_temp.names(array(select jsonb_array_elements_text(x -> 'players'))::uuid[]) from jsonb_array_elements(:'l'::jsonb) x where x ->> 'id' = :'mid') = 'Olly,Ann,Ann,Bob', 'ledger bills Raj to Ann');
 select pg_temp.check(not (:'l'::jsonb::text like '%' || :'raj' || '%'), 'guest never appears in balances');
