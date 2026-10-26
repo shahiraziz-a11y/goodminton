@@ -6,7 +6,7 @@ import { Avatar } from './Avatar'
 import { useFeedback } from './Feedback'
 import { Sheet } from './Sheet'
 import { person, type Person } from '@/lib/people'
-import { nextRound, planStats, sittingOut, type PlanGame } from '@/lib/schedule'
+import { freshRound, nextRound, planStats, sittingOut, type PlanGame } from '@/lib/schedule'
 import { ratings } from '@/lib/stats'
 import { createClient } from '@/lib/supabase/client'
 import { isVisible, type Game, type MatchView, type PlanEntry } from '@/lib/types'
@@ -48,7 +48,8 @@ export function GamePlan({ m }: { m: MatchView }) {
     return !error
   }
 
-  async function makeRound(keep?: PlanEntry) {
+  /** Next round: keeps last round's pairs and swaps in who's waiting; `mix` re-pairs everyone. */
+  async function makeRound(keep?: PlanEntry, mix = false) {
     if (players.length < per) return flash(`Needs at least ${per} players`)
     setBusy(true)
     // Ratings even out the sides; the group's games feed them.
@@ -56,9 +57,9 @@ export function GamePlan({ m }: { m: MatchView }) {
     const { data } = await createClient().rpc('get_leaderboard', m.group ? { p_group: m.group.id } : {})
     if (data) r = ratings(((data as { games?: Game[] }).games ?? []))
     setBusy(false)
-    const games = nextRound({ players, courts: m.court_count, perSide, rounds: history, ratings: r, keep: keep && { a: keep.a.map(p => p.id), b: keep.b.map(p => p.id) } })
+    const games = (mix ? freshRound : nextRound)({ players, courts: m.court_count, perSide, rounds: history, ratings: r, keep: keep && { a: keep.a.map(p => p.id), b: keep.b.map(p => p.id) } })
     if (!games.length) return flash(`Needs at least ${per} players`)
-    await call('save_round', { p_match: m.id, p_round: last + 1, p_games: games }, `Round ${last + 1} is set`)
+    await call('save_round', { p_match: m.id, p_round: last + 1, p_games: games }, mix ? `Round ${last + 1}: new partners` : `Round ${last + 1} is set`)
   }
 
   async function saveWinner() {
@@ -115,7 +116,7 @@ export function GamePlan({ m }: { m: MatchView }) {
       {!plan.length ? (
         <div className="card stack" style={{ padding: 20, gap: 12 }}>
           <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.45 }}>
-            Make the pairings for each round. Everyone gets a fair turn, partners change, and sides are evened out by rating. Tap a name to swap people, and tap who won as you go.
+            Round 1 pairs everyone fairly, with sides evened out by rating. Each new round keeps the pairs as they were and only swaps in who&apos;s waiting. Tap a name to change anyone, or Mix it up for new partners. Tap who won as you go.
           </span>
           <button className="btn" disabled={busy} onClick={() => makeRound()}>{busy ? 'Making…' : 'Make round 1'}</button>
         </div>
@@ -128,7 +129,7 @@ export function GamePlan({ m }: { m: MatchView }) {
               <div key={r} className="card stack" style={{ padding: 16, gap: 12, boxShadow: r === last ? '0 0 0 2px #0E9F7E' : undefined }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
                   <span className="display" style={{ fontSize: 15, fontWeight: 800 }}>Round {r}</span>
-                  {out.length > 0 && <span style={{ fontSize: 12, color: '#5B6573', textAlign: 'right' }}>Sitting out: {out.map(id => who(id).first).join(', ')}</span>}
+                  {out.length > 0 && <span style={{ fontSize: 12, color: '#5B6573', textAlign: 'right' }}>Sitting out: {out.map(id => who(id).first).join(', ')}{r === last ? ' · up next' : ''}</span>}
                 </div>
                 {games.map(e => (
                   <div key={e.id} className="stack" style={{ gap: 6 }}>
@@ -150,10 +151,11 @@ export function GamePlan({ m }: { m: MatchView }) {
               </div>
             )
           })}
-          <div style={{ display: 'grid', gridTemplateColumns: byRound(last).every(e => !e.game_id) ? '2fr 1fr' : '1fr', gap: 8 }}>
-            <button className="btn" style={{ height: 50 }} disabled={busy} onClick={() => makeRound()}>{busy ? 'Making…' : `Make round ${last + 1}`}</button>
+          <button className="btn" style={{ height: 50 }} disabled={busy} onClick={() => makeRound()}>{busy ? 'Making…' : `Make round ${last + 1}`}</button>
+          <div style={{ display: 'grid', gridTemplateColumns: byRound(last).every(e => !e.game_id) ? '1fr 1fr' : '1fr', gap: 8, marginTop: -4 }}>
+            <button className="btn-2" style={{ height: 44, fontSize: 14 }} disabled={busy} onClick={() => makeRound(undefined, true)}>Mix it up</button>
             {byRound(last).every(e => !e.game_id) && (
-              <button className="btn-2" style={{ height: 50 }} disabled={busy}
+              <button className="btn-2" style={{ height: 44, fontSize: 14 }} disabled={busy}
                 onClick={() => confirm(`Remove round ${last}?`) && call('delete_round', { p_match: m.id, p_round: last }, `Round ${last} removed`)}>Undo round</button>
             )}
           </div>
