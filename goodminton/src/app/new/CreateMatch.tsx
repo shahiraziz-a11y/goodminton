@@ -42,8 +42,11 @@ export function CreateMatch({ groups = [], initialGroup }: { groups?: MyGroup[];
 
   return (
     <Frame back="/" tab="home">
-      <div className="screen" style={{ gap: 24 }}>
-        <span className="h1">New match</span>
+      <div className="screen" style={{ gap: 24, paddingLeft: 20, paddingRight: 20 }}>
+        <div style={{ position: 'relative', height: 210, borderRadius: 32, overflow: 'hidden', background: '#0E4A30 url(/photos/court-3.webp) center/cover', display: 'flex', alignItems: 'flex-end', padding: 20 }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,.55) 100%)' }} />
+          <span className="display" style={{ position: 'relative', fontSize: 38, letterSpacing: '-.045em', lineHeight: 1, color: '#fff' }}>New match</span>
+        </div>
         {groups.length > 1 && (
           <Field label="Group" hint="Everyone in this group can see and join the match.">
             <select className="field" value={f.group ?? ''} onChange={e => set('group', e.target.value)}>

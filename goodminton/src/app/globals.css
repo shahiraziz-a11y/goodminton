@@ -131,7 +131,7 @@ input[type=date]::-webkit-calendar-picker-indicator, input[type=time]::-webkit-c
 }
 .chip-btn.go { background: var(--ink); color: #fff; box-shadow: none; }
 .link-btn { border: none; background: transparent; color: var(--rose); font-weight: 700; font-size: 14px; padding: 0; flex: none; }
-.pill-btn { height: 30px; padding: 0 12px; border-radius: 99px; font-size: 12px; font-weight: 800; border: none; background: var(--field); color: var(--ink); }
+.pill-btn { height: 30px; padding: 0 12px; border-radius: 99px; font-size: 12px; font-weight: 700; border: none; background: var(--field); color: var(--ink); }
 .pill-btn.go { background: var(--ink); color: #fff; }
 .pill-btn.outline { border: 1px solid rgba(14,90,58,.4); background: transparent; color: var(--green-ink); }
 /* The row of actions under the court cards */
@@ -140,7 +140,7 @@ input[type=date]::-webkit-calendar-picker-indicator, input[type=time]::-webkit-c
   font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; white-space: nowrap;
 }
 .row-btn.go { background: var(--ink); color: #fff; box-shadow: none; }
-.badge { flex: none; font-size: 11px; font-weight: 800; padding: 6px 10px; border-radius: 99px; }
+.badge { flex: none; font-size: 11px; font-weight: 700; padding: 6px 10px; border-radius: 99px; }
 
 .field {
   height: 52px; border-radius: 16px; border: none; background: rgba(255,255,255,.62); box-shadow: inset 0 0 0 1px rgba(255,255,255,.8); color: var(--ink);
@@ -167,17 +167,40 @@ input[type=date]::-webkit-calendar-picker-indicator, input[type=time]::-webkit-c
 .row-line { border-bottom: 1px solid rgba(0,0,0,.06); }
 .row-line:last-child { border-bottom: none; }
 
-/* Court graphic */
-.court {
-  height: 150px; border-radius: 12px; background: linear-gradient(160deg, #17734A 0%, #0E4A30 100%);
-  border: 1.5px solid rgba(255,255,255,.5); display: flex; position: relative; overflow: hidden; box-shadow: inset 0 0 40px rgba(0,0,0,.4);
+/* Match page: the main actions float above the tab bar. */
+.action-bar {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 5;
+  bottom: calc(96px + env(safe-area-inset-bottom)); width: calc(100% - 32px); max-width: 398px;
+  display: flex; gap: 8px; padding: 8px; border-radius: 99px;
+  background: linear-gradient(160deg, rgba(255,255,255,.66), rgba(255,255,255,.34));
+  backdrop-filter: blur(26px) saturate(170%); -webkit-backdrop-filter: blur(26px) saturate(170%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.75), 0 20px 40px -18px rgba(10,30,20,.4);
+  animation: barIn .5s cubic-bezier(.2,1.3,.3,1);
 }
-.court.ghost { background: linear-gradient(160deg, #2A1A22 0%, #1A1015 100%); }
-.court-half { flex: 1; display: flex; flex-direction: column; position: relative; min-width: 0; }
+.action-bar .btn, .action-bar .btn-2 { flex: 1; height: 50px; font-size: 15px; white-space: nowrap; }
+@keyframes barIn { from { transform: translate(-50%, 120px); opacity: 0 } to { transform: translate(-50%, 0); opacity: 1 } }
+
+/* Court graphic: a court tilted away in 3-D, with the players standing up on it. */
+.court-stage { perspective: 820px; perspective-origin: 50% -30%; margin: -18px 4px 4px; position: relative; }
+.court {
+  height: 230px; border-radius: 18px; display: flex; position: relative;
+  background: radial-gradient(120% 70% at 50% -10%, rgba(255,255,255,.32), rgba(255,255,255,0) 60%), linear-gradient(160deg, #1F6B47 0%, #0E4A30 100%);
+  border: 2px solid rgba(255,255,255,.8);
+  transform: rotateX(38deg); transform-origin: 50% 100%; transform-style: preserve-3d;
+  box-shadow: inset 0 0 60px rgba(0,0,0,.35), 0 46px 40px -26px rgba(10,30,20,.6);
+}
+.court.ghost { background: radial-gradient(120% 70% at 50% -10%, rgba(255,255,255,.22), rgba(255,255,255,0) 60%), linear-gradient(160deg, #4A4A44 0%, #2A2A26 100%); }
+.court-line { position: absolute; background: rgba(255,255,255,.4); pointer-events: none; }
+.court-half { flex: 1; display: flex; flex-direction: column; position: relative; min-width: 0; transform-style: preserve-3d; }
 .court-service { position: absolute; top: 0; bottom: 0; width: 1.5px; background: rgba(255,255,255,.28); }
-.court-slot { flex: 1; display: flex; border-bottom: 1.5px solid rgba(255,255,255,.28); position: relative; z-index: 1; min-height: 0; }
-.court-slot:last-child { border-bottom: 1.5px solid rgba(255,255,255,.28); }
-.court-net { width: 4px; flex: none; background: repeating-linear-gradient(180deg, #FFFFFF 0 3px, transparent 3px 6px); opacity: .85; box-shadow: 0 0 12px rgba(255,255,255,.35); }
+.court-slot { flex: 1; display: flex; border-bottom: 1.5px solid rgba(255,255,255,.4); position: relative; min-height: 0; transform-style: preserve-3d; }
+.court-slot:last-child { border-bottom: none; }
+/* Stand each player up, facing the viewer. */
+.court-slot > * { transform: translateZ(12px) rotateX(-38deg); transform-origin: 50% 75%; }
+.court-net { width: 5px; flex: none; background: repeating-linear-gradient(180deg, #FFFFFF 0 3px, rgba(255,255,255,.25) 3px 6px); transform: translateZ(8px); box-shadow: 6px 10px 10px rgba(0,0,0,.35), 0 0 14px rgba(255,255,255,.35); }
+@keyframes spotPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,.6) } 50% { box-shadow: 0 0 0 9px rgba(255,255,255,0) } }
+.spot-pulse { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; flex: none; animation: spotPulse 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .spot-pulse { animation: none; } }
 
 /* Toast in the style of the design's notch pill */
 .toast {
@@ -236,6 +259,6 @@ a, button, label, input { touch-action: manipulation; }
   cursor: pointer; color: var(--ink); background: rgba(255,255,255,.6); box-shadow: inset 0 0 0 1px rgba(255,255,255,.8); transition: box-shadow .12s, background .12s;
 }
 .pair-card.sel { background: var(--tint); box-shadow: 0 0 0 2px var(--green); }
-.win-tag { font-size: 10px; font-weight: 800; letter-spacing: .12em; padding: 5px 10px; border-radius: 99px; background: var(--field); color: var(--muted); }
+.win-tag { font-size: 10px; font-weight: 700; letter-spacing: .12em; padding: 5px 10px; border-radius: 99px; background: var(--field); color: var(--muted); }
 .win-tag.sel { background: var(--green); color: #fff; }
 .sheet-option { display: flex; align-items: center; gap: 14px; padding: 18px; text-align: left; width: 100%; }

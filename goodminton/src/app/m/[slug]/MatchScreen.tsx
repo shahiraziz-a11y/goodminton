@@ -10,6 +10,7 @@ import { useFeedback } from '@/components/Feedback'
 import { FormatPicker } from '@/components/FormatPicker'
 import { GamePlan } from '@/components/GamePlan'
 import { LogResultSheet } from '@/components/LogResultSheet'
+import { photoFor } from '@/lib/photos'
 import { loadPlayers } from '@/components/PlayerPicker'
 import { AlertsCard } from '@/components/Pwa'
 import { Sheet } from '@/components/Sheet'
@@ -156,7 +157,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
             <span style={{ fontSize: 14, color: '#6B6B66' }}><b style={{ color: '#111111' }}>{org.first}</b> invited you to play</span>
           </div>
           <div className="stack" style={{ gap: 8 }}>
-            <span className="display" style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-.03em', lineHeight: 1.02 }}>{m.title}</span>
+            <span className="display" style={{ fontSize: 34, fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.02 }}>{m.title}</span>
             <span style={{ fontSize: 15, color: '#6B6B66' }}>{m.venue || 'Venue TBC'} · {m.duration_min} min</span>
           </div>
           {courtCards}
@@ -185,32 +186,36 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
 
   return (
     <Frame back="/" me={me}>
-      <div className="screen" style={{ gap: 20 }}>
-        <div className="stack" style={{ gap: 8 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.12em', color: '#0E5A3A' }}>
-              {`${singles ? 'Singles' : 'Doubles'} · ${nCourts} court${nCourts > 1 ? 's' : ''} · ${m.size} players`}
+      <div className="screen" style={{ gap: 20, paddingLeft: 20, paddingRight: 20, paddingBottom: canSee ? 96 : 30 }}>
+        {/* Photo header: format, sign-up deadline, title, venue, status chips. */}
+        <div style={{ position: 'relative', minHeight: 300, borderRadius: 34, overflow: 'hidden', background: `#1D2A22 url(${photoFor(m.slug)}) center/cover`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 40, padding: 20, color: '#fff' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,.4) 0%, rgba(0,0,0,0) 32%, rgba(0,0,0,.2) 55%, rgba(0,0,0,.78) 100%)' }} />
+          <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.12em' }}>
+              {`${singles ? 'SINGLES' : 'DOUBLES'} · ${nCourts} COURT${nCourts > 1 ? 'S' : ''} · ${m.size} PLAYERS`}
             </span>
-            <span style={{ fontSize: 12, color: '#6B6B66', fontWeight: 600 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, padding: '8px 12px', borderRadius: 99, background: 'rgba(255,255,255,.2)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', flex: 'none' }}>
               {m.past ? 'Played' : m.locked ? 'Sign-ups closed' : `RSVPs close ${m.rsvp_close_hours}h before`}
             </span>
           </div>
-          <span className="display" style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.03em', lineHeight: 1.02 }}>{m.title}</span>
-          <span style={{ fontSize: 14, color: '#6B6B66' }}>{m.venue || 'Venue TBC'} · {m.duration_min} min</span>
-          {!m.past && (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {nBooked === 0
-                ? <span className="badge" style={{ background: '#F2F1ED', color: '#6B6B66' }}>Planning · {nCourts > 1 ? 'courts' : 'court'} not booked yet</span>
-                : <span className="badge" style={{ background: '#E3EEE6', color: '#0E5A3A' }}>
-                    {nBooked === nCourts ? (nCourts > 1 ? '✓ All courts booked' : '✓ Court booked') : `✓ ${nBooked} of ${nCourts} courts booked`}
-                  </span>}
-              {m.locked && <span className="badge" style={{ background: '#E5484D', color: '#fff' }}>Sign-ups closed</span>}
-              {m.repeat_weekly && <span className="badge" style={{ background: '#F2F1ED', color: '#6B6B66' }}>↻ Weekly</span>}
-              {m.group && (m.is_member
-                ? <Link href={`/groups/${m.group.id}`} className="badge" style={{ background: '#E3EEE6', color: '#0E5A3A' }}>{m.group.name}</Link>
-                : <span className="badge" style={{ background: '#E3EEE6', color: '#0E5A3A' }}>{m.group.name}</span>)}
-            </div>
-          )}
+          <div className="stack" style={{ position: 'relative', gap: 8 }}>
+            <span className="display" style={{ fontSize: 38, letterSpacing: '-.045em', lineHeight: 1 }}>{m.title}</span>
+            <span style={{ fontSize: 15, color: 'rgba(255,255,255,.85)' }}>{m.venue || 'Venue TBC'} · {m.duration_min} min</span>
+            {!m.past && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                {nBooked === 0
+                  ? <span className="badge" style={{ ...heroChip, background: 'rgba(255,255,255,.22)', color: '#fff' }}>PLANNING · NOT BOOKED</span>
+                  : <span className="badge" style={{ ...heroChip, background: '#0E5A3A', color: '#fff' }}>
+                      {nBooked === nCourts ? (nCourts > 1 ? 'ALL COURTS BOOKED' : 'COURT BOOKED') : `${nBooked} OF ${nCourts} COURTS BOOKED`}
+                    </span>}
+                {m.locked && <span className="badge" style={{ ...heroChip, background: '#111111', color: '#fff' }}>SIGN-UPS CLOSED</span>}
+                {m.repeat_weekly && <span className="badge" style={{ ...heroChip, background: 'rgba(255,255,255,.22)', color: '#fff' }}>↻ WEEKLY</span>}
+                {m.group && (m.is_member
+                  ? <Link href={`/groups/${m.group.id}`} className="badge" style={{ ...heroChip, background: 'rgba(255,255,255,.9)', color: '#0E5A3A' }}>{m.group.name}</Link>
+                  : <span className="badge" style={{ ...heroChip, background: 'rgba(255,255,255,.9)', color: '#0E5A3A' }}>{m.group.name}</span>)}
+              </div>
+            )}
+          </div>
         </div>
 
         {courtCards}
@@ -220,10 +225,10 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
           <span style={{ fontSize: 13, color: '#6B6B66', fontWeight: 600 }}>{wc ? `${wc} waiting` : 'No waitlist'}</span>
         </div>
         {canSee && (canLog || !started || canAdd) && (
-          <div style={{ display: 'flex', gap: 8, marginTop: -8 }}>
-            {canLog && <button className="row-btn go" onClick={() => setLogCourt(Math.max(0, courts.findIndex(c => c.players.length === per)))}>+ Log result</button>}
-            {!started && <Link className="row-btn go" href={`/m/${m.slug}/share`}>Share match link</Link>}
-            {canAdd && <button className="row-btn" onClick={() => setAdding(true)}>+ Add player</button>}
+          <div className="action-bar">
+            {canLog && <button className="btn" onClick={() => setLogCourt(Math.max(0, courts.findIndex(c => c.players.length === per)))}>+ Log result</button>}
+            {!started && <Link className="btn" href={`/m/${m.slug}/share`}>Share match link</Link>}
+            {canAdd && <button className="btn-2" onClick={() => setAdding(true)}>+ Add player</button>}
           </div>
         )}
 
@@ -258,7 +263,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
               <span className="display" style={{ fontSize: 16, fontWeight: 700 }}>You&apos;re organising, not playing</span>
               <span style={{ fontSize: 13, color: '#6B6B66', lineHeight: 1.45 }}>You still run the match: edit it, book courts, add or remove players and see the costs.</span>
             </div>
-            <button className="btn-2" style={{ color: '#0E5A3A', fontWeight: 800 }} disabled={busy}
+            <button className="btn-2" style={{ color: '#0E5A3A', fontWeight: 700 }} disabled={busy}
               onClick={() => rpc<{ status: string; position?: number }>('join_match', { p_match: m.id }, r => flash(r.status === 'confirmed' ? "You're playing" : `You're #${r.position} on the waitlist`))}>
               {full ? 'Join the waitlist' : "I'm playing after all"}
             </button>
@@ -267,7 +272,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
         {(role === 'waitlist' || m.viewer.status === 'waitlist') && (
           <div className="card stack" style={{ padding: 20, gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <span className="display" style={{ fontSize: 48, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: '#E5484D' }}>#{m.viewer.wait_pos}</span>
+              <span className="display" style={{ fontSize: 48, fontWeight: 700, letterSpacing: '-.04em', lineHeight: 1, color: '#E5484D' }}>#{m.viewer.wait_pos}</span>
               <div className="stack" style={{ gap: 3 }}>
                 <span className="display" style={{ fontSize: 16, fontWeight: 700 }}>On the waitlist</span>
                 <span style={{ fontSize: 13, color: '#6B6B66' }}>You move up automatically if a spot opens.</span>
@@ -290,7 +295,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
             <div className="card" style={{ padding: '4px 16px' }}>
               {(m.waitlist ?? Array.from({ length: wc }, () => null)).map((w, i) => (
                 <div key={w?.id ?? i} className="row-line" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0' }}>
-                  <span className="display" style={{ width: 22, fontSize: 13, fontWeight: 800, color: '#E5484D', flex: 'none' }}>#{i + 1}</span>
+                  <span className="display" style={{ width: 22, fontSize: 13, fontWeight: 700, color: '#E5484D', flex: 'none' }}>#{i + 1}</span>
                   {w ? <Avatar p={person(w.id, w.full_name)} size={28} font={10} /> : <span className="avatar" style={{ width: 28, height: 28, background: '#C9C7BF' }} />}
                   <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: w?.id === m.viewer.id ? 800 : 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {w ? `${w.full_name}${w.id === m.viewer.id ? ' · You' : ''}` : 'Waiting'}
@@ -327,7 +332,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
               </div>
               {!firstOpen ? (
                 <div className="stack" style={{ gap: 2 }}>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: '#0E5A3A' }}>✓ {nCourts > 1 ? 'All courts booked' : 'Court booked'}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#0E5A3A' }}>✓ {nCourts > 1 ? 'All courts booked' : 'Court booked'}</span>
                   <span style={{ fontSize: 12, color: '#6B6B66' }}>Players are locked in. Only you can remove someone. Edit a booking on its court card.</span>
                 </div>
               ) : (
@@ -351,7 +356,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
               <div style={{ borderTop: '1px solid rgba(0,0,0,.06)' }} />
               {m.locked ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ flex: 1, fontSize: 14, fontWeight: 800 }}>{finalLine}</span>
+                  <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{finalLine}</span>
                   <button className="chip-btn" disabled={busy} onClick={() => rpc('set_lock', { p_match: m.id, p_locked: false }, () => flash('Sign-ups reopened'))}>Reopen</button>
                 </div>
               ) : (
@@ -369,7 +374,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
             {nCourts < 4 && wc >= per && (
               <div className="stack" style={{ borderRadius: 20, padding: 22, background: '#F1F0EC', boxShadow: '0 0 0 1px #E2E0DA', gap: 16 }}>
                 <div className="stack" style={{ gap: 6 }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: '#D9622B' }}>{per} WAITING · EVEN NUMBERS</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', color: '#D9622B' }}>{per} WAITING · EVEN NUMBERS</span>
                   <span className="display" style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-.02em', lineHeight: 1.2 }}>Make it {m.size + per} on {nCourts + 1} courts</span>
                   <span style={{ fontSize: 14, color: '#55554F', lineHeight: 1.45 }}>
                     All {per} waiting players are confirmed on court {nCourts + 1}. Book it whenever you&apos;re ready; until then they can still drop out.
@@ -390,7 +395,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
           <>
             {m.locked && !m.past && (
               <div className="stack" style={{ borderRadius: 22, padding: '16px 20px', background: '#0E5A3A', color: '#fff', gap: 4 }}>
-                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em' }}>SIGN-UPS CLOSED</span>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em' }}>SIGN-UPS CLOSED</span>
                 <span className="display" style={{ fontSize: 18, fontWeight: 700 }}>{finalLine}</span>
               </div>
             )}
@@ -410,7 +415,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
                 </div>
                 {courts.map((c, i) => c.players.length === per && (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ flex: 1, fontSize: 13, fontWeight: 800, minWidth: 0 }}>{nCourts > 1 ? `Court ${i + 1}` : 'Court'}</span>
+                    <span style={{ flex: 1, fontSize: 13, fontWeight: 700, minWidth: 0 }}>{nCourts > 1 ? `Court ${i + 1}` : 'Court'}</span>
                     <button className="chip-btn" disabled={busy} onClick={() => rpc('set_court_order', { p_match: m.id, p_ids: shuffled(c.players.map(p => p.id)) }, () => flash('Pairs shuffled'))}>Shuffle</button>
                     <button className="chip-btn" disabled={busy} onClick={async () => {
                       const { data, error } = await createClient().rpc('get_leaderboard', m.group ? { p_group: m.group.id } : {})
@@ -426,7 +431,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
             {(m.liable?.length ?? 0) > 0 && (
               <div className="card stack" style={{ padding: '18px 20px', gap: 10 }}>
                 <div className="stack" style={{ gap: 3 }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: '#D9622B' }}>REMOVED AFTER BOOKING · STILL OWE A SHARE</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', color: '#D9622B' }}>REMOVED AFTER BOOKING · STILL OWE A SHARE</span>
                   <span style={{ fontSize: 12, color: '#6B6B66' }}>Cleared automatically when someone takes the spot.</span>
                 </div>
                 {m.liable!.map(p => (
@@ -460,7 +465,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
         <Sheet open={mySpot} onClose={() => setMySpot(false)} title="You're in" subtitle={`${m.title} · ${L.dateLabel}, ${L.timeRange}`}>
           {isOrg ? (
             <div className="stack" style={{ gap: 12 }}>
-              <button className="btn-2" style={{ color: '#E0245E', fontWeight: 800 }} disabled={busy} onClick={() => {
+              <button className="btn-2" style={{ color: '#E0245E', fontWeight: 700 }} disabled={busy} onClick={() => {
                 if (myCourtBooked && !confirm('Your court is booked. You\'ll owe your share until someone takes your spot. Drop out anyway?')) return
                 setMySpot(false)
                 rpc<{ promoted: string | null; still_owes: boolean }>('leave_match', { p_match: m.id }, r =>
@@ -477,7 +482,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
             </span>
           ) : (
             <div className="stack" style={{ gap: 12 }}>
-              <button className="btn-2" style={{ color: '#E0245E', fontWeight: 800 }} disabled={busy} onClick={() => {
+              <button className="btn-2" style={{ color: '#E0245E', fontWeight: 700 }} disabled={busy} onClick={() => {
                 if (m.locked && !confirm('Sign-ups are closed. Drop out anyway?')) return
                 setMySpot(false)
                 rpc<{ promoted: string | null }>('leave_match', { p_match: m.id }, r => flash(r.promoted ? `Spot passed to ${r.promoted.split(' ')[0]}` : 'You dropped out'))
@@ -494,6 +499,8 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
     </Frame>
   )
 }
+
+const heroChip = { flex: 'none', fontSize: 12, fontWeight: 700, letterSpacing: '.04em', padding: '8px 12px' } as const
 
 type Rpc = <T>(fn: string, args: Record<string, unknown>, done?: (data: T) => void) => Promise<void>
 
@@ -528,7 +535,7 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div className="stack" style={{ gap: 6 }}>
           <span className="eyebrow">Cost split</span>
-          <span className="display" style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-.02em', color: '#0E5A3A' }}>{fmt(tr.share)}</span>
+          <span className="display" style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.02em', color: '#0E5A3A' }}>{fmt(tr.share)}</span>
         </div>
         <span style={{ fontSize: 12, color: '#6B6B66', fontWeight: 600, paddingBottom: 4 }}>each · {fmt(tr.total)} total</span>
       </div>
@@ -542,7 +549,7 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
               <span style={{ fontSize: 14, fontWeight: 700 }}>{e.label}</span>
               <span style={{ fontSize: 12, color: '#6B6B66' }}>Paid by {e.paid_by === meId ? 'you' : personOf(e.paid_by).first}</span>
             </span>
-            <span style={{ fontSize: 14, fontWeight: 800, flex: 'none' }}>{fmt(Number(e.amount))}</span>
+            <span style={{ fontSize: 14, fontWeight: 700, flex: 'none' }}>{fmt(Number(e.amount))}</span>
           </div>
         ))}
       </div>
@@ -556,7 +563,7 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
           <input className="field" style={{ height: 46 }} value={exp.label} onChange={e => setExp(x => ({ ...x, label: e.target.value }))} placeholder="What for? e.g. Shuttles" maxLength={80} autoFocus />
           <div style={{ display: 'flex', gap: 10 }}>
             <input className="field" style={{ height: 46, flex: 1, minWidth: 0, width: 'auto' }} type="number" inputMode="decimal" min={0} step="0.01" value={exp.amount} onChange={e => setExp(x => ({ ...x, amount: e.target.value }))} placeholder="Amount" />
-            <button type="submit" disabled={busy} style={{ height: 46, padding: '0 20px', borderRadius: 16, border: 'none', background: '#0E5A3A', color: '#fff', fontWeight: 800, fontSize: 14 }}>Add</button>
+            <button type="submit" disabled={busy} style={{ height: 46, padding: '0 20px', borderRadius: 16, border: 'none', background: '#0E5A3A', color: '#fff', fontWeight: 700, fontSize: 14 }}>Add</button>
           </div>
         </form>
       ) : (
@@ -582,7 +589,7 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
                 <span style={{ flex: 1, fontSize: 14, minWidth: 0, fontWeight: 600 }}>
                   {iOwe ? 'You' : from.first} <span style={{ color: '#9A9992' }}>→</span> {t.to === meId ? 'you' : to.first}
                 </span>
-                <span style={{ fontSize: 14, fontWeight: 800 }}>{fmt(shown)}</span>
+                <span style={{ fontSize: 14, fontWeight: 700 }}>{fmt(shown)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8 }}>
                 {t.settled && (
@@ -642,7 +649,7 @@ function BookSheet({ court, onClose, m, rpc, count }: { court: number | null; on
         <input className="field" value={f.parking} onChange={set('parking')} placeholder="e.g. Free parking behind the hall" maxLength={200} /></label>
       <label className="label"><span className="eyebrow">Cost of this court</span>
         <div className="field-wrap">
-          <span style={{ fontWeight: 800, color: '#0E5A3A', fontSize: 14 }}>{m.currency}</span>
+          <span style={{ fontWeight: 700, color: '#0E5A3A', fontSize: 14 }}>{m.currency}</span>
           <input type="number" inputMode="decimal" min={0} value={f.cost} onChange={set('cost')} placeholder="0" style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', color: '#111111', fontSize: 16, outline: 'none' }} />
         </div>
         <span className="note">In the cost split as paid by {booked && ic?.booked_by !== m.viewer.id ? (ic?.booked_by_name?.split(' ')[0] ?? 'the booker') : 'you'}.</span>
@@ -747,7 +754,7 @@ function AddPlayerSheet({ open, onClose, m, exclude, inviteMsg, rpc }: {
         <div style={{ display: 'flex', gap: 8 }}>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Name" maxLength={60} aria-label="Player name"
             style={{ flex: 1, minWidth: 0, height: 48, borderRadius: 14, border: 'none', boxShadow: '0 0 0 1px #E2E0DA', padding: '0 14px', fontSize: 15, color: '#111111', background: '#fff', outline: 'none' }} />
-          <button type="submit" style={{ height: 48, padding: '0 18px', borderRadius: 14, border: 'none', background: '#0E5A3A', color: '#fff', fontWeight: 800, fontSize: 14, flex: 'none' }}>Add</button>
+          <button type="submit" style={{ height: 48, padding: '0 18px', borderRadius: 14, border: 'none', background: '#0E5A3A', color: '#fff', fontWeight: 700, fontSize: 14, flex: 'none' }}>Add</button>
         </div>
         <span className="note" style={{ fontSize: 12 }}>Not on Goodminton? They&apos;re added as your guest and you pay their share.</span>
       </form>
@@ -761,7 +768,7 @@ function AddPlayerSheet({ open, onClose, m, exclude, inviteMsg, rpc }: {
                 style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', border: 'none', background: 'none', textAlign: 'left', width: '100%', color: '#111111' }}>
                 <Avatar p={pp} size={36} font={13} />
                 <span style={{ flex: 1, fontSize: 15, fontWeight: 700 }}>{p.full_name}</span>
-                {p.is_guest && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', color: '#9A9992' }}>GUEST</span>}
+                {p.is_guest && <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', color: '#9A9992' }}>GUEST</span>}
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#0E5A3A' }}>+ Add</span>
               </button>
             )

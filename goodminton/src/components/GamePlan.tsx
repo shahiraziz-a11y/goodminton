@@ -128,22 +128,22 @@ export function GamePlan({ m }: { m: MatchView }) {
             return (
               <div key={r} className="card stack" style={{ padding: 16, gap: 12, boxShadow: r === last ? '0 0 0 2px #0E5A3A' : undefined }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-                  <span className="display" style={{ fontSize: 15, fontWeight: 800 }}>Round {r}</span>
+                  <span className="display" style={{ fontSize: 15, fontWeight: 700 }}>Round {r}</span>
                   {out.length > 0 && <span style={{ fontSize: 12, color: '#6B6B66', textAlign: 'right' }}>Sitting out: {out.map(id => who(id).first).join(', ')}{r === last ? ' · up next' : ''}</span>}
                 </div>
                 {games.map(e => (
                   <div key={e.id} className="stack" style={{ gap: 6 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                      <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.12em', color: '#9A9992' }}>COURT {e.court}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.12em', color: '#9A9992' }}>COURT {e.court}</span>
                       <span style={{ display: 'flex', gap: 12 }}>
                         {e.game_id && <button className="link-btn" style={{ fontSize: 11, color: '#9A9992' }} disabled={busy}
                           onClick={() => confirm('Undo this result?') && call('delete_game', { p_game: e.game_id }, 'Result removed')}>Undo result</button>}
-                        <button className="link-btn" style={{ fontSize: 11, color: '#0E5A3A', fontWeight: 800 }} disabled={busy} onClick={() => makeRound(e)}>Play again</button>
+                        <button className="link-btn" style={{ fontSize: 11, color: '#0E5A3A', fontWeight: 700 }} disabled={busy} onClick={() => makeRound(e)}>Play again</button>
                       </span>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr)', gap: 8, alignItems: 'center' }}>
                       {side(e, 'a')}
-                      <span className="display" style={{ fontSize: 11, fontWeight: 800, color: '#9A9992' }}>VS</span>
+                      <span className="display" style={{ fontSize: 11, fontWeight: 700, color: '#9A9992' }}>VS</span>
                       {side(e, 'b')}
                     </div>
                   </div>
@@ -174,7 +174,7 @@ export function GamePlan({ m }: { m: MatchView }) {
               <button key={id} type="button" className="picker-row" disabled={busy} onClick={() => swap(id)}>
                 <Avatar p={pp} size={32} font={12} />
                 <span style={{ flex: 1, textAlign: 'left', fontSize: 15, fontWeight: 600 }}>{pp.name}</span>
-                <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', color: '#9A9992' }}>{tag}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', color: '#9A9992' }}>{tag}</span>
               </button>
             )
           }
@@ -201,7 +201,7 @@ export function GamePlan({ m }: { m: MatchView }) {
                   aria-label={`Score for ${k === 'a' ? 'left' : 'right'} side`} value={score[k]} style={{ height: 46, textAlign: 'center', gridColumn: i === 0 ? 1 : 3, fontSize: 15 }}
                   onChange={e => setScore(s => ({ ...s, [k]: e.target.value.replace(/\D/g, '').slice(0, 2) }))} />
               ))}
-              <span className="display" style={{ gridColumn: 2, gridRow: 1, fontSize: 12, fontWeight: 800, color: '#9A9992' }}>–</span>
+              <span className="display" style={{ gridColumn: 2, gridRow: 1, fontSize: 12, fontWeight: 700, color: '#9A9992' }}>–</span>
             </div>
             <button className="btn" disabled={busy} onClick={saveWinner}>{busy ? 'Saving…' : 'Save result'}</button>
           </>

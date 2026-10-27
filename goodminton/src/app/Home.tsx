@@ -108,14 +108,14 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
         <Link href="/new" className="card sheet-option" onClick={() => setChoosing(false)}>
           <span className="avatar" style={{ width: 44, height: 44, borderRadius: 14, background: '#0E5A3A', fontSize: 22 }}>+</span>
           <span className="stack" style={{ flex: 1, gap: 2 }}>
-            <span style={{ fontSize: 16, fontWeight: 800 }}>New match</span>
+            <span style={{ fontSize: 16, fontWeight: 700 }}>New match</span>
             <span style={{ fontSize: 13, color: '#6B6B66' }}>Plan a game and share the link. Book the court once enough people are in.</span>
           </span>
         </Link>
         <button className="card sheet-option" onClick={() => { setChoosing(false); setLogging(true) }}>
           <span className="avatar" style={{ width: 44, height: 44, borderRadius: 14, background: '#111111', fontSize: 20 }}>🏸</span>
           <span className="stack" style={{ flex: 1, gap: 2 }}>
-            <span style={{ fontSize: 16, fontWeight: 800 }}>Log a game</span>
+            <span style={{ fontSize: 16, fontWeight: 700 }}>Log a game</span>
             <span style={{ fontSize: 13, color: '#6B6B66' }}>Pick the two pairs, tap who won. Goes on the leaderboard.</span>
           </span>
         </button>

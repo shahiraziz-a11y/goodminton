@@ -8,6 +8,7 @@ import { useFeedback } from '@/components/Feedback'
 import { Sheet } from '@/components/Sheet'
 import { fmtDate } from '@/lib/format'
 import { person } from '@/lib/people'
+import { photoFor } from '@/lib/photos'
 import { createClient } from '@/lib/supabase/client'
 import type { MyGroup } from '@/lib/types'
 
@@ -46,10 +47,10 @@ export function GroupsList({ meId, meName, groups }: { meId: string; meName: str
         )}
         <div className="stack" style={{ gap: 10 }}>
           {groups.map(g => (
-            <Link key={g.id} href={`/groups/${g.id}`} className="card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-              <span className="avatar" style={{ width: 44, height: 44, borderRadius: 14, background: '#0E4A30', color: '#9FE0BC', fontSize: 16 }}>{g.name.slice(0, 2).toUpperCase()}</span>
+            <Link key={g.id} href={`/groups/${g.id}`} className="card" style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 14 }}>
+              <span aria-hidden style={{ width: 56, height: 56, borderRadius: 16, flex: 'none', background: `#0E4A30 url(${photoFor(g.id)}) center/cover`, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.4)' }} />
               <span className="stack" style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                <span style={{ fontSize: 16, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.name}</span>
+                <span className="display" style={{ fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.name}</span>
                 <span style={{ fontSize: 12, color: '#6B6B66' }}>
                   {g.members} member{g.members === 1 ? '' : 's'}{g.my_role === 'owner' ? ' · you run it' : ''}{g.last_match ? ` · last match ${fmtDate(g.last_match, 'Asia/Dubai')}` : ''}
                 </span>
