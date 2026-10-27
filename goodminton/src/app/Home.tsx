@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { Bars, Frame, GoogleButton } from '@/components/Chrome'
+import { Frame, GoogleButton } from '@/components/Chrome'
 import { useFeedback } from '@/components/Feedback'
 import { EmailToggle } from '@/components/EmailToggle'
 import { AlertsCard, InstallCard } from '@/components/Pwa'
@@ -10,6 +10,7 @@ import { LogResultSheet } from '@/components/LogResultSheet'
 import { Sheet } from '@/components/Sheet'
 import { fmtDate, fmtTime, money } from '@/lib/format'
 import { person } from '@/lib/people'
+import { photoFor } from '@/lib/photos'
 import { balancesFor, transfersOf } from '@/lib/split'
 import { signInWithGoogle } from '@/lib/supabase/client'
 import { CURRENCY } from '@/lib/supabase/env'
@@ -20,32 +21,37 @@ export function SignIn({ failed, reason }: { failed?: boolean; reason?: string }
   const [busy, setBusy] = useState(false)
   return (
     <Frame>
-      <div className="screen" style={{ minHeight: 'calc(100dvh - 56px)', justifyContent: 'center', gap: 28 }}>
-        <div className="stack" style={{ gap: 10 }}>
-          <span className="display" style={{ fontSize: 40, fontWeight: 800, letterSpacing: '-.03em', lineHeight: 1, color: '#0B8A6B' }}>Goodminton</span>
-          <span className="h1">Game on.</span>
-          <span style={{ fontSize: 15, lineHeight: 1.5, color: '#5B6573' }}>
-            Games of 4 or 8, never in between. Share one link, the first in are confirmed, and the rest wait for a second court.
-          </span>
+      <div style={{ padding: '4px 12px 16px' }}>
+        <div style={{ position: 'relative', minHeight: 'calc(100dvh - 80px)', borderRadius: 36, overflow: 'hidden', background: `#0E4A30 url(${PHOTOS_SIGNIN}) center/cover`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '28px 16px 16px' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,0) 38%, rgba(0,0,0,0) 60%, rgba(0,0,0,.35) 100%)' }} />
+          <div className="stack" style={{ position: 'relative', gap: 12, padding: '0 8px', color: '#fff' }}>
+            <span className="display" style={{ fontSize: 48, letterSpacing: '-.05em', lineHeight: 0.95 }}>Game on.</span>
+            <span style={{ fontSize: 15, lineHeight: 1.45, color: 'rgba(255,255,255,.86)', maxWidth: 290 }}>Games of 4 or 8, never in between.</span>
+          </div>
+          <div className="stack" style={{ position: 'relative', background: 'rgba(246,245,241,.84)', backdropFilter: 'blur(22px) saturate(140%)', WebkitBackdropFilter: 'blur(22px) saturate(140%)', borderRadius: 30, padding: '24px 20px 20px', gap: 16 }}>
+            <span className="display" style={{ fontSize: 28, letterSpacing: '-.035em', lineHeight: 1.1 }}>Share one link. First in play.</span>
+            <span style={{ fontSize: 15, lineHeight: 1.5, color: '#55554F' }}>The rest wait for a second court. Your Google name is used, so there&apos;s nothing to type.</span>
+            {failed && (
+              <span className="note" style={{ color: '#E0245E' }}>
+                Sign-in didn&apos;t complete. Try again.{reason ? <><br /><span style={{ color: '#9A9992' }}>Reason: {reason.slice(0, 160)}</span></> : null}
+              </span>
+            )}
+            <GoogleButton busy={busy} onClick={async () => {
+              setBusy(true)
+              const { error } = await signInWithGoogle('/')
+              if (error) { setBusy(false); flash(error.message) }
+            }} />
+            <span style={{ fontSize: 12, color: '#6B6B66', textAlign: 'center' }}>
+              <a href="/privacy" style={{ textDecoration: 'underline' }}>Privacy</a> · <a href="/terms" style={{ textDecoration: 'underline' }}>Terms</a>
+            </span>
+          </div>
         </div>
-        {failed && (
-          <span className="note" style={{ color: '#E0245E' }}>
-            Sign-in didn&apos;t complete. Try again.{reason ? <><br /><span style={{ color: '#8A94A3' }}>Reason: {reason.slice(0, 160)}</span></> : null}
-          </span>
-        )}
-        <GoogleButton busy={busy} onClick={async () => {
-          setBusy(true)
-          const { error } = await signInWithGoogle('/')
-          if (error) { setBusy(false); flash(error.message) }
-        }} />
-        <span className="note" style={{ textAlign: 'center' }}>
-          Your Google name is used, so there&apos;s nothing to type.<br />
-          <a href="/privacy" style={{ textDecoration: 'underline' }}>Privacy</a> · <a href="/terms" style={{ textDecoration: 'underline' }}>Terms</a>
-        </span>
       </div>
     </Frame>
   )
 }
+
+const PHOTOS_SIGNIN = '/photos/court-1.webp'
 
 export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { meId: string; meName: string; matches: HomeMatch[]; ledger: LedgerMatch[]; stats: HomeStats | null; myGroups?: MyGroup[] }) {
   const me = person(meId, meName)
@@ -58,33 +64,39 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
   const pickGroup = (v: string) => { setGf(v); try { localStorage.setItem('home-group', v) } catch {} }
   const many = myGroups.length > 1
   const shownMatches = gf === 'all' ? matches : matches.filter(m => m.group_id === gf)
-  const groups = groupMatches(shownMatches)
+  // The big "Next up" card: a live match I'm in, else my next one, else the next open one.
+  const t = (m: HomeMatch) => new Date(m.starts_at).getTime()
+  const soon = shownMatches.filter(m => kindOf(m) === 'live' || kindOf(m) === 'upcoming').sort((x, y) => t(x) - t(y))
+  const next = soon.find(m => kindOf(m) === 'live' && m.my_role) ?? soon.find(m => m.my_role) ?? soon[0]
+  const groups = groupMatches(shownMatches.filter(m => m !== next))
   const bySlug = new Map(ledger.map(l => [l.slug, l]))
   return (
     <Frame me={me} tab="home">
-      <div className="screen" style={{ gap: 22 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-          <div className="stack" style={{ gap: 6 }}>
-            <span style={{ fontSize: 14, color: '#5B6573', fontWeight: 600 }}>Hey {me.first}</span>
-            <span className="h1">Game on.</span>
+      <div className="screen" style={{ gap: 24, paddingLeft: 20, paddingRight: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12 }}>
+          <div className="stack" style={{ gap: 4 }}>
+            <span style={{ fontSize: 15, color: '#55554F', fontWeight: 600 }}>Hey {me.first}</span>
+            <span className="display" style={{ fontSize: 44, letterSpacing: '-.05em', lineHeight: 0.96 }}>Game on.</span>
           </div>
-          <button className="btn" aria-label="New match or log a game" onClick={() => setChoosing(true)} style={{ width: 52, height: 52, borderRadius: 18, fontSize: 28, fontWeight: 600, lineHeight: 1, padding: 0 }}>+</button>
+          <button className="btn" aria-label="New match or log a game" onClick={() => setChoosing(true)}
+            style={{ width: 56, height: 56, borderRadius: '50%', fontSize: 28, fontWeight: 400, lineHeight: 1, padding: 0, flex: 'none', boxShadow: '0 12px 24px -10px rgba(0,0,0,.5)' }}>+</button>
         </div>
+        {next && <NextUp m={next} />}
         {stats && <StatsCard s={stats} />}
         {many && (
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '0 -18px', padding: '0 18px 2px', scrollbarWidth: 'none' }}>
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '0 -20px', padding: '0 20px 4px', scrollbarWidth: 'none' }}>
             {[{ id: 'all', name: 'All groups' }, ...myGroups].map(g => (
               <button key={g.id} className="chip-btn" onClick={() => pickGroup(g.id)}
-                style={{ flex: 'none', height: 34, background: gf === g.id ? '#12161C' : '#fff', color: gf === g.id ? '#fff' : '#12161C', boxShadow: gf === g.id ? 'none' : '0 0 0 1px #E6E9EE' }}>{g.name}</button>
+                style={{ flex: 'none', height: 36, padding: '0 16px', fontWeight: 600, fontSize: 13, background: gf === g.id ? '#111111' : 'rgba(255,255,255,.55)', color: gf === g.id ? '#fff' : '#111111' }}>{g.name}</button>
             ))}
           </div>
         )}
         {groups.map(g => <Group key={g.kind} g={g} ledger={bySlug} showGroup={many && gf === 'all'} />)}
         {!shownMatches.length && (
-          <div className="card" style={{ padding: 28, textAlign: 'center', color: '#5B6573', fontSize: 14 }}>
+          <div className="card" style={{ padding: 28, textAlign: 'center', color: '#6B6B66', fontSize: 14 }}>
             {myGroups.length
               ? 'No matches yet. Tap + to organise one.'
-              : <>No matches yet. Tap + to organise one, or open a group invite link from a friend. <Link href="/groups" style={{ color: '#0E7F66', fontWeight: 700 }}>Groups</Link></>}
+              : <>No matches yet. Tap + to organise one, or open a group invite link from a friend. <Link href="/groups" style={{ color: '#0E5A3A', fontWeight: 700 }}>Groups</Link></>}
           </div>
         )}
         <BalanceRow total={bal.total} currency={ledger[0]?.currency ?? CURRENCY} />
@@ -94,17 +106,17 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
       </div>
       <Sheet open={choosing} onClose={() => setChoosing(false)} title="What's up?">
         <Link href="/new" className="card sheet-option" onClick={() => setChoosing(false)}>
-          <span className="avatar" style={{ width: 44, height: 44, borderRadius: 14, background: '#0E9F7E', fontSize: 22 }}>+</span>
+          <span className="avatar" style={{ width: 44, height: 44, borderRadius: 14, background: '#0E5A3A', fontSize: 22 }}>+</span>
           <span className="stack" style={{ flex: 1, gap: 2 }}>
             <span style={{ fontSize: 16, fontWeight: 800 }}>New match</span>
-            <span style={{ fontSize: 13, color: '#5B6573' }}>Plan a game and share the link. Book the court once enough people are in.</span>
+            <span style={{ fontSize: 13, color: '#6B6B66' }}>Plan a game and share the link. Book the court once enough people are in.</span>
           </span>
         </Link>
         <button className="card sheet-option" onClick={() => { setChoosing(false); setLogging(true) }}>
-          <span className="avatar" style={{ width: 44, height: 44, borderRadius: 14, background: '#12161C', fontSize: 20 }}>🏸</span>
+          <span className="avatar" style={{ width: 44, height: 44, borderRadius: 14, background: '#111111', fontSize: 20 }}>🏸</span>
           <span className="stack" style={{ flex: 1, gap: 2 }}>
             <span style={{ fontSize: 16, fontWeight: 800 }}>Log a game</span>
-            <span style={{ fontSize: 13, color: '#5B6573' }}>Pick the two pairs, tap who won. Goes on the leaderboard.</span>
+            <span style={{ fontSize: 13, color: '#6B6B66' }}>Pick the two pairs, tap who won. Goes on the leaderboard.</span>
           </span>
         </button>
       </Sheet>
@@ -116,9 +128,9 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
 type Kind = 'live' | 'upcoming' | 'completed' | 'abandoned'
 const GROUPS: { kind: Kind; label: string; color: string; glow?: string; show: number }[] = [
   { kind: 'live', label: 'In progress', color: '#E5484D', glow: '0 0 0 3px rgba(229,72,77,.2)', show: 99 },
-  { kind: 'upcoming', label: 'Upcoming', color: '#0E9F7E', show: 99 },
-  { kind: 'completed', label: 'Completed', color: '#5B6573', show: 3 },
-  { kind: 'abandoned', label: 'Abandoned', color: '#C5CDD8', show: 2 },
+  { kind: 'upcoming', label: 'Upcoming', color: '#0E5A3A', show: 99 },
+  { kind: 'completed', label: 'Completed', color: '#6B6B66', show: 3 },
+  { kind: 'abandoned', label: 'Abandoned', color: '#C9C7BF', show: 2 },
 ]
 type GroupData = (typeof GROUPS)[number] & { items: HomeMatch[] }
 
@@ -145,12 +157,14 @@ function Group({ g, ledger, showGroup }: { g: GroupData; ledger: Map<string, Led
     <div className="stack" style={{ gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: g.color, boxShadow: g.glow, flex: 'none' }} />
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase' }}>{g.label}</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#8A94A3' }}>{g.items.length}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase' }}>{g.label}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: '#9A9992' }}>{g.items.length}</span>
       </div>
-      {shown.map(m => <MatchRow key={m.slug} m={m} kind={g.kind} money={ledger.get(m.slug)} showGroup={showGroup} />)}
+      <div className="card" style={{ padding: '2px 16px', borderRadius: 26 }}>
+        {shown.map(m => <MatchRow key={m.slug} m={m} kind={g.kind} money={ledger.get(m.slug)} showGroup={showGroup} />)}
+      </div>
       {g.items.length > shown.length && (
-        <button className="link-btn" style={{ alignSelf: 'flex-start', color: '#0E7F66', padding: '0 4px' }} onClick={() => setAll(true)}>
+        <button className="link-btn" style={{ alignSelf: 'flex-start', color: '#0E5A3A', padding: '0 4px' }} onClick={() => setAll(true)}>
           Show {g.items.length - shown.length} more
         </button>
       )}
@@ -158,34 +172,79 @@ function Group({ g, ledger, showGroup }: { g: GroupData; ledger: Map<string, Led
   )
 }
 
-/** Slim money summary under the matches; hidden when everyone is square. */
-/** Weeks in a row with a game, and lifetime totals. Hidden until you've played. */
+/** Weeks in a row with a game, the last 8 weeks, and lifetime totals. Hidden until you've played. */
 function StatsCard({ s }: { s: HomeStats }) {
   if (!s.matches_played && !s.games_played) return null
   const w = s.week_streak
   const note = !w ? 'Play this week to start a streak'
-    : s.played_this_week ? 'Played this week ✓'
-    : 'Play this week to keep it going'
+    : s.played_this_week ? 'Played this week. Keep it going.'
+    : 'Play this week to keep it going.'
+  const weeks = s.last_weeks ?? []
   const tile = (big: string | number, label: string) => (
-    <div className="stack" style={{ flex: 1, minWidth: 0, gap: 2, padding: '12px 10px', borderRadius: 14, background: 'rgba(255,255,255,.07)' }}>
-      <span className="display" style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-.03em', lineHeight: 1 }}>{big}</span>
-      <span style={{ fontSize: 11, fontWeight: 700, color: '#A9B2BF' }}>{label}</span>
+    <div className="panel stack" style={{ padding: 12, gap: 2 }}>
+      <span className="display" style={{ fontSize: 20 }}>{big}</span>
+      <span style={{ fontSize: 12, fontWeight: 600, color: '#6B6B66' }}>{label}</span>
     </div>
   )
   return (
-    <div style={{ background: '#0F3D35', color: '#fff', borderRadius: 22, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontSize: 30, lineHeight: 1, filter: w ? undefined : 'grayscale(1)', opacity: w ? 1 : 0.5 }} aria-hidden>🔥</span>
-        <span className="stack" style={{ flex: 1, minWidth: 0, gap: 2 }}>
-          <span className="display" style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-.02em' }}>{w} week{w === 1 ? '' : 's'} in a row</span>
-          <span style={{ fontSize: 12, fontWeight: 600, color: s.played_this_week ? '#5FE3BE' : '#BFE9DC' }}>{note}</span>
-        </span>
+    <div className="card stack" style={{ borderRadius: 28, padding: '18px 20px', gap: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+        <div className="stack" style={{ gap: 4 }}>
+          <span className="display" style={{ fontSize: 20 }}>{w} week{w === 1 ? '' : 's'} in a row</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#0E5A3A' }}>{note}</span>
+        </div>
+        <span className="display" style={{ fontSize: 44, letterSpacing: '-.05em', lineHeight: 0.9, color: '#0E5A3A' }}>{w}</span>
       </div>
-      <div style={{ display: 'flex', gap: 8 }}>
+      {weeks.length > 0 && (
+        <div style={{ display: 'flex', gap: 6 }} aria-label="Last 8 weeks">
+          {weeks.map((on, i) => {
+            const now = i === weeks.length - 1
+            return <span key={i} title={now ? 'This week' : `${weeks.length - 1 - i} week${weeks.length - 1 - i === 1 ? '' : 's'} ago`}
+              style={{ flex: 1, height: 28, borderRadius: 8, background: on ? (now ? '#0E5A3A' : 'rgba(14,90,58,.55)') : 'rgba(255,255,255,.45)',
+                boxShadow: now ? '0 0 0 2px rgba(255,255,255,.9), 0 0 0 4px #0E5A3A' : 'inset 0 0 0 1px rgba(255,255,255,.6)' }} />
+          })}
+        </div>
+      )}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         {tile(s.matches_played, `match${s.matches_played === 1 ? '' : 'es'} played`)}
         {tile(s.games_played, `game${s.games_played === 1 ? '' : 's'} logged`)}
       </div>
     </div>
+  )
+}
+
+/** The next match, big, on its photo. */
+function NextUp({ m }: { m: HomeMatch }) {
+  const live = kindOf(m) === 'live'
+  const days = Math.round((new Date(m.starts_at).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000)
+  const when = live ? `Started ${fmtTime(m.starts_at, m.timezone)}`
+    : `${days <= 0 ? 'Today' : days === 1 ? 'Tomorrow' : `In ${days} days`} · ${fmtTime(m.starts_at, m.timezone)}`
+  const full = m.confirmed_count >= m.size
+  const need = m.confirmed_count > m.size ? `Full · +${m.confirmed_count - m.size} extra`
+    : full ? `Full.${m.waitlist_count ? ` ${m.waitlist_count} waiting.` : ''}` : `${m.confirmed_count}/${m.size} in · ${m.size - m.confirmed_count} to go`
+  const chip = { fontSize: 12, fontWeight: 600, padding: '8px 12px', borderRadius: 99, background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.25)' } as const
+  return (
+    <Link href={`/m/${m.slug}`} style={{ position: 'relative', height: 400, borderRadius: 36, overflow: 'hidden', background: `#1D2A22 url(${photoFor(m.slug)}) center/cover`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 16, color: '#fff', boxShadow: '0 34px 60px -30px rgba(14,40,26,.65)' }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,.35) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,.1) 55%, rgba(0,0,0,.55) 100%)' }} />
+      <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: 4 }}>
+        <span style={{ ...chip, display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, letterSpacing: '.1em' }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: live ? '#FF5A4E' : '#7BE0A8', boxShadow: '0 0 0 3px rgba(255,255,255,.18)' }} />{live ? 'LIVE NOW' : 'NEXT UP'}
+        </span>
+        <span style={chip}>{when}</span>
+      </div>
+      <div className="stack" style={{ position: 'relative', borderRadius: 28, padding: 20, gap: 16, background: 'linear-gradient(160deg, rgba(30,34,30,.42), rgba(10,12,10,.55))', backdropFilter: 'blur(22px) saturate(150%)', WebkitBackdropFilter: 'blur(22px) saturate(150%)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.16), inset 0 1px 0 rgba(255,255,255,.22)' }}>
+        <div className="stack" style={{ gap: 4 }}>
+          <span className="display" style={{ fontSize: 28, letterSpacing: '-.045em', lineHeight: 1 }}>{m.title}</span>
+          <span style={{ fontSize: 13, color: 'rgba(255,255,255,.75)' }}>{fmtDate(m.starts_at, m.timezone)} · {m.venue || 'Venue TBC'}{m.group_name ? ` · ${m.group_name}` : ''}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, minWidth: 0 }}>
+            {m.my_role === 'waitlist' ? "You're on the waitlist · " : !m.my_role ? 'Open to join · ' : ''}{need}
+          </span>
+          <span style={{ flex: 'none', height: 42, padding: '0 16px', borderRadius: 99, background: '#fff', color: '#111111', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center' }}>{live && m.my_role ? 'Log results' : 'Open'}</span>
+        </div>
+      </div>
+    </Link>
   )
 }
 
@@ -194,76 +253,72 @@ function BalanceRow({ total, currency }: { total: number; currency: string }) {
   const owed = total > 0
   return (
     <Link href="/balances" className="panel" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 14 }}>
-      <span style={{ flex: 1, fontSize: 13, color: '#5B6573' }}>{owed ? 'You are owed' : 'You owe'}</span>
-      <span style={{ fontSize: 14, fontWeight: 800, color: owed ? '#0E7F66' : '#E0245E' }}>{money(Math.abs(total), currency)}</span>
-      <span style={{ color: '#8A94A3', fontSize: 16 }}>›</span>
+      <span style={{ flex: 1, fontSize: 13, color: '#6B6B66' }}>{owed ? 'You are owed' : 'You owe'}</span>
+      <span style={{ fontSize: 15, fontWeight: 700, color: owed ? '#0E5A3A' : '#E0245E' }}>{money(Math.abs(total), currency)}</span>
+      <span style={{ color: '#9A9992', fontSize: 16 }}>›</span>
     </Link>
   )
 }
 
-const tagStyle = { fontSize: 10, fontWeight: 800, letterSpacing: '.08em' } as const
+const tagStyle = { fontSize: 10, fontWeight: 700, letterSpacing: '.08em' } as const
 
 function MatchRow({ m, kind, money: led, showGroup }: { m: HomeMatch; kind: Kind; money?: LedgerMatch; showGroup?: boolean }) {
   const full = m.confirmed_count >= m.size
   const venue = m.venue || 'Venue TBC'
   const when = `${fmtDate(m.starts_at, m.timezone)}, ${fmtTime(m.starts_at, m.timezone)}`
-  let sub = `${when} · ${venue}`, tag = '', tagColor = '#8A94A3', note: string | null = null
+  let sub = `${when} · ${venue}`, tag = '', tagColor = '#9A9992', note: string | null = null
   let status: string, badge: { background: string; color: string }
 
   const inIt = m.my_role != null
   if (kind === 'live') {
     sub = `Started ${fmtTime(m.starts_at, m.timezone)} · ${venue}`
     tag = m.courts ? m.courts.toUpperCase() : '✓ COURT BOOKED'
-    tagColor = '#0E7F66'
+    tagColor = '#0E5A3A'
     status = 'Live'
-    badge = { background: '#E5484D', color: '#fff' }
+    badge = { background: '#111111', color: '#fff' }
     note = !inIt ? null : m.games_count ? `${m.games_count} game${m.games_count > 1 ? 's' : ''} logged · tap to log more.` : 'Tap to log results as you play.'
   } else if (kind === 'upcoming') {
     const b = m.booked_courts ?? (m.status === 'booked' ? m.court_count : 0)
     tag = b === 0 ? 'PLANNING' : b >= m.court_count ? (m.court_count > 1 ? '✓ COURTS BOOKED' : '✓ COURT BOOKED') : `✓ ${b} OF ${m.court_count} COURTS BOOKED`
-    tagColor = b === 0 ? '#8A94A3' : '#0E7F66'
+    tagColor = b === 0 ? '#9A9992' : '#0E5A3A'
     status = m.confirmed_count > m.size ? `Full · +${m.confirmed_count - m.size} extra` : full ? `Full${m.waitlist_count ? ` · +${m.waitlist_count}` : ''}` : `${m.confirmed_count}/${m.size} in`
-    badge = full ? { background: '#E5484D', color: '#fff' } : { background: '#0E9F7E', color: '#fff' }
+    badge = full ? { background: '#111111', color: '#fff' } : { background: '#0E5A3A', color: '#fff' }
   } else if (kind === 'completed') {
     if (led) {
       const tr = transfersOf(led.players, led.expenses, led.settlements)
       const settled = tr.out.every(t => t.settled)
       tag = `${money(tr.share, led.currency).toUpperCase()} EACH · ${settled ? 'SETTLED' : 'SETTLING UP'}`
-      tagColor = settled ? '#0E7F66' : '#D6336C'
+      tagColor = settled ? '#0E5A3A' : '#D6336C'
     } else tag = inIt ? 'NO COST' : ''
     status = 'Played'
-    badge = { background: '#F1F3F6', color: '#5B6573' }
+    badge = { background: 'rgba(255,255,255,.6)', color: '#6B6B66' }
     if (m.last_winners) note = m.games_count > 1 ? `${m.last_winners} won the last game · ${m.games_count} games logged` : `${m.last_winners} won`
   } else {
     tag = 'NO COST'
     status = 'Called off'
-    badge = { background: '#F1F3F6', color: '#8A94A3' }
+    badge = { background: 'rgba(255,255,255,.6)', color: '#9A9992' }
     const per = perCourt(m.format)
     note = m.confirmed_count < per ? `Only ${m.confirmed_count} of ${m.size} signed up by the deadline` : 'The court was never booked'
   }
 
+  const tags = [
+    showGroup && m.group_name ? m.group_name : '',
+    tag,
+    kind === 'upcoming' && m.locked ? 'Locked' : '',
+    kind === 'upcoming' && m.weekly ? '↻ Weekly' : '',
+    kind === 'upcoming' && m.my_role === 'waitlist' ? "You're on the waitlist" : '',
+    kind === 'upcoming' && !inIt && !m.locked ? (full ? 'Full · waitlist' : 'Open to join') : '',
+  ].filter(Boolean)
   return (
-    <Link href={`/m/${m.slug}`} className="card" style={{
-      padding: 20, display: 'flex', flexDirection: 'column', gap: 16,
-      boxShadow: kind === 'live' ? '0 0 0 2px #0E9F7E' : undefined, opacity: kind === 'abandoned' ? 0.7 : 1,
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, width: '100%' }}>
-        <div className="stack" style={{ gap: 5, minWidth: 0 }}>
-          <span className="display" style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-.01em', lineHeight: 1.2, textDecoration: kind === 'abandoned' ? 'line-through' : 'none' }}>{m.title}</span>
-          <span style={{ fontSize: 13, color: '#5B6573' }}>{sub}</span>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {showGroup && m.group_name && <span style={{ ...tagStyle, color: '#12161C' }}>{m.group_name.toUpperCase()}</span>}
-            {tag && <span style={{ ...tagStyle, color: tagColor }}>{tag}</span>}
-            {kind === 'upcoming' && m.locked && <span style={{ ...tagStyle, color: '#D9622B' }}>LOCKED</span>}
-            {kind === 'upcoming' && m.weekly && <span style={{ ...tagStyle, color: '#5B6573' }}>↻ WEEKLY</span>}
-            {kind === 'upcoming' && m.my_role === 'waitlist' && <span style={{ ...tagStyle, color: '#D6336C' }}>YOU&apos;RE ON THE WAITLIST</span>}
-            {kind === 'upcoming' && !inIt && !m.locked && <span style={{ ...tagStyle, color: full ? '#D6336C' : '#0E7F66' }}>{full ? 'FULL · WAITLIST' : 'OPEN TO JOIN'}</span>}
-          </div>
-        </div>
-        <span className="badge" style={badge}>{status}</span>
+    <Link href={`/m/${m.slug}`} className="row-line" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 0', opacity: kind === 'abandoned' ? 0.6 : 1 }}>
+      <div className="stack" style={{ gap: 3, flex: 1, minWidth: 0 }}>
+        <span className="display" style={{ fontSize: 15, textDecoration: kind === 'abandoned' ? 'line-through' : 'none' }}>{m.title}</span>
+        <span style={{ fontSize: 12, color: '#6B6B66', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</span>
+        {tags.length > 0 && <span style={{ ...tagStyle, color: tagColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tags.join(' · ').toUpperCase()}</span>}
+        {note && <span style={{ fontSize: 12, color: '#55554F', lineHeight: 1.4 }}>{note}</span>}
       </div>
-      {kind === 'upcoming' && <Bars n={m.confirmed_count} size={m.size} />}
-      {note && <span style={{ fontSize: 13, color: '#4A5462', lineHeight: 1.4, borderTop: '1px solid rgba(0,0,0,.06)', paddingTop: 12 }}>{note}</span>}
+      <span className="badge" style={{ ...badge, fontSize: 12, fontWeight: 700, padding: '8px 12px' }}>{status}</span>
+      <span style={{ color: '#9A9992', fontSize: 20, flex: 'none' }}>›</span>
     </Link>
   )
 }

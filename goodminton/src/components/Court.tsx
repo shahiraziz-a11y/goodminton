@@ -45,18 +45,18 @@ export function CourtCard({ label, num, dateLabel, start, end, slots, tbc, ghost
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span className="display muted" style={{ fontSize: 12, fontWeight: 600 }}>COURT</span>
             {tbc ? (
-              <span className="display" style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: '#8A94A3' }}>TBC</span>
+              <span className="display" style={{ fontSize: 22, fontWeight: 700, lineHeight: 1, color: '#9A9992' }}>TBC</span>
             ) : num ? (
-              <span className="display" style={{ fontSize: 32, fontWeight: 700, lineHeight: 1, letterSpacing: '-.02em', color: ghost ? '#5B6573' : '#12161C' }}>{num}</span>
+              <span className="display" style={{ fontSize: 32, fontWeight: 700, lineHeight: 1, letterSpacing: '-.02em', color: ghost ? '#6B6B66' : '#111111' }}>{num}</span>
             ) : (
-              <span className="display" style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#8A94A3', fontSize: 26, fontWeight: 700, lineHeight: 1 }} aria-label="Hidden until you're confirmed">
+              <span className="display" style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#9A9992', fontSize: 26, fontWeight: 700, lineHeight: 1 }} aria-label="Hidden until you're confirmed">
                 <LockIcon />?
               </span>
             )}
           </div>
         </div>
         <div className="panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, padding: '8px 12px', borderRadius: 14 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.12em', color: '#5B6573' }}>{dateLabel}</span>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.12em', color: '#6B6B66' }}>{dateLabel}</span>
           <span className="display" style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>{start}</span>
           <span className="display muted" style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>→ {end}</span>
         </div>
@@ -67,15 +67,15 @@ export function CourtCard({ label, num, dateLabel, start, end, slots, tbc, ghost
         <Half slots={slots.slice(slots.length / 2)} side="right" />
       </div>
       {extras.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '10px 12px', borderRadius: 14, background: '#E8F7F2' }}>
-          <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.12em', color: '#0E7F66' }}>+{extras.length} ROTATING</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '10px 12px', borderRadius: 14, background: '#E3EEE6' }}>
+          <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.12em', color: '#0E5A3A' }}>+{extras.length} ROTATING</span>
           {extras.map(x => (
-            <span key={x.p.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 8px 3px 3px', borderRadius: 99, background: x.mine ? '#0E9F7E' : '#fff', color: x.mine ? '#fff' : '#12161C' }}>
+            <span key={x.p.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 8px 3px 3px', borderRadius: 99, background: x.mine ? '#0E5A3A' : '#fff', color: x.mine ? '#fff' : '#111111' }}>
               <Avatar p={x.p} size={22} font={9} />
               <span style={{ fontSize: 12, fontWeight: 700 }}>{x.p.first}{x.mine ? ' · You' : ''}</span>
               {x.onRemove && (
                 <button type="button" aria-label={`Remove ${x.p.first}`} onClick={x.onRemove}
-                  style={{ border: 'none', background: 'none', color: x.mine ? '#fff' : '#8A94A3', fontSize: 14, lineHeight: 1, padding: 0, cursor: 'pointer' }}>×</button>
+                  style={{ border: 'none', background: 'none', color: x.mine ? '#fff' : '#9A9992', fontSize: 14, lineHeight: 1, padding: 0, cursor: 'pointer' }}>×</button>
               )}
             </span>
           ))}
@@ -84,7 +84,7 @@ export function CourtCard({ label, num, dateLabel, start, end, slots, tbc, ghost
       {footer && <span style={{ fontSize: 13, color: '#D9622B', fontWeight: 600 }}>{footer}</span>}
       {(booking || action) && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, minHeight: 32 }}>
-          {booking && <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.04em', color: booking.booked ? '#0E7F66' : '#8A94A3' }}>{booking.text}</span>}
+          {booking && <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.04em', color: booking.booked ? '#0E5A3A' : '#9A9992' }}>{booking.text}</span>}
           {action}
         </div>
       )}
@@ -114,11 +114,11 @@ function SlotView({ s }: { s: Slot }) {
       )
     case 'mine':
       return (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px', minWidth: 0, background: 'rgba(14,159,126,.55)', boxShadow: 'inset 0 0 0 2px rgba(255,255,255,.75)', color: '#fff' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px', minWidth: 0, background: 'rgba(14,90,58,.55)', boxShadow: 'inset 0 0 0 2px rgba(255,255,255,.75)', color: '#fff' }}>
           <Avatar p={s.p} size={26} font={10} ring />
           <span className="stack" style={{ flex: 1, minWidth: 0, gap: 2 }}>
             <span style={{ fontSize: 12, fontWeight: 800, lineHeight: 1.15, overflow: 'hidden' }}>{s.p.name}</span>
-            <span style={{ alignSelf: 'flex-start', fontSize: 9, fontWeight: 900, letterSpacing: '.12em', padding: '2px 6px', borderRadius: 99, background: '#fff', color: '#0E7F66' }}>YOU</span>
+            <span style={{ alignSelf: 'flex-start', fontSize: 9, fontWeight: 900, letterSpacing: '.12em', padding: '2px 6px', borderRadius: 99, background: '#fff', color: '#0E5A3A' }}>YOU</span>
           </span>
           {s.onTap && (
             <button type="button" onClick={s.onTap} aria-label="Drop out"
@@ -138,11 +138,11 @@ function SlotView({ s }: { s: Slot }) {
       return (
         <button type="button" onClick={s.onTap} disabled={s.disabled} aria-label="Claim this spot"
           style={{ ...center, border: 'none', background: 'transparent', cursor: 'pointer', padding: '0 6px' }}>
-          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.06em', padding: '7px 11px', borderRadius: 99, background: '#5FE3BE', color: '#0A2622', whiteSpace: 'nowrap' }}>Tap to join</span>
+          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.06em', padding: '7px 11px', borderRadius: 99, background: '#9FE0BC', color: '#062A1A', whiteSpace: 'nowrap' }}>Tap to join</span>
         </button>
       )
     case 'anon':
-      return <div style={center}><span style={{ width: 26, height: 26, borderRadius: '50%', background: '#0E9F7E', boxShadow: '0 0 14px rgba(255,255,255,.45)' }} /></div>
+      return <div style={center}><span style={{ width: 26, height: 26, borderRadius: '50%', background: '#0E5A3A', boxShadow: '0 0 14px rgba(255,255,255,.45)' }} /></div>
     case 'wait':
       return (
         <div style={{ ...center, padding: '0 8px' }}>

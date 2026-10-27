@@ -21,15 +21,15 @@ const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt
 export function renderEmail(e: Pick<DueEmail, 'subject' | 'body' | 'url'>, site: string, unsubscribeUrl: string) {
   const link = site + e.url
   const text = `${e.body}\n\nView the match: ${link}\n\n—\nGoodminton · Stop these emails: ${unsubscribeUrl}`
-  const html = `<!doctype html><html><body style="margin:0;background:#F7F8FA;font-family:Manrope,Helvetica,Arial,sans-serif;color:#12161C">
+  const html = `<!doctype html><html><body style="margin:0;background:#F1F0EC;font-family:Manrope,Helvetica,Arial,sans-serif;color:#111111">
 <div style="max-width:480px;margin:0 auto;padding:24px 20px">
-<div style="font-size:13px;font-weight:800;letter-spacing:.08em;color:#0B8A6B;margin-bottom:16px">GOODMINTON</div>
-<div style="background:#fff;border-radius:16px;padding:20px;border:1px solid #E6E9EE">
+<div style="font-size:13px;font-weight:800;letter-spacing:.08em;color:#0E5A3A;margin-bottom:16px">GOODMINTON</div>
+<div style="background:#fff;border-radius:16px;padding:20px;border:1px solid #E2E0DA">
 <div style="font-size:18px;font-weight:800;margin-bottom:12px">${esc(e.subject)}</div>
-<div style="font-size:15px;line-height:1.55;color:#4A5462">${e.body.split('\n').map(esc).join('<br>')}</div>
-<a href="${esc(link)}" style="display:inline-block;margin-top:18px;background:#0E9F7E;color:#fff;text-decoration:none;font-weight:800;padding:12px 20px;border-radius:12px">View match</a>
+<div style="font-size:15px;line-height:1.55;color:#55554F">${e.body.split('\n').map(esc).join('<br>')}</div>
+<a href="${esc(link)}" style="display:inline-block;margin-top:18px;background:#0E5A3A;color:#fff;text-decoration:none;font-weight:800;padding:12px 20px;border-radius:12px">View match</a>
 </div>
-<div style="font-size:12px;color:#8A94A3;margin-top:16px">You get these because you play in Goodminton matches. <a href="${esc(unsubscribeUrl)}" style="color:#8A94A3">Stop these emails</a></div>
+<div style="font-size:12px;color:#9A9992;margin-top:16px">You get these because you play in Goodminton matches. <a href="${esc(unsubscribeUrl)}" style="color:#9A9992">Stop these emails</a></div>
 </div></body></html>`
   return { text, html }
 }

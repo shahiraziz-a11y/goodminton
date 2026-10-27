@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { ReactNode } from 'react'
+import { AppIcon } from './AppIcon'
 import { Avatar } from './Avatar'
 import type { Person } from '@/lib/people'
 
@@ -32,7 +33,7 @@ function TopBar({ back, me }: { back?: string; me?: Person | null }) {
               <svg width="9" height="15" viewBox="0 0 11 19" fill="none"><path d="M9.5 1.5 2 9.5l7.5 8" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </button>
           )}
-          <Link href="/" className="wordmark">GOODMINTON</Link>
+          <Link href="/" className="wordmark"><AppIcon size={28} />Goodminton</Link>
         </div>
         {me && (
           <form action="/auth/signout" method="post" onSubmit={e => { if (!confirm(`Signed in as ${me.name}. Sign out?`)) e.preventDefault() }}>
@@ -73,7 +74,7 @@ export function Bars({ n, size, dark }: { n: number; size: number; dark?: boolea
   if (dark) {
     return (
       <div style={{ display: 'flex', gap: 4 }}>
-        {Array.from({ length: size }, (_, i) => <span key={i} style={{ flex: 1, height: 6, borderRadius: 3, background: i < n ? '#0E9F7E' : 'rgba(255,255,255,.18)' }} />)}
+        {Array.from({ length: size }, (_, i) => <span key={i} style={{ flex: 1, height: 6, borderRadius: 3, background: i < n ? '#0E5A3A' : 'rgba(255,255,255,.18)' }} />)}
       </div>
     )
   }
@@ -94,9 +95,9 @@ export function Seg<T extends string | number | boolean>({ options, value, onCha
 
 export function GoogleButton({ onClick, label = 'Continue with Google', busy }: { onClick: () => void; label?: string; busy?: boolean }) {
   return (
-    <button className="btn dark" onClick={onClick} disabled={busy}>
-      <span style={{ width: 24, height: 24, borderRadius: '50%', background: '#fff', boxShadow: '0 0 0 1px #DADCE0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: '#4285F4', fontSize: 14 }}>G</span>
-      {label}
+    <button className="btn dark" onClick={onClick} disabled={busy} style={{ height: 58, padding: '0 6px', gap: 12, fontWeight: 600, fontSize: 15 }}>
+      <span style={{ width: 46, height: 46, borderRadius: '50%', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: '#4285F4', fontSize: 20, flex: 'none' }}>G</span>
+      <span style={{ flex: 1, textAlign: 'center', marginRight: 52 }}>{label}</span>
     </button>
   )
 }

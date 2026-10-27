@@ -50,14 +50,14 @@ export function PlayerPicker({ exclude = [], onPick, onNew, newLabel = 'Add as n
             <button key={p.id} type="button" onClick={() => onPick(p)} className="picker-row">
               <Avatar p={pp} size={32} font={12} />
               <span style={{ flex: 1, textAlign: 'left', fontSize: 15, fontWeight: 600 }}>{p.full_name}</span>
-              {p.is_guest && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', color: '#8A94A3' }}>GUEST</span>}
+              {p.is_guest && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', color: '#9A9992' }}>GUEST</span>}
             </button>
           )
         })}
         {all !== null && !list.length && !q.trim() && <span className="note" style={{ padding: '10px 4px' }}>No players yet. Type a name to add one.</span>}
         {onNew && q.trim() && !exact && (
           <button type="button" className="picker-row" onClick={() => onNew(q.trim())}>
-            <span className="avatar" style={{ width: 32, height: 32, fontSize: 18, background: '#F1F3F6', color: '#0E7F66' }}>+</span>
+            <span className="avatar" style={{ width: 32, height: 32, fontSize: 18, background: '#F2F1ED', color: '#0E5A3A' }}>+</span>
             <span style={{ flex: 1, textAlign: 'left', fontSize: 15 }}>{newLabel}: <b>{q.trim()}</b></span>
           </button>
         )}

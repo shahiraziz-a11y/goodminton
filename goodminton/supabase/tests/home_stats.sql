@@ -45,6 +45,8 @@ select pg_temp.played('Late Sunday', '2026-10-18 21:30+00');
 select public.player_stats(pg_temp.uid('ann'), :'now') as s \gset
 select pg_temp.check((:'s'::jsonb ->> 'week_streak')::int = 4 and (:'s'::jsonb ->> 'played_this_week')::boolean, 'ann: 4 weeks in a row, including this one');
 select pg_temp.check((:'s'::jsonb ->> 'matches_played')::int = 3 and (:'s'::jsonb ->> 'games_played')::int = 2, 'ann lifetime totals');
+-- Last 8 weeks (Mondays 31 Aug to 19 Oct), oldest first: played the weeks of 14 Sep, 28 Sep, 5 Oct, 12 Oct and 19 Oct.
+select pg_temp.check((:'s'::jsonb -> 'last_weeks') = '[false, false, true, false, true, true, true, true]'::jsonb, 'last 8 weeks');
 
 -- Before Sunday's match, ann's streak runs to last week.
 select public.player_stats(pg_temp.uid('ann'), '2026-10-18 20:00+00') as s \gset

@@ -24,12 +24,12 @@ export function EmailToggle() {
   }
   return (
     <div className="panel" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 14 }}>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0E7F66" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: 'none' }}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0E5A3A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: 'none' }}>
         <rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" />
       </svg>
       <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
-        <span style={{ fontSize: 13, color: '#12161C', fontWeight: 600 }}>Email updates</span>
-        <span style={{ fontSize: 12, color: '#5B6573', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 13, color: '#111111', fontWeight: 600 }}>Email updates</span>
+        <span style={{ fontSize: 12, color: '#6B6B66', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {st.on ? `New matches, joins, drop-outs, bookings · ${st.email}` : 'Off'}
         </span>
       </span>

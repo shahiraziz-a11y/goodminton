@@ -1,10 +1,10 @@
 // Goodminton service worker. Match data is always fetched live; only the app
 // shell's static files are cached, plus an offline page for when there's no signal.
-const STATIC = 'goodminton-static-v2'
+const STATIC = 'goodminton-static-v3'
 const OFFLINE = '/offline.html'
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(STATIC).then(c => c.addAll([OFFLINE, '/icons/icon-192.png'])))
+  event.waitUntil(caches.open(STATIC).then(c => c.addAll([OFFLINE, '/icons/icon-192.png', '/icons/logo.svg'])))
   self.skipWaiting()
 })
 

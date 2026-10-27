@@ -153,14 +153,14 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
         <div className="screen" style={{ gap: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Avatar p={org} size={40} font={14} />
-            <span style={{ fontSize: 14, color: '#5B6573' }}><b style={{ color: '#12161C' }}>{org.first}</b> invited you to play</span>
+            <span style={{ fontSize: 14, color: '#6B6B66' }}><b style={{ color: '#111111' }}>{org.first}</b> invited you to play</span>
           </div>
           <div className="stack" style={{ gap: 8 }}>
             <span className="display" style={{ fontSize: 34, fontWeight: 800, letterSpacing: '-.03em', lineHeight: 1.02 }}>{m.title}</span>
-            <span style={{ fontSize: 15, color: '#5B6573' }}>{m.venue || 'Venue TBC'} · {m.duration_min} min</span>
+            <span style={{ fontSize: 15, color: '#6B6B66' }}>{m.venue || 'Venue TBC'} · {m.duration_min} min</span>
           </div>
           {courtCards}
-          <span className="display" style={{ fontSize: 15, fontWeight: 700, textAlign: 'center', color: '#0B8A6B' }}>
+          <span className="display" style={{ fontSize: 15, fontWeight: 700, textAlign: 'center', color: '#0E5A3A' }}>
             {m.past ? 'This match has been played' : m.locked ? 'Sign-ups are closed' : L.spotsLine}
           </span>
           <GoogleButton busy={busy} onClick={async () => {
@@ -188,27 +188,27 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
       <div className="screen" style={{ gap: 20 }}>
         <div className="stack" style={{ gap: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.12em', color: '#0B8A6B' }}>
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.12em', color: '#0E5A3A' }}>
               {`${singles ? 'Singles' : 'Doubles'} · ${nCourts} court${nCourts > 1 ? 's' : ''} · ${m.size} players`}
             </span>
-            <span style={{ fontSize: 12, color: '#5B6573', fontWeight: 600 }}>
+            <span style={{ fontSize: 12, color: '#6B6B66', fontWeight: 600 }}>
               {m.past ? 'Played' : m.locked ? 'Sign-ups closed' : `RSVPs close ${m.rsvp_close_hours}h before`}
             </span>
           </div>
           <span className="display" style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.03em', lineHeight: 1.02 }}>{m.title}</span>
-          <span style={{ fontSize: 14, color: '#5B6573' }}>{m.venue || 'Venue TBC'} · {m.duration_min} min</span>
+          <span style={{ fontSize: 14, color: '#6B6B66' }}>{m.venue || 'Venue TBC'} · {m.duration_min} min</span>
           {!m.past && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {nBooked === 0
-                ? <span className="badge" style={{ background: '#F1F3F6', color: '#5B6573' }}>Planning · {nCourts > 1 ? 'courts' : 'court'} not booked yet</span>
-                : <span className="badge" style={{ background: '#E7F6F1', color: '#0E7F66' }}>
+                ? <span className="badge" style={{ background: '#F2F1ED', color: '#6B6B66' }}>Planning · {nCourts > 1 ? 'courts' : 'court'} not booked yet</span>
+                : <span className="badge" style={{ background: '#E3EEE6', color: '#0E5A3A' }}>
                     {nBooked === nCourts ? (nCourts > 1 ? '✓ All courts booked' : '✓ Court booked') : `✓ ${nBooked} of ${nCourts} courts booked`}
                   </span>}
               {m.locked && <span className="badge" style={{ background: '#E5484D', color: '#fff' }}>Sign-ups closed</span>}
-              {m.repeat_weekly && <span className="badge" style={{ background: '#F1F3F6', color: '#5B6573' }}>↻ Weekly</span>}
+              {m.repeat_weekly && <span className="badge" style={{ background: '#F2F1ED', color: '#6B6B66' }}>↻ Weekly</span>}
               {m.group && (m.is_member
-                ? <Link href={`/groups/${m.group.id}`} className="badge" style={{ background: '#E8F7F2', color: '#0E7F66' }}>{m.group.name}</Link>
-                : <span className="badge" style={{ background: '#E8F7F2', color: '#0E7F66' }}>{m.group.name}</span>)}
+                ? <Link href={`/groups/${m.group.id}`} className="badge" style={{ background: '#E3EEE6', color: '#0E5A3A' }}>{m.group.name}</Link>
+                : <span className="badge" style={{ background: '#E3EEE6', color: '#0E5A3A' }}>{m.group.name}</span>)}
             </div>
           )}
         </div>
@@ -217,7 +217,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
           <span className="display" style={{ fontSize: 14, fontWeight: 700 }}>{m.confirmed_count > m.size ? `Full · +${m.confirmed_count - m.size} extra` : `${m.confirmed_count}/${m.size} confirmed`}</span>
-          <span style={{ fontSize: 13, color: '#5B6573', fontWeight: 600 }}>{wc ? `${wc} waiting` : 'No waitlist'}</span>
+          <span style={{ fontSize: 13, color: '#6B6B66', fontWeight: 600 }}>{wc ? `${wc} waiting` : 'No waitlist'}</span>
         </div>
         {canSee && (canLog || !started || canAdd) && (
           <div style={{ display: 'flex', gap: 8, marginTop: -8 }}>
@@ -232,12 +232,12 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
         {outsider && m.locked && !m.past && (
           <div className="card stack" style={{ padding: 20, gap: 6 }}>
             <span className="display" style={{ fontSize: 17, fontWeight: 700 }}>Sign-ups are closed</span>
-            <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.45 }}>{org.first} has locked the final count. Keep an eye on the group in case a spot opens.</span>
+            <span style={{ fontSize: 14, color: '#6B6B66', lineHeight: 1.45 }}>{org.first} has locked the final count. Keep an eye on the group in case a spot opens.</span>
           </div>
         )}
         {outsider && open && !full && (
           <div className="stack" style={{ gap: 10 }}>
-            <span style={{ fontSize: 14, color: '#5B6573', textAlign: 'center' }}>Signed in as <b style={{ color: '#12161C' }}>{me?.name}</b></span>
+            <span style={{ fontSize: 14, color: '#6B6B66', textAlign: 'center' }}>Signed in as <b style={{ color: '#111111' }}>{me?.name}</b></span>
             {m.group && !m.is_member && <span className="note" style={{ textAlign: 'center' }}>Joining also adds you to <b>{m.group.name}</b>, so you&apos;ll see its matches.</span>}
             <button className="btn" disabled={busy} onClick={() => join()}>Confirm I&apos;m playing</button>
             <span className="note" style={{ textAlign: 'center' }}>Or tap an open spot on a court to pick where you play.</span>
@@ -247,7 +247,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
           <div className="card stack" style={{ padding: 20, gap: 16 }}>
             <div className="stack" style={{ gap: 6 }}>
               <span className="display" style={{ fontSize: 17, fontWeight: 700 }}>Match is full</span>
-              <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.45 }}>Join the waitlist. You&apos;ll move up if someone drops out, or play on a second court once 4 are waiting.</span>
+              <span style={{ fontSize: 14, color: '#6B6B66', lineHeight: 1.45 }}>Join the waitlist. You&apos;ll move up if someone drops out, or play on a second court once 4 are waiting.</span>
             </div>
             <button className="btn red" disabled={busy} onClick={() => rpc<{ position: number }>('join_match', { p_match: m.id }, r => flash(`You're #${r.position} on the waitlist`))}>Join waitlist</button>
           </div>
@@ -256,9 +256,9 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
           <div className="card stack" style={{ padding: 20, gap: 14 }}>
             <div className="stack" style={{ gap: 4 }}>
               <span className="display" style={{ fontSize: 16, fontWeight: 700 }}>You&apos;re organising, not playing</span>
-              <span style={{ fontSize: 13, color: '#5B6573', lineHeight: 1.45 }}>You still run the match: edit it, book courts, add or remove players and see the costs.</span>
+              <span style={{ fontSize: 13, color: '#6B6B66', lineHeight: 1.45 }}>You still run the match: edit it, book courts, add or remove players and see the costs.</span>
             </div>
-            <button className="btn-2" style={{ color: '#0E7F66', fontWeight: 800 }} disabled={busy}
+            <button className="btn-2" style={{ color: '#0E5A3A', fontWeight: 800 }} disabled={busy}
               onClick={() => rpc<{ status: string; position?: number }>('join_match', { p_match: m.id }, r => flash(r.status === 'confirmed' ? "You're playing" : `You're #${r.position} on the waitlist`))}>
               {full ? 'Join the waitlist' : "I'm playing after all"}
             </button>
@@ -270,7 +270,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
               <span className="display" style={{ fontSize: 48, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: '#E5484D' }}>#{m.viewer.wait_pos}</span>
               <div className="stack" style={{ gap: 3 }}>
                 <span className="display" style={{ fontSize: 16, fontWeight: 700 }}>On the waitlist</span>
-                <span style={{ fontSize: 13, color: '#5B6573' }}>You move up automatically if a spot opens.</span>
+                <span style={{ fontSize: 13, color: '#6B6B66' }}>You move up automatically if a spot opens.</span>
               </div>
             </div>
             {!m.past && <button className="link-btn" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={() => rpc('leave_match', { p_match: m.id }, () => flash('Left the waitlist'))}>Leave waitlist</button>}
@@ -285,13 +285,13 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
           <div className="stack" style={{ gap: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <span className="eyebrow">Waitlist</span>
-              <span style={{ fontSize: 11, color: '#8A94A3', fontWeight: 600 }}>{full ? 'next in line for a spot' : 'moving into free spots'}</span>
+              <span style={{ fontSize: 11, color: '#9A9992', fontWeight: 600 }}>{full ? 'next in line for a spot' : 'moving into free spots'}</span>
             </div>
             <div className="card" style={{ padding: '4px 16px' }}>
               {(m.waitlist ?? Array.from({ length: wc }, () => null)).map((w, i) => (
                 <div key={w?.id ?? i} className="row-line" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0' }}>
                   <span className="display" style={{ width: 22, fontSize: 13, fontWeight: 800, color: '#E5484D', flex: 'none' }}>#{i + 1}</span>
-                  {w ? <Avatar p={person(w.id, w.full_name)} size={28} font={10} /> : <span className="avatar" style={{ width: 28, height: 28, background: '#C5CDD8' }} />}
+                  {w ? <Avatar p={person(w.id, w.full_name)} size={28} font={10} /> : <span className="avatar" style={{ width: 28, height: 28, background: '#C9C7BF' }} />}
                   <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: w?.id === m.viewer.id ? 800 : 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {w ? `${w.full_name}${w.id === m.viewer.id ? ' · You' : ''}` : 'Waiting'}
                   </span>
@@ -299,7 +299,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
                     <button className="chip-btn go" style={{ height: 30, fontSize: 12 }} disabled={busy} onClick={() => letIn(w.id, w.full_name.split(' ')[0])}>Let in</button>
                   )}
                   {w && canRemove(w.id) && (
-                    <button className="link-btn" style={{ fontSize: 12, color: '#8A94A3' }} onClick={() => remove(w.id, w.full_name.split(' ')[0])}>Remove</button>
+                    <button className="link-btn" style={{ fontSize: 12, color: '#9A9992' }} onClick={() => remove(w.id, w.full_name.split(' ')[0])}>Remove</button>
                   )}
                 </div>
               ))}
@@ -312,7 +312,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
         )}
 
         {!canSee && (
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '0 4px', color: '#8A94A3' }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '0 4px', color: '#9A9992' }}>
             <LockIcon />
             <span className="note" style={{ lineHeight: 1.4, textWrap: 'pretty' }}>Court number and costs are visible to confirmed players only.</span>
           </div>
@@ -327,12 +327,12 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
               </div>
               {!firstOpen ? (
                 <div className="stack" style={{ gap: 2 }}>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: '#0E7F66' }}>✓ {nCourts > 1 ? 'All courts booked' : 'Court booked'}</span>
-                  <span style={{ fontSize: 12, color: '#5B6573' }}>Players are locked in. Only you can remove someone. Edit a booking on its court card.</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: '#0E5A3A' }}>✓ {nCourts > 1 ? 'All courts booked' : 'Court booked'}</span>
+                  <span style={{ fontSize: 12, color: '#6B6B66' }}>Players are locked in. Only you can remove someone. Edit a booking on its court card.</span>
                 </div>
               ) : (
                 <div className="stack" style={{ gap: 10 }}>
-                  <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.4 }}>
+                  <span style={{ fontSize: 14, color: '#6B6B66', lineHeight: 1.4 }}>
                     {nCourts > 1
                       ? `${nBooked} of ${nCourts} courts booked. Book each court once you've booked it at the venue; it doesn't have to be full. Only players on a booked court are locked in.`
                       : firstOpen.count >= per ? `${m.size} in. Book the court, then add the details here.` : `${firstOpen.count}/${per} in. You can book now or wait for ${per - firstOpen.count} more.`}
@@ -342,7 +342,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
               )}
               <div style={{ borderTop: '1px solid rgba(0,0,0,.06)' }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ flex: 1, fontSize: 14, color: '#5B6573', lineHeight: 1.35 }}>
+                <span style={{ flex: 1, fontSize: 14, color: '#6B6B66', lineHeight: 1.35 }}>
                   {m.repeats ? "Repeats weekly. Next week's match appears when this one starts." : 'One-off match'}
                 </span>
                 <button className="chip-btn" disabled={busy} onClick={() => rpc('set_repeat', { p_match: m.id, p_weekly: !m.repeats, p_regulars_first: false },
@@ -356,22 +356,22 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
                 </div>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ flex: 1, fontSize: 14, color: '#5B6573', lineHeight: 1.35 }}>Sign-ups auto-lock {m.rsvp_close_hours}h before start</span>
+                  <span style={{ flex: 1, fontSize: 14, color: '#6B6B66', lineHeight: 1.35 }}>Sign-ups auto-lock {m.rsvp_close_hours}h before start</span>
                   <button className="chip-btn" disabled={busy} onClick={() => rpc('set_lock', { p_match: m.id, p_locked: true }, () => flash(`Sign-ups closed · ${finalLine}`))}>Lock now</button>
                 </div>
               )}
               <div className="stack" style={{ borderTop: '1px solid rgba(0,0,0,.06)', paddingTop: 14, gap: 10 }}>
-                <span style={{ fontSize: 12, color: '#5B6573', fontWeight: 700 }}>Status update for the group</span>
+                <span style={{ fontSize: 12, color: '#6B6B66', fontWeight: 700 }}>Status update for the group</span>
                 <div className="panel" style={{ padding: '12px 14px', fontSize: 13, lineHeight: 1.45, wordBreak: 'break-word' }}>{L.statusMsg}</div>
                 <a className="btn-2" href={whatsappUrl(L.statusMsg)} target="_blank" rel="noreferrer" style={{ height: 46, color: '#128A5C' }}>Post to WhatsApp</a>
               </div>
             </div>
             {nCourts < 4 && wc >= per && (
-              <div className="stack" style={{ borderRadius: 20, padding: 22, background: '#F7F8FA', boxShadow: '0 0 0 1px #E6E9EE', gap: 16 }}>
+              <div className="stack" style={{ borderRadius: 20, padding: 22, background: '#F1F0EC', boxShadow: '0 0 0 1px #E2E0DA', gap: 16 }}>
                 <div className="stack" style={{ gap: 6 }}>
                   <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: '#D9622B' }}>{per} WAITING · EVEN NUMBERS</span>
                   <span className="display" style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-.02em', lineHeight: 1.2 }}>Make it {m.size + per} on {nCourts + 1} courts</span>
-                  <span style={{ fontSize: 14, color: '#4A5462', lineHeight: 1.45 }}>
+                  <span style={{ fontSize: 14, color: '#55554F', lineHeight: 1.45 }}>
                     All {per} waiting players are confirmed on court {nCourts + 1}. Book it whenever you&apos;re ready; until then they can still drop out.
                   </span>
                 </div>
@@ -389,7 +389,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
         {canSee && tr && (
           <>
             {m.locked && !m.past && (
-              <div className="stack" style={{ borderRadius: 22, padding: '16px 20px', background: '#0E9F7E', color: '#fff', gap: 4 }}>
+              <div className="stack" style={{ borderRadius: 22, padding: '16px 20px', background: '#0E5A3A', color: '#fff', gap: 4 }}>
                 <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em' }}>SIGN-UPS CLOSED</span>
                 <span className="display" style={{ fontSize: 18, fontWeight: 700 }}>{finalLine}</span>
               </div>
@@ -398,7 +398,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
               <div className="card stack" style={{ padding: '18px 20px', gap: 4 }}>
                 <span className="eyebrow">Venue</span>
                 <span style={{ fontSize: 16, fontWeight: 700 }}>{m.venue}</span>
-                <span style={{ fontSize: 13, color: '#5B6573' }}>{[m.courts, m.parking].filter(Boolean).join(' · ')}</span>
+                <span style={{ fontSize: 13, color: '#6B6B66' }}>{[m.courts, m.parking].filter(Boolean).join(' · ')}</span>
               </div>
             )}
 
@@ -406,7 +406,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
               <div className="card stack" style={{ padding: '18px 20px', gap: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                   <span className="eyebrow">Doubles pairs</span>
-                  <span style={{ fontSize: 12, color: '#5B6573' }}>Left pair vs right pair</span>
+                  <span style={{ fontSize: 12, color: '#6B6B66' }}>Left pair vs right pair</span>
                 </div>
                 {courts.map((c, i) => c.players.length === per && (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -427,7 +427,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
               <div className="card stack" style={{ padding: '18px 20px', gap: 10 }}>
                 <div className="stack" style={{ gap: 3 }}>
                   <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: '#D9622B' }}>REMOVED AFTER BOOKING · STILL OWE A SHARE</span>
-                  <span style={{ fontSize: 12, color: '#5B6573' }}>Cleared automatically when someone takes the spot.</span>
+                  <span style={{ fontSize: 12, color: '#6B6B66' }}>Cleared automatically when someone takes the spot.</span>
                 </div>
                 {m.liable!.map(p => (
                   <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -466,13 +466,13 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
                 rpc<{ promoted: string | null; still_owes: boolean }>('leave_match', { p_match: m.id }, r =>
                   flash(['You dropped out', r.promoted ? `spot passed to ${r.promoted.split(' ')[0]}` : '', r.still_owes ? 'you owe your share until someone takes it' : ''].filter(Boolean).join(' · ')))
               }}>Drop out of playing</button>
-              <span style={{ fontSize: 13, color: '#5B6573', textAlign: 'center', lineHeight: 1.45 }}>
+              <span style={{ fontSize: 13, color: '#6B6B66', textAlign: 'center', lineHeight: 1.45 }}>
                 You stay the organiser and can still run the match. Your spot goes to the next person waiting.
                 {myCourtBooked ? ' Your court is booked, so you owe your share until someone takes your spot.' : ''}
               </span>
             </div>
           ) : myCourtBooked ? (
-            <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.45 }}>
+            <span style={{ fontSize: 14, color: '#6B6B66', lineHeight: 1.45 }}>
               Your court&apos;s booked, so you&apos;re locked in. Ask {org.first} if you need to drop out. You&apos;ll still owe your share.
             </span>
           ) : (
@@ -482,7 +482,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
                 setMySpot(false)
                 rpc<{ promoted: string | null }>('leave_match', { p_match: m.id }, r => flash(r.promoted ? `Spot passed to ${r.promoted.split(' ')[0]}` : 'You dropped out'))
               }}>Drop out</button>
-              <span style={{ fontSize: 13, color: '#5B6573', textAlign: 'center' }}>Your spot goes to the next person on the waitlist.</span>
+              <span style={{ fontSize: 13, color: '#6B6B66', textAlign: 'center' }}>Your spot goes to the next person on the waitlist.</span>
             </div>
           )}
         </Sheet>
@@ -512,7 +512,7 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
     return (
       <div className="card stack" style={{ padding: 20, gap: 6 }}>
         <span className="eyebrow">Cost split</span>
-        <span style={{ fontSize: 14, color: '#5B6573', lineHeight: 1.45 }}>
+        <span style={{ fontSize: 14, color: '#6B6B66', lineHeight: 1.45 }}>
           {hasCost
             ? `Costs are split when sign-ups close (${m.rsvp_close_hours}h before the start, or when the organiser taps Lock now), so late changes and extra players are included. Until then nobody owes anything.`
             : m.status === 'booked'
@@ -528,9 +528,9 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div className="stack" style={{ gap: 6 }}>
           <span className="eyebrow">Cost split</span>
-          <span className="display" style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-.02em', color: '#0B8A6B' }}>{fmt(tr.share)}</span>
+          <span className="display" style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-.02em', color: '#0E5A3A' }}>{fmt(tr.share)}</span>
         </div>
-        <span style={{ fontSize: 12, color: '#5B6573', fontWeight: 600, paddingBottom: 4 }}>each · {fmt(tr.total)} total</span>
+        <span style={{ fontSize: 12, color: '#6B6B66', fontWeight: 600, paddingBottom: 4 }}>each · {fmt(tr.total)} total</span>
       </div>
       {meId && !(m.split_ids ?? []).includes(meId) && m.viewer.role === 'confirmed' && (
         <span className="note" style={{ marginTop: -6 }}>Your court isn&apos;t booked yet, so you&apos;re not paying anything yet. Once it&apos;s booked, everyone on booked courts shares the total.</span>
@@ -540,7 +540,7 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
           <div key={e.id ?? i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
             <span className="stack" style={{ minWidth: 0, gap: 1 }}>
               <span style={{ fontSize: 14, fontWeight: 700 }}>{e.label}</span>
-              <span style={{ fontSize: 12, color: '#5B6573' }}>Paid by {e.paid_by === meId ? 'you' : personOf(e.paid_by).first}</span>
+              <span style={{ fontSize: 12, color: '#6B6B66' }}>Paid by {e.paid_by === meId ? 'you' : personOf(e.paid_by).first}</span>
             </span>
             <span style={{ fontSize: 14, fontWeight: 800, flex: 'none' }}>{fmt(Number(e.amount))}</span>
           </div>
@@ -556,14 +556,14 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
           <input className="field" style={{ height: 46 }} value={exp.label} onChange={e => setExp(x => ({ ...x, label: e.target.value }))} placeholder="What for? e.g. Shuttles" maxLength={80} autoFocus />
           <div style={{ display: 'flex', gap: 10 }}>
             <input className="field" style={{ height: 46, flex: 1, minWidth: 0, width: 'auto' }} type="number" inputMode="decimal" min={0} step="0.01" value={exp.amount} onChange={e => setExp(x => ({ ...x, amount: e.target.value }))} placeholder="Amount" />
-            <button type="submit" disabled={busy} style={{ height: 46, padding: '0 20px', borderRadius: 16, border: 'none', background: '#0E9F7E', color: '#fff', fontWeight: 800, fontSize: 14 }}>Add</button>
+            <button type="submit" disabled={busy} style={{ height: 46, padding: '0 20px', borderRadius: 16, border: 'none', background: '#0E5A3A', color: '#fff', fontWeight: 800, fontSize: 14 }}>Add</button>
           </div>
         </form>
       ) : (
-        <button onClick={() => { setExp({ label: '', amount: '' }); setAdding(true) }} style={{ height: 46, borderRadius: 16, border: 'none', background: '#F1F3F6', color: '#0E7F66', fontWeight: 700, fontSize: 14 }}>+ Add expense</button>
+        <button onClick={() => { setExp({ label: '', amount: '' }); setAdding(true) }} style={{ height: 46, borderRadius: 16, border: 'none', background: '#F2F1ED', color: '#0E5A3A', fontWeight: 700, fontSize: 14 }}>+ Add expense</button>
       )}
       {guests.length > 0 && (
-        <span style={{ fontSize: 12, color: '#5B6573', lineHeight: 1.45 }}>
+        <span style={{ fontSize: 12, color: '#6B6B66', lineHeight: 1.45 }}>
           {guests.map(([g, payer]) => `${personOf(g).name}'s share goes to ${payer === meId ? 'you' : personOf(payer).first}`).join(' · ')}
         </span>
       )}
@@ -580,7 +580,7 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
             <div key={`${t.from}>${t.to}`} className="panel stack" style={{ gap: 10, padding: '12px 14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ flex: 1, fontSize: 14, minWidth: 0, fontWeight: 600 }}>
-                  {iOwe ? 'You' : from.first} <span style={{ color: '#8A94A3' }}>→</span> {t.to === meId ? 'you' : to.first}
+                  {iOwe ? 'You' : from.first} <span style={{ color: '#9A9992' }}>→</span> {t.to === meId ? 'you' : to.first}
                 </span>
                 <span style={{ fontSize: 14, fontWeight: 800 }}>{fmt(shown)}</span>
               </div>
@@ -642,8 +642,8 @@ function BookSheet({ court, onClose, m, rpc, count }: { court: number | null; on
         <input className="field" value={f.parking} onChange={set('parking')} placeholder="e.g. Free parking behind the hall" maxLength={200} /></label>
       <label className="label"><span className="eyebrow">Cost of this court</span>
         <div className="field-wrap">
-          <span style={{ fontWeight: 800, color: '#0E7F66', fontSize: 14 }}>{m.currency}</span>
-          <input type="number" inputMode="decimal" min={0} value={f.cost} onChange={set('cost')} placeholder="0" style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', color: '#12161C', fontSize: 16, outline: 'none' }} />
+          <span style={{ fontWeight: 800, color: '#0E5A3A', fontSize: 14 }}>{m.currency}</span>
+          <input type="number" inputMode="decimal" min={0} value={f.cost} onChange={set('cost')} placeholder="0" style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', color: '#111111', fontSize: 16, outline: 'none' }} />
         </div>
         <span className="note">In the cost split as paid by {booked && ic?.booked_by !== m.viewer.id ? (ic?.booked_by_name?.split(' ')[0] ?? 'the booker') : 'you'}.</span>
       </label>
@@ -740,14 +740,14 @@ function AddPlayerSheet({ open, onClose, m, exclude, inviteMsg, rpc }: {
 
   return (
     <Sheet open={open} onClose={onClose} title="Add player">
-      <span style={{ fontSize: 13, color: '#5B6573', marginTop: -8 }}>
+      <span style={{ fontSize: 13, color: '#6B6B66', marginTop: -8 }}>
         {left > 0 ? `${left} spot${left > 1 ? 's' : ''} free · they're confirmed straight away` : 'Match is full · they go on the waitlist'}
       </span>
       <form className="stack" style={{ gap: 8 }} onSubmit={e => { e.preventDefault(); addByName() }}>
         <div style={{ display: 'flex', gap: 8 }}>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Name" maxLength={60} aria-label="Player name"
-            style={{ flex: 1, minWidth: 0, height: 48, borderRadius: 14, border: 'none', boxShadow: '0 0 0 1px #E6E9EE', padding: '0 14px', fontSize: 15, color: '#12161C', background: '#fff', outline: 'none' }} />
-          <button type="submit" style={{ height: 48, padding: '0 18px', borderRadius: 14, border: 'none', background: '#0E9F7E', color: '#fff', fontWeight: 800, fontSize: 14, flex: 'none' }}>Add</button>
+            style={{ flex: 1, minWidth: 0, height: 48, borderRadius: 14, border: 'none', boxShadow: '0 0 0 1px #E2E0DA', padding: '0 14px', fontSize: 15, color: '#111111', background: '#fff', outline: 'none' }} />
+          <button type="submit" style={{ height: 48, padding: '0 18px', borderRadius: 14, border: 'none', background: '#0E5A3A', color: '#fff', fontWeight: 800, fontSize: 14, flex: 'none' }}>Add</button>
         </div>
         <span className="note" style={{ fontSize: 12 }}>Not on Goodminton? They&apos;re added as your guest and you pay their share.</span>
       </form>
@@ -758,11 +758,11 @@ function AddPlayerSheet({ open, onClose, m, exclude, inviteMsg, rpc }: {
             const pp = person(p.id, p.full_name)
             return (
               <button key={p.id} type="button" onClick={() => addKnown(p)}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', border: 'none', background: 'none', textAlign: 'left', width: '100%', color: '#12161C' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', border: 'none', background: 'none', textAlign: 'left', width: '100%', color: '#111111' }}>
                 <Avatar p={pp} size={36} font={13} />
                 <span style={{ flex: 1, fontSize: 15, fontWeight: 700 }}>{p.full_name}</span>
-                {p.is_guest && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', color: '#8A94A3' }}>GUEST</span>}
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#0E7F66' }}>+ Add</span>
+                {p.is_guest && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', color: '#9A9992' }}>GUEST</span>}
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#0E5A3A' }}>+ Add</span>
               </button>
             )
           })}
@@ -785,7 +785,7 @@ function Results({ m, link, dateLabel, canRemove, rpc, busy }: {
     <div className="card stack" style={{ padding: '18px 20px', gap: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span className="eyebrow">Results</span>
-        <span style={{ fontSize: 12, color: '#5B6573', fontWeight: 600 }}>{m.games.length} game{m.games.length === 1 ? '' : 's'}</span>
+        <span style={{ fontSize: 12, color: '#6B6B66', fontWeight: 600 }}>{m.games.length} game{m.games.length === 1 ? '' : 's'}</span>
       </div>
       {shown.map(g => (
         <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -794,11 +794,11 @@ function Results({ m, link, dateLabel, canRemove, rpc, busy }: {
             <button aria-label="Remove result" disabled={busy} onClick={() => {
               if (!confirm('Remove this result? It also comes off the leaderboard.')) return
               rpc('delete_game', { p_game: g.id }, () => flash('Result removed'))
-            }} style={{ border: 'none', background: 'none', color: '#8A94A3', fontSize: 18, lineHeight: 1, padding: 2, flex: 'none' }}>×</button>
+            }} style={{ border: 'none', background: 'none', color: '#9A9992', fontSize: 18, lineHeight: 1, padding: 2, flex: 'none' }}>×</button>
           )}
         </div>
       ))}
-      {m.games.length > shown.length && <button className="link-btn" style={{ alignSelf: 'flex-start', color: '#0E7F66' }} onClick={() => setAll(true)}>Show all {m.games.length}</button>}
+      {m.games.length > shown.length && <button className="link-btn" style={{ alignSelf: 'flex-start', color: '#0E5A3A' }} onClick={() => setAll(true)}>Show all {m.games.length}</button>}
       <a className="btn-2" href={whatsappUrl(matchSummary(m.title, dateLabel, m.games, link))} target="_blank" rel="noreferrer" style={{ height: 46, color: '#128A5C' }}>Share summary on WhatsApp</a>
     </div>
   )

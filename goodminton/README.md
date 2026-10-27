@@ -141,6 +141,12 @@ The SQL tests need a local Postgres 15+ and stub Supabase's `auth` schema (`supa
 - `src/app/m/[slug]`: the match page (invite landing when signed out), its WhatsApp preview image, and the share screen.
 - `src/proxy.ts`: keeps the Supabase session cookie fresh. Next 16 renamed `middleware` to `proxy`.
 
+## Look and logo
+
+- The design is "Goodminton v5": Geist type, stone and deep-green colours, glass cards and a floating tab bar. Colours are CSS variables at the top of `src/app/globals.css`.
+- The logo is `public/icons/logo.svg` (same drawing in `src/components/AppIcon.tsx` and `src/lib/logo.ts`). After changing it, re-make the app icons with `node scripts/render-icons.js public/icons`.
+- The badminton photos in `public/photos/` are from Unsplash (free to use under the Unsplash licence): photo-1626224583764, photo-1708312604109, photo-1776923563156, photo-1775720724581 and photo-1617696618050. Each match and group always shows the same one (`src/lib/photos.ts`).
+
 ## Known limits
 
 - No push or email alerts yet. Waitlisted players see their new status when they open the link (the page refreshes every 20 s while open).
