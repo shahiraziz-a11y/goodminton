@@ -122,7 +122,8 @@ export type LedgerMatch = {
 
 export const isVisible = (p: MatchPlayer): p is VisiblePlayer => !('hidden' in p)
 
-export type PlayerOption = { id: string; full_name: string; is_guest: boolean }
+/** added_at: when I last added them to a match (null if never). */
+export type PlayerOption = { id: string; full_name: string; is_guest: boolean; added_at?: string | null }
 
 export type Game = {
   id: string

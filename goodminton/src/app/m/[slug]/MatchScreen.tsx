@@ -15,7 +15,7 @@ import { loadPlayers } from '@/components/PlayerPicker'
 import { AlertsCard } from '@/components/Pwa'
 import { Sheet } from '@/components/Sheet'
 import { balancedByRating, ratings, shuffled } from '@/lib/stats'
-import { courtNumber, localDateTime, money } from '@/lib/format'
+import { courtNumber, fmtDate, localDateTime, money } from '@/lib/format'
 import { gameLine, matchLabels, matchSummary, whatsappUrl } from '@/lib/match'
 import { person, type Person } from '@/lib/people'
 import { transfersOf } from '@/lib/split'
@@ -341,10 +341,13 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
               <div style={{ borderTop: '1px solid rgba(0,0,0,.06)' }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ flex: 1, fontSize: 14, color: '#6B6B66', lineHeight: 1.35 }}>
-                  {m.repeats ? "Repeats weekly. Next week's match appears when this one starts." : 'One-off match'}
+                  {m.repeats ? 'Repeats weekly. This week\'s and next week\'s matches are always set up.' : 'One-off match'}
                 </span>
-                <button className="chip-btn" disabled={busy} onClick={() => rpc('set_repeat', { p_match: m.id, p_weekly: !m.repeats, p_regulars_first: false },
-                  () => flash(m.repeats ? 'Stopped repeating' : 'Repeats weekly'))}>{m.repeats ? 'Stop repeating' : 'Repeat weekly'}</button>
+                <button className="chip-btn" disabled={busy} onClick={() => {
+                  if (m.repeats && !confirm('Stop repeating? Later weeks that nobody else has joined will be removed.')) return
+                  rpc('set_repeat', { p_match: m.id, p_weekly: !m.repeats, p_regulars_first: false },
+                    () => flash(m.repeats ? 'Stopped repeating' : "Repeats weekly · next week's match is set up"))
+                }}>{m.repeats ? 'Stop repeating' : 'Repeat weekly'}</button>
               </div>
               <div style={{ borderTop: '1px solid rgba(0,0,0,.06)' }} />
               {m.locked ? (
@@ -720,8 +723,13 @@ function AddPlayerSheet({ open, onClose, m, exclude, inviteMsg, rpc }: {
 
   const left = m.size - m.confirmed_count
   const term = name.trim().toLowerCase()
-  const known = (all ?? []).filter(p => !exclude.includes(p.id))
-  const list = known.filter(p => !term || p.full_name.toLowerCase().includes(term))
+  // Hide people already in, and a guest who is really me (someone typed my name once).
+  const myName = (m.viewer.full_name ?? '').trim().toLowerCase()
+  const known = (all ?? []).filter(p => !exclude.includes(p.id) && !(p.is_guest && myName && p.full_name.trim().toLowerCase() === myName))
+  const shown = known.filter(p => !term || p.full_name.toLowerCase().includes(term))
+  // The people I've added before go first: most recent three.
+  const usual = shown.filter(p => p.added_at).sort((a, b) => b.added_at!.localeCompare(a.added_at!)).slice(0, 3)
+  const list = shown.filter(p => !usual.includes(p))
   const exact = known.find(p => p.full_name.toLowerCase() === term)
   const where = (status: string) => (status === 'waitlist' ? ' · waitlist' : ' · confirmed')
 
@@ -750,6 +758,22 @@ function AddPlayerSheet({ open, onClose, m, exclude, inviteMsg, rpc }: {
         </div>
         <span className="note" style={{ fontSize: 12 }}>Not on Goodminton? They&apos;re added as your guest and you pay their share.</span>
       </form>
+      {usual.length > 0 && (
+        <div className="stack" style={{ gap: 6 }}>
+          <span className="eyebrow">You usually add</span>
+          {usual.map((p, i) => (
+            <button key={p.id} type="button" onClick={() => addKnown(p)}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: 'none', borderRadius: 16, background: 'rgba(14,90,58,.08)', boxShadow: 'inset 0 0 0 1px rgba(14,90,58,.18)', textAlign: 'left', width: '100%', color: '#111111' }}>
+              <Avatar p={person(p.id, p.full_name)} size={36} font={13} />
+              <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                <span style={{ fontSize: 15, fontWeight: 700 }}>{p.full_name}</span>
+                <span style={{ fontSize: 12, color: '#0E5A3A' }}>{i === 0 ? 'Added last time' : `Added ${fmtDate(p.added_at!, m.timezone)}`}{p.is_guest ? ' · guest' : ''}</span>
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#0E5A3A' }}>+ Add</span>
+            </button>
+          ))}
+        </div>
+      )}
       {list.length > 0 && (
         <div className="stack" style={{ gap: 4 }}>
           <span className="eyebrow">Played with before</span>

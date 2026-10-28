@@ -131,16 +131,16 @@ set role authenticated;
 select pg_temp.as_user('stranger');
 select public.create_match('Stranger 2', 'doubles', 1, '', (now() + interval '5 days')::date, '19:00', 'Asia/Dubai', 90, 6);
 select pg_temp.check(pg_temp.to('Stranger 2', 'new_match') = '', 'other organisers'' players are not ours');
--- Weekly: next week's copy goes to this week's players.
+-- Weekly: next week's copy goes to the group.
 select pg_temp.as_user('org');
 select public.create_match('Weekly E', 'doubles', 1, 'Hall', (now() + interval '3 days')::date, '20:00', 'Asia/Dubai', 90, 6);
-select public.set_repeat(pg_temp.mid('Weekly E'), true, true);
 select pg_temp.as_user(u), public.join_match(pg_temp.mid('Weekly E')) from unnest(array['b','e']) u;
 reset role;
 delete from public.email_outbox;
-update public.matches set starts_at = now() - interval '5 minutes' where id = pg_temp.mid('Weekly E');
-select pg_temp.as_user('');  -- the scheduler runs signed out
-select public.roll_recurring();
+set role authenticated;
+select pg_temp.as_user('org');
+select public.set_repeat(pg_temp.mid('Weekly E'), true, true);  -- next week's is made straight away
+reset role;
 select pg_temp.check((select string_agg(split_part(p.email, '@', 1), ',' order by p.email) from public.email_outbox e join public.profiles p on p.id = e.user_id
                        join public.matches m on m.id = e.match_id where m.title = 'Weekly E' and e.kind = 'new_match')
                    = (select string_agg(split_part(p.email, '@', 1), ',' order by p.email)

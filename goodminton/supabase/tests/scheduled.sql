@@ -116,7 +116,7 @@ select public.send_reminders('2026-10-26 06:30+00');
 select pg_temp.check(pg_temp.debts() = 0, 'settled: no nudge');
 
 -- ===========================================================================
--- 3. Weekly matches (no regulars-first window)
+-- 3. Weekly matches: this week's and next week's always exist
 -- ===========================================================================
 set role authenticated;
 select pg_temp.as_user('org');
@@ -125,25 +125,29 @@ select pg_temp.as_user('a');
 select pg_temp.check(pg_temp.fails(format('select public.set_repeat(%L, true, true)', pg_temp.mid('Weekly'))) like '%Only the organiser%', 'only organiser sets repeat');
 select pg_temp.as_user(u), public.join_match(pg_temp.mid('Weekly')) from unnest(array['a','b']) u;
 select pg_temp.as_user('a'); select public.add_player(pg_temp.mid('Weekly'), null, 'Guest G');
+reset role;
+delete from public.notifications;
+set role authenticated;
 select pg_temp.as_user('org'); select public.set_repeat(pg_temp.mid('Weekly'), true, true);
 reset role;
--- Not started yet: nothing rolls.
-select pg_temp.check(public.roll_recurring() = 0, 'nothing before it starts');
-update public.matches set starts_at = now() - interval '10 minutes' where id = pg_temp.mid('Weekly');
-delete from public.notifications;
-select pg_temp.check(public.roll_recurring() = 1, 'next week made once it starts');
-select pg_temp.check(public.roll_recurring() = 0, 'only one copy');
+select pg_temp.check((select count(*) from public.matches where title = 'Weekly') = 2, 'next week made straight away');
+select pg_temp.check(public.roll_recurring() = 0, 'only one copy while next week is over 7 days off');
 select id as next_id, slug as next_slug from public.matches where title = 'Weekly' order by starts_at desc limit 1 \gset
 select pg_temp.check((select starts_at - (select starts_at from public.matches where id = pg_temp.mid('Weekly')) from public.matches where id = :'next_id') = interval '7 days', 'a week later');
-select pg_temp.check((select repeat_weekly from public.matches where id = :'next_id') and not (select repeat_weekly from public.matches where id = pg_temp.mid('Weekly')), 'repeat moves to the new one');
+select pg_temp.check((select bool_and(repeat_weekly) from public.matches where title = 'Weekly'), 'repeat on for the whole series');
 select pg_temp.check((select status || '/' || courts || '/' || venue from public.matches where id = :'next_id') = 'planning//Hall', 'not booked, same venue');
+select pg_temp.check((select group_id from public.matches where id = :'next_id') = (select group_id from public.matches where id = pg_temp.mid('Weekly')), 'same group');
 select pg_temp.check((select string_agg(split_part(p.email, '@', 1), ',') from public.match_players mp join public.profiles p on p.id = mp.user_id
                        where mp.match_id = :'next_id') = 'org', 'organiser in; nobody else yet');
 select pg_temp.check(cardinality((select regulars from public.matches where id = :'next_id')) = 3, 'regulars: org, a, b (not the guest)');
-select pg_temp.check(pg_temp.kinds('a') = 'repeat' and pg_temp.kinds('b') = 'repeat' and pg_temp.kinds('org') = '', 'regulars told');
+select pg_temp.check(pg_temp.kinds('a') = 'repeat' and pg_temp.kinds('b') = 'repeat' and pg_temp.kinds('org') = '', 'players told');
 select pg_temp.check((select body from public.notifications where user_id = pg_temp.uid('a')) like '%Tap to join.', 'no first dibs');
 select pg_temp.check((select regulars_until from public.matches where id = :'next_id') is null
                  and not (select regulars_first from public.matches where id = :'next_id'), 'no regulars window, even when asked for');
+-- A week passes: this week's has been played, next week's is now this week's, and the one after appears.
+update public.matches set starts_at = starts_at - interval '7 days' where title = 'Weekly';
+select pg_temp.check(public.roll_recurring() = 1 and public.roll_recurring() = 0, 'the week after appears, once');
+select id as third_id from public.matches where title = 'Weekly' order by starts_at desc limit 1 \gset
 -- Anyone gets straight in while there's room.
 set role authenticated;
 select pg_temp.as_user('c');
@@ -153,30 +157,44 @@ select pg_temp.as_user('a');
 select public.join_match(:'next_id') ->> 'status' as s \gset
 select pg_temp.check(:'s' = 'confirmed', 'last week''s player gets straight in');
 select public.get_match(:'next_slug') as v \gset
-select pg_temp.check((:'v'::jsonb ->> 'repeat_weekly') = 'true' and (:'v'::jsonb ->> 'regulars_until') is null, 'match shows weekly, no window');
-reset role;
-set role authenticated;
-select pg_temp.as_user('d');
-select public.join_match(:'next_id') ->> 'status' as s \gset
-select pg_temp.check(:'s' = 'confirmed', 'anyone joins after the window');
--- Organiser stops repeating.
+select pg_temp.check((:'v'::jsonb ->> 'repeat_weekly') = 'true' and (:'v'::jsonb ->> 'repeats') = 'true' and (:'v'::jsonb ->> 'regulars_until') is null, 'this week''s shows weekly and repeating');
+-- Organiser stops repeating: the empty week after goes; this week's (people joined) stays.
 select pg_temp.as_user('org'); select public.set_repeat(:'next_id', false, false);
 reset role;
-update public.matches set starts_at = now() - interval '5 minutes' where id = :'next_id';
+select pg_temp.check(not exists (select 1 from public.matches where id = :'third_id'), 'empty future week removed');
+select pg_temp.check(exists (select 1 from public.matches where id = :'next_id'), 'joined week kept');
+select pg_temp.check(not (select bool_or(repeat_weekly) from public.matches where title = 'Weekly'), 'repeat off for the series');
 select pg_temp.check(public.roll_recurring() = 0, 'stopped: no more weeks');
 -- Organiser who wasn't playing isn't added next week.
 set role authenticated;
 select pg_temp.as_user('org');
 select public.create_match('Weekly 2', 'doubles', 1, 'Hall', (now() + interval '3 days')::date, '20:00', 'Asia/Dubai', 90, 6);
-select public.set_repeat(pg_temp.mid('Weekly 2'), true, false);
 select pg_temp.as_user('a'); select public.join_match(pg_temp.mid('Weekly 2'));
 select pg_temp.as_user('org'); select public.leave_match(pg_temp.mid('Weekly 2'));
+select public.set_repeat(pg_temp.mid('Weekly 2'), true, false);
 reset role;
-update public.matches set starts_at = now() - interval '5 minutes' where id = pg_temp.mid('Weekly 2');
-select public.roll_recurring();
 select pg_temp.check((select count(*) from public.match_players mp join public.matches m on m.id = mp.match_id
-                       where m.title = 'Weekly 2' and m.starts_at > now()) = 0, 'organiser not playing: not added');
-select pg_temp.check((select regulars_until from public.matches where title = 'Weekly 2' and starts_at > now()) is null, 'no first dibs');
+                       where m.title = 'Weekly 2' and m.starts_at > now() + interval '7 days') = 0, 'organiser not playing: not added');
+-- Stopping keeps a later week someone has joined.
+select id as w2_next from public.matches where title = 'Weekly 2' order by starts_at desc limit 1 \gset
+set role authenticated;
+select pg_temp.as_user('b'); select public.join_match(:'w2_next');
+select pg_temp.as_user('org'); select public.set_repeat(pg_temp.mid('Weekly 2'), false, false);
+reset role;
+select pg_temp.check((select count(*) from public.matches where title = 'Weekly 2') = 2, 'joined future week kept');
+-- my_players remembers who I added: a added Guest G; org never did.
+set role authenticated;
+select pg_temp.as_user('a');
+select public.my_players() as pa \gset
+select pg_temp.as_user('org');
+select public.my_players() as po \gset
+reset role;
+select pg_temp.check((select x ->> 'added_at' from jsonb_array_elements(:'pa'::jsonb) x where x ->> 'full_name' = 'Guest G') is not null, 'a added Guest G');
+select pg_temp.check((select x ->> 'added_at' from jsonb_array_elements(:'pa'::jsonb) x where x ->> 'full_name' = 'B S') is null, 'a never added b');
+select pg_temp.check((select x ->> 'added_at' from jsonb_array_elements(:'po'::jsonb) x where x ->> 'full_name' = 'Guest G') is null, 'org never added Guest G');
+-- A series left alone for months doesn't refill the past.
+update public.matches set repeat_weekly = true, starts_at = starts_at - interval '60 days' where title = 'Weekly 2';
+select pg_temp.check(public.roll_recurring() = 0, 'old series: nothing made');
 
 -- ===========================================================================
 -- 4. Scores
