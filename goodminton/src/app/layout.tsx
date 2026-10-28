@@ -1,12 +1,11 @@
 import type { Metadata, Viewport } from 'next'
-import { Manrope, Unbounded } from 'next/font/google'
+import { Geist } from 'next/font/google'
 import { FeedbackProvider } from '@/components/Feedback'
 import { SITE_URL } from '@/lib/supabase/env'
 import { PwaSetup } from '@/components/Pwa'
 import './globals.css'
 
-const unbounded = Unbounded({ subsets: ['latin'], weight: ['500', '600', '700', '800'], variable: '--font-unbounded' })
-const manrope = Manrope({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], variable: '--font-manrope' })
+const geist = Geist({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], variable: '--font-geist' })
 
 export const metadata: Metadata = {
   // Link-preview images (og:image) are absolute URLs on the official address,
@@ -23,11 +22,11 @@ export const metadata: Metadata = {
   },
 }
 
-export const viewport: Viewport = { themeColor: '#F7F8FA', width: 'device-width', initialScale: 1, viewportFit: 'cover' }
+export const viewport: Viewport = { themeColor: '#F1F0EC', width: 'device-width', initialScale: 1, viewportFit: 'cover' }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${unbounded.variable} ${manrope.variable}`}>
+    <html lang="en" className={geist.variable}>
       <body>
         <FeedbackProvider>{children}</FeedbackProvider>
         <PwaSetup />

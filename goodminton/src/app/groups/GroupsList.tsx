@@ -32,7 +32,7 @@ export function GroupsList({ meId, meName, groups }: { meId: string; meName: str
       <div className="screen" style={{ gap: 22 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 10 }}>
           <div className="stack" style={{ gap: 6 }}>
-            <span style={{ fontSize: 14, color: '#5B6573', fontWeight: 600 }}>Your crews</span>
+            <span style={{ fontSize: 14, color: '#6B6B66', fontWeight: 600 }}>Your crews</span>
             <span className="h1">Groups</span>
           </div>
           <button className="chip-btn go" style={{ height: 40 }} onClick={() => { setName(''); setCreating(true) }}>+ New group</button>
@@ -47,14 +47,14 @@ export function GroupsList({ meId, meName, groups }: { meId: string; meName: str
         <div className="stack" style={{ gap: 10 }}>
           {groups.map(g => (
             <Link key={g.id} href={`/groups/${g.id}`} className="card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-              <span className="avatar" style={{ width: 44, height: 44, borderRadius: 14, background: '#0F3D35', color: '#5FE3BE', fontSize: 16 }}>{g.name.slice(0, 2).toUpperCase()}</span>
+              <span className="avatar" style={{ width: 44, height: 44, borderRadius: 14, background: '#0E4A30', color: '#9FE0BC', fontSize: 16 }}>{g.name.slice(0, 2).toUpperCase()}</span>
               <span className="stack" style={{ flex: 1, minWidth: 0, gap: 2 }}>
                 <span style={{ fontSize: 16, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.name}</span>
-                <span style={{ fontSize: 12, color: '#5B6573' }}>
+                <span style={{ fontSize: 12, color: '#6B6B66' }}>
                   {g.members} member{g.members === 1 ? '' : 's'}{g.my_role === 'owner' ? ' · you run it' : ''}{g.last_match ? ` · last match ${fmtDate(g.last_match, 'Asia/Dubai')}` : ''}
                 </span>
               </span>
-              <span style={{ color: '#8A94A3', fontSize: 18 }}>›</span>
+              <span style={{ color: '#9A9992', fontSize: 18 }}>›</span>
             </Link>
           ))}
         </div>

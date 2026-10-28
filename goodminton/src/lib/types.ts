@@ -103,7 +103,7 @@ export type HomeMatch = {
 }
 
 /** Home stats from my_stats: weeks in a row with a game (Dubai weeks, Monday start) and lifetime totals. */
-export type HomeStats = { week_streak: number; played_this_week: boolean; matches_played: number; games_played: number }
+export type HomeStats = { week_streak: number; played_this_week: boolean; matches_played: number; games_played: number; last_weeks?: boolean[] }
 
 export type LedgerMatch = {
   id: string

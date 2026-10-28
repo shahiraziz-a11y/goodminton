@@ -15,9 +15,9 @@ export function FormatPicker({ format, courts, onChange }: { format: Format; cou
           const sel = courts === n
           return (
             <button key={n} type="button" onClick={() => onChange(format, n)} aria-pressed={sel} className={sel ? '' : 'card'}
-              style={{ borderRadius: 18, border: 'none', background: sel ? '#0E9F7E' : '#fff', padding: '14px 10px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span className="display" style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: sel ? '#fff' : '#12161C' }}>{n * per}</span>
-              <span style={{ fontSize: 11, fontWeight: 800, color: sel ? '#fff' : '#5B6573' }}>{n} court{n > 1 ? 's' : ''}</span>
+              style={{ borderRadius: 18, border: 'none', background: sel ? '#0E5A3A' : '#fff', padding: '14px 10px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span className="display" style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: sel ? '#fff' : '#111111' }}>{n * per}</span>
+              <span style={{ fontSize: 11, fontWeight: 800, color: sel ? '#fff' : '#6B6B66' }}>{n} court{n > 1 ? 's' : ''}</span>
             </button>
           )
         })}

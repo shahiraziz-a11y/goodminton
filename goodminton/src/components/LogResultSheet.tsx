@@ -109,7 +109,7 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
                     : <Avatar p={p} ring />
                 ) : (
                   <button type="button" aria-label="Pick player" onClick={e => { e.stopPropagation(); setPicking(idx) }}
-                    style={{ width: 36, height: 36, borderRadius: '50%', border: '1.5px dashed #8A94A3', background: '#fff', color: '#5B6573', fontSize: 18, boxShadow: '0 0 0 2px #fff' }}>+</button>
+                    style={{ width: 36, height: 36, borderRadius: '50%', border: '1.5px dashed #9A9992', background: '#fff', color: '#6B6B66', fontSize: 18, boxShadow: '0 0 0 2px #fff' }}>+</button>
                 )}
               </span>
             )
@@ -150,10 +150,10 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
           })}
         </div>
       )}
-      <span style={{ fontSize: 13, color: '#5B6573', marginTop: -8 }}>{full ? (half === 1 ? 'Tap who won.' : 'Tap the pair that won.') : half === 1 ? 'Tap + to pick each player.' : 'Tap + to pick the players for each pair.'}</span>
+      <span style={{ fontSize: 13, color: '#6B6B66', marginTop: -8 }}>{full ? (half === 1 ? 'Tap who won.' : 'Tap the pair that won.') : half === 1 ? 'Tap + to pick each player.' : 'Tap + to pick the players for each pair.'}</span>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr)', gap: 10, alignItems: 'center' }}>
         <Pair side="a" ps={a} />
-        <span className="display" style={{ fontSize: 13, fontWeight: 800, color: '#8A94A3' }}>VS</span>
+        <span className="display" style={{ fontSize: 13, fontWeight: 800, color: '#9A9992' }}>VS</span>
         <Pair side="b" ps={b} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr)', gap: 10, alignItems: 'center', marginTop: -6 }}>
