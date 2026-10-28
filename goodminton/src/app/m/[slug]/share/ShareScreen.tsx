@@ -38,7 +38,7 @@ export function ShareScreen({ m, link }: { m: MatchView; link: string }) {
               <div style={{ padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 10, background: '#0E4A30' }}>
                 <Bars dark n={m.confirmed_count} size={m.size} />
                 <div className="display" style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-.02em', color: '#fff', lineHeight: 1.15 }}>{m.title}</div>
-                <div className="display" style={{ fontSize: 12, fontWeight: 600, color: '#3FD3AE' }}>{L.timeRange}</div>
+                <div className="display" style={{ fontSize: 12, fontWeight: 600, color: '#3FD3AE' }}>{L.start}</div>
               </div>
               <div style={{ padding: '9px 12px', background: '#F0F2F5', display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: '#111B21' }}>{L.spotsLine}</span>

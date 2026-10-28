@@ -39,7 +39,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
               ))}
             </div>
             <div style={{ display: 'flex', fontSize: 80, color: '#fff', lineHeight: 1.05, letterSpacing: -3 }}>{m.title}</div>
-            <div style={{ display: 'flex', fontSize: 38, color: '#CFE3D5' }}>{`${L.dateLabel} · ${L.timeRange}`}</div>
+            <div style={{ display: 'flex', fontSize: 38, color: '#CFE3D5' }}>{`${L.dateLabel} · ${L.start}`}</div>
           </div>
         ) : (
           <div style={{ display: 'flex', fontSize: 80, color: '#fff', letterSpacing: -3 }}>Game on.</div>

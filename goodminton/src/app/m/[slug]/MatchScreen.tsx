@@ -143,7 +143,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
   }
 
   const courtCards = courts.map((c, i) => (
-    <CourtCard key={i} label={c.label} num={c.num} tbc={c.tbc} slots={c.slots} dateLabel={L.dateLabel} start={L.start} end={L.end}
+    <CourtCard key={i} label={c.label} num={c.num} tbc={c.tbc} slots={c.slots} dateLabel={L.dateLabel} start={L.start}
       booking={signedIn && !m.past ? c.booking : undefined} action={c.action} extras={c.extras} />
   ))
 
@@ -158,7 +158,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
           </div>
           <div className="stack" style={{ gap: 8 }}>
             <span className="display" style={{ fontSize: 34, fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.02 }}>{m.title}</span>
-            <span className="display" style={{ fontSize: 22, letterSpacing: '-.03em' }}>{L.dateLabel} · {L.timeRange}</span>
+            <span className="display" style={{ fontSize: 22, letterSpacing: '-.03em' }}>{L.dateLabel} · {L.start}</span>
             <span style={{ fontSize: 13, color: '#6B6B66' }}>{m.venue || 'Venue TBC'} · {m.duration_min} min</span>
           </div>
           {courtCards}
@@ -194,7 +194,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,.25) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,.25) 55%, rgba(0,0,0,.8) 100%)' }} />
             <div className="stack" style={{ position: 'relative', gap: 8 }}>
               <span className="display" style={{ fontSize: 38, letterSpacing: '-.045em', lineHeight: 1 }}>{m.title}</span>
-              <span className="display" style={{ fontSize: 22, letterSpacing: '-.03em', lineHeight: 1.15 }}>{L.dateLabel} · {L.timeRange}</span>
+              <span className="display" style={{ fontSize: 22, letterSpacing: '-.03em', lineHeight: 1.15 }}>{L.dateLabel} · {L.start}</span>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '0 4px' }}>
@@ -306,7 +306,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
         )}
 
         {showGhost && (
-          <CourtCard ghost label="Next court" num={null} dateLabel={L.dateLabel} start={L.start} end={L.end} slots={ghostSlots} footer={`${Math.min(wc, per)}/${per} waiting · opens at ${per}`} />
+          <CourtCard ghost label="Next court" num={null} dateLabel={L.dateLabel} start={L.start} slots={ghostSlots} footer={`${Math.min(wc, per)}/${per} waiting · opens at ${per}`} />
         )}
 
         {!canSee && (
@@ -458,7 +458,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
       </Sheet>
       {conf && <AddPlayerSheet open={adding} onClose={() => setAdding(false)} m={m} exclude={members} inviteMsg={L.inviteMsg} rpc={rpc} />}
       {conf && (
-        <Sheet open={mySpot} onClose={() => setMySpot(false)} title="You're in" subtitle={`${m.title} · ${L.dateLabel}, ${L.timeRange}`}>
+        <Sheet open={mySpot} onClose={() => setMySpot(false)} title="You're in" subtitle={`${m.title} · ${L.dateLabel}, ${L.start}`}>
           {isOrg ? (
             <div className="stack" style={{ gap: 12 }}>
               <button className="btn-2" style={{ color: '#E0245E', fontWeight: 700 }} disabled={busy} onClick={() => {
