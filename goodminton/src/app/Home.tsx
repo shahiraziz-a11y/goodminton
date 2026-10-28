@@ -217,34 +217,46 @@ function StatsCard({ s }: { s: HomeStats }) {
 function NextUp({ m }: { m: HomeMatch }) {
   const live = kindOf(m) === 'live'
   const days = Math.round((new Date(m.starts_at).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000)
+  // What people look for first: when it starts.
   const when = live ? `Started ${fmtTime(m.starts_at, m.timezone)}`
-    : `${days <= 0 ? 'Today' : days === 1 ? 'Tomorrow' : `In ${days} days`} · ${fmtTime(m.starts_at, m.timezone)}`
+    : `${days <= 0 ? 'Today' : days === 1 ? 'Tomorrow' : fmtDate(m.starts_at, m.timezone)} · ${fmtTime(m.starts_at, m.timezone)}`
   const full = m.confirmed_count >= m.size
   const need = m.confirmed_count > m.size ? `Full · +${m.confirmed_count - m.size} extra`
     : full ? `Full.${m.waitlist_count ? ` ${m.waitlist_count} waiting.` : ''}` : `${m.confirmed_count}/${m.size} in · ${m.size - m.confirmed_count} to go`
-  const chip = { fontSize: 12, fontWeight: 600, padding: '8px 12px', borderRadius: 99, background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.25)' } as const
+  const booked = m.booked_courts ?? (m.status === 'booked' ? m.court_count : 0)
+  const meta = [
+    m.venue || 'Venue TBC',
+    m.group_name,
+    booked === 0 ? 'Not booked yet' : booked >= m.court_count ? (m.court_count > 1 ? 'Courts booked' : 'Court booked') : `${booked} of ${m.court_count} courts booked`,
+    m.locked ? 'Sign-ups closed' : '',
+    m.weekly ? '↻ Weekly' : '',
+    !live && days > 1 ? `In ${days} days` : '',
+  ].filter(Boolean)
+  const chip = { fontSize: 12, fontWeight: 700, letterSpacing: '.1em', padding: '8px 12px', borderRadius: 99, background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.25)' } as const
   return (
-    <Link href={`/m/${m.slug}`} style={{ position: 'relative', height: 400, borderRadius: 36, overflow: 'hidden', background: `#1D2A22 url(${photoFor(m.slug)}) center/cover`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 16, color: '#fff', boxShadow: '0 34px 60px -30px rgba(14,40,26,.65)' }}>
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,.35) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,.1) 55%, rgba(0,0,0,.55) 100%)' }} />
-      <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: 4 }}>
-        <span style={{ ...chip, display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, letterSpacing: '.1em' }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: live ? '#FF5A4E' : '#7BE0A8', boxShadow: '0 0 0 3px rgba(255,255,255,.18)' }} />{live ? 'LIVE NOW' : 'NEXT UP'}
-        </span>
-        <span style={chip}>{when}</span>
-      </div>
-      <div className="stack" style={{ position: 'relative', borderRadius: 28, padding: 20, gap: 16, background: 'linear-gradient(160deg, rgba(30,34,30,.42), rgba(10,12,10,.55))', backdropFilter: 'blur(22px) saturate(150%)', WebkitBackdropFilter: 'blur(22px) saturate(150%)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.16), inset 0 1px 0 rgba(255,255,255,.22)' }}>
-        <div className="stack" style={{ gap: 4 }}>
-          <span className="display" style={{ fontSize: 28, letterSpacing: '-.045em', lineHeight: 1 }}>{m.title}</span>
-          <span style={{ fontSize: 13, color: 'rgba(255,255,255,.75)' }}>{fmtDate(m.starts_at, m.timezone)} · {m.venue || 'Venue TBC'}{m.group_name ? ` · ${m.group_name}` : ''}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, minWidth: 0 }}>
-            {m.my_role === 'waitlist' ? "You're on the waitlist · " : !m.my_role ? 'Open to join · ' : ''}{need}
+    <div className="stack" style={{ gap: 10 }}>
+      <Link href={`/m/${m.slug}`} style={{ position: 'relative', height: 380, borderRadius: 36, overflow: 'hidden', background: `#1D2A22 url(${photoFor(m.slug)}) center/cover`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 16, color: '#fff', boxShadow: '0 34px 60px -30px rgba(14,40,26,.65)' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,.35) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,.1) 55%, rgba(0,0,0,.55) 100%)' }} />
+        <div style={{ position: 'relative', display: 'flex', padding: 4 }}>
+          <span style={{ ...chip, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: live ? '#FF5A4E' : '#7BE0A8', boxShadow: '0 0 0 3px rgba(255,255,255,.18)' }} />{live ? 'LIVE NOW' : 'NEXT UP'}
           </span>
-          <span style={{ flex: 'none', height: 42, padding: '0 16px', borderRadius: 99, background: '#fff', color: '#111111', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center' }}>{live && m.my_role ? 'Log results' : 'Open'}</span>
         </div>
-      </div>
-    </Link>
+        <div className="stack" style={{ position: 'relative', borderRadius: 28, padding: 20, gap: 16, background: 'linear-gradient(160deg, rgba(30,34,30,.42), rgba(10,12,10,.55))', backdropFilter: 'blur(22px) saturate(150%)', WebkitBackdropFilter: 'blur(22px) saturate(150%)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.16), inset 0 1px 0 rgba(255,255,255,.22)' }}>
+          <div className="stack" style={{ gap: 6 }}>
+            <span className="display" style={{ fontSize: 28, letterSpacing: '-.045em', lineHeight: 1 }}>{m.title}</span>
+            <span className="display" style={{ fontSize: 22, letterSpacing: '-.03em', lineHeight: 1.1 }}>{when}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, minWidth: 0, color: 'rgba(255,255,255,.85)' }}>
+              {m.my_role === 'waitlist' ? "You're on the waitlist · " : !m.my_role ? 'Open to join · ' : ''}{need}
+            </span>
+            <span style={{ flex: 'none', height: 42, padding: '0 16px', borderRadius: 99, background: '#fff', color: '#111111', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center' }}>{live && m.my_role ? 'Log results' : 'Open'}</span>
+          </div>
+        </div>
+      </Link>
+      <span style={{ fontSize: 12, color: '#6B6B66', lineHeight: 1.45, padding: '0 8px' }}>{meta.join(' · ')}</span>
+    </div>
   )
 }
 
@@ -260,41 +272,37 @@ function BalanceRow({ total, currency }: { total: number; currency: string }) {
   )
 }
 
-const tagStyle = { fontSize: 10, fontWeight: 700, letterSpacing: '.08em' } as const
-
 function MatchRow({ m, kind, money: led, showGroup }: { m: HomeMatch; kind: Kind; money?: LedgerMatch; showGroup?: boolean }) {
   const full = m.confirmed_count >= m.size
   const venue = m.venue || 'Venue TBC'
-  const when = `${fmtDate(m.starts_at, m.timezone)}, ${fmtTime(m.starts_at, m.timezone)}`
-  let sub = `${when} · ${venue}`, tag = '', tagColor = '#9A9992', note: string | null = null
+  // The start time sits right under the name; past matches just show the day.
+  let when = kind === 'upcoming' ? `${fmtDate(m.starts_at, m.timezone)} · ${fmtTime(m.starts_at, m.timezone)}` : fmtDate(m.starts_at, m.timezone)
+  let sub = venue, tag = '', note: string | null = null
   let status: string, badge: { background: string; color: string }
 
   const inIt = m.my_role != null
   if (kind === 'live') {
-    sub = `Started ${fmtTime(m.starts_at, m.timezone)} · ${venue}`
-    tag = m.courts ? m.courts.toUpperCase() : '✓ COURT BOOKED'
-    tagColor = '#0E5A3A'
+    when = `Started ${fmtTime(m.starts_at, m.timezone)}`
+    tag = m.courts ? m.courts : 'Court booked'
     status = 'Live'
     badge = { background: '#111111', color: '#fff' }
     note = !inIt ? null : m.games_count ? `${m.games_count} game${m.games_count > 1 ? 's' : ''} logged · tap to log more.` : 'Tap to log results as you play.'
   } else if (kind === 'upcoming') {
     const b = m.booked_courts ?? (m.status === 'booked' ? m.court_count : 0)
-    tag = b === 0 ? 'PLANNING' : b >= m.court_count ? (m.court_count > 1 ? '✓ COURTS BOOKED' : '✓ COURT BOOKED') : `✓ ${b} OF ${m.court_count} COURTS BOOKED`
-    tagColor = b === 0 ? '#9A9992' : '#0E5A3A'
+    tag = b === 0 ? 'Not booked yet' : b >= m.court_count ? (m.court_count > 1 ? 'Courts booked' : 'Court booked') : `${b} of ${m.court_count} courts booked`
     status = m.confirmed_count > m.size ? `Full · +${m.confirmed_count - m.size} extra` : full ? `Full${m.waitlist_count ? ` · +${m.waitlist_count}` : ''}` : `${m.confirmed_count}/${m.size} in`
     badge = full ? { background: '#111111', color: '#fff' } : { background: '#0E5A3A', color: '#fff' }
   } else if (kind === 'completed') {
     if (led) {
       const tr = transfersOf(led.players, led.expenses, led.settlements)
       const settled = tr.out.every(t => t.settled)
-      tag = `${money(tr.share, led.currency).toUpperCase()} EACH · ${settled ? 'SETTLED' : 'SETTLING UP'}`
-      tagColor = settled ? '#0E5A3A' : '#D6336C'
-    } else tag = inIt ? 'NO COST' : ''
+      tag = `${money(tr.share, led.currency)} each · ${settled ? 'Settled' : 'Settling up'}`
+    } else tag = inIt ? 'No cost' : ''
     status = 'Played'
     badge = { background: 'rgba(255,255,255,.6)', color: '#6B6B66' }
     if (m.last_winners) note = m.games_count > 1 ? `${m.last_winners} won the last game · ${m.games_count} games logged` : `${m.last_winners} won`
   } else {
-    tag = 'NO COST'
+    tag = 'No cost'
     status = 'Called off'
     badge = { background: 'rgba(255,255,255,.6)', color: '#9A9992' }
     const per = perCourt(m.format)
@@ -312,9 +320,11 @@ function MatchRow({ m, kind, money: led, showGroup }: { m: HomeMatch; kind: Kind
   return (
     <Link href={`/m/${m.slug}`} className="row-line" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 0', opacity: kind === 'abandoned' ? 0.6 : 1 }}>
       <div className="stack" style={{ gap: 3, flex: 1, minWidth: 0 }}>
-        <span className="display" style={{ fontSize: 15, textDecoration: kind === 'abandoned' ? 'line-through' : 'none' }}>{m.title}</span>
-        <span style={{ fontSize: 12, color: '#6B6B66', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</span>
-        {tags.length > 0 && <span style={{ ...tagStyle, color: tagColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tags.join(' · ').toUpperCase()}</span>}
+        <span className="display" style={{ fontSize: 16, lineHeight: 1.15, textDecoration: kind === 'abandoned' ? 'line-through' : 'none' }}>{m.title}</span>
+        <span className="display" style={{ fontSize: 15, color: kind === 'upcoming' || kind === 'live' ? '#111111' : '#6B6B66' }}>{when}</span>
+        <span style={{ fontSize: 12, color: '#9A9992', lineHeight: 1.4, marginTop: 2 }}>
+          {[sub, ...tags].join(' · ')}
+        </span>
         {note && <span style={{ fontSize: 12, color: '#55554F', lineHeight: 1.4 }}>{note}</span>}
       </div>
       <span className="badge" style={{ ...badge, fontSize: 12, fontWeight: 700, padding: '8px 12px' }}>{status}</span>

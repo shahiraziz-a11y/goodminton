@@ -158,7 +158,8 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
           </div>
           <div className="stack" style={{ gap: 8 }}>
             <span className="display" style={{ fontSize: 34, fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.02 }}>{m.title}</span>
-            <span style={{ fontSize: 15, color: '#6B6B66' }}>{m.venue || 'Venue TBC'} · {m.duration_min} min</span>
+            <span className="display" style={{ fontSize: 22, letterSpacing: '-.03em' }}>{L.dateLabel} · {L.timeRange}</span>
+            <span style={{ fontSize: 13, color: '#6B6B66' }}>{m.venue || 'Venue TBC'} · {m.duration_min} min</span>
           </div>
           {courtCards}
           <span className="display" style={{ fontSize: 15, fontWeight: 700, textAlign: 'center', color: '#0E5A3A' }}>
@@ -187,34 +188,26 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
   return (
     <Frame back="/" me={me}>
       <div className="screen" style={{ gap: 20, paddingLeft: 20, paddingRight: 20, paddingBottom: canSee ? 96 : 30 }}>
-        {/* Photo header: format, sign-up deadline, title, venue, status chips. */}
-        <div style={{ position: 'relative', minHeight: 300, borderRadius: 34, overflow: 'hidden', background: `#1D2A22 url(${photoFor(m.slug)}) center/cover`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 40, padding: 20, color: '#fff' }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,.4) 0%, rgba(0,0,0,0) 32%, rgba(0,0,0,.2) 55%, rgba(0,0,0,.78) 100%)' }} />
-          <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.12em' }}>
-              {`${singles ? 'SINGLES' : 'DOUBLES'} · ${nCourts} COURT${nCourts > 1 ? 'S' : ''} · ${m.size} PLAYERS`}
-            </span>
-            <span style={{ fontSize: 12, fontWeight: 600, padding: '8px 12px', borderRadius: 99, background: 'rgba(255,255,255,.2)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', flex: 'none' }}>
-              {m.past ? 'Played' : m.locked ? 'Sign-ups closed' : `RSVPs close ${m.rsvp_close_hours}h before`}
-            </span>
+        {/* Photo header: just the name and when it starts. The details sit underneath. */}
+        <div className="stack" style={{ gap: 10 }}>
+          <div style={{ position: 'relative', minHeight: 260, borderRadius: 34, overflow: 'hidden', background: `#1D2A22 url(${photoFor(m.slug)}) center/cover`, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 22, color: '#fff' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,.25) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,.25) 55%, rgba(0,0,0,.8) 100%)' }} />
+            <div className="stack" style={{ position: 'relative', gap: 8 }}>
+              <span className="display" style={{ fontSize: 38, letterSpacing: '-.045em', lineHeight: 1 }}>{m.title}</span>
+              <span className="display" style={{ fontSize: 22, letterSpacing: '-.03em', lineHeight: 1.15 }}>{L.dateLabel} · {L.timeRange}</span>
+            </div>
           </div>
-          <div className="stack" style={{ position: 'relative', gap: 8 }}>
-            <span className="display" style={{ fontSize: 38, letterSpacing: '-.045em', lineHeight: 1 }}>{m.title}</span>
-            <span style={{ fontSize: 15, color: 'rgba(255,255,255,.85)' }}>{m.venue || 'Venue TBC'} · {m.duration_min} min</span>
-            {!m.past && (
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
-                {nBooked === 0
-                  ? <span className="badge" style={{ ...heroChip, background: 'rgba(255,255,255,.22)', color: '#fff' }}>PLANNING · NOT BOOKED</span>
-                  : <span className="badge" style={{ ...heroChip, background: '#0E5A3A', color: '#fff' }}>
-                      {nBooked === nCourts ? (nCourts > 1 ? 'ALL COURTS BOOKED' : 'COURT BOOKED') : `${nBooked} OF ${nCourts} COURTS BOOKED`}
-                    </span>}
-                {m.locked && <span className="badge" style={{ ...heroChip, background: '#111111', color: '#fff' }}>SIGN-UPS CLOSED</span>}
-                {m.repeat_weekly && <span className="badge" style={{ ...heroChip, background: 'rgba(255,255,255,.22)', color: '#fff' }}>↻ WEEKLY</span>}
-                {m.group && (m.is_member
-                  ? <Link href={`/groups/${m.group.id}`} className="badge" style={{ ...heroChip, background: 'rgba(255,255,255,.9)', color: '#0E5A3A' }}>{m.group.name}</Link>
-                  : <span className="badge" style={{ ...heroChip, background: 'rgba(255,255,255,.9)', color: '#0E5A3A' }}>{m.group.name}</span>)}
-              </div>
-            )}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '0 4px' }}>
+            {[
+              `${singles ? 'Singles' : 'Doubles'} · ${nCourts} court${nCourts > 1 ? 's' : ''} · ${m.size} players`,
+              `${m.venue || 'Venue TBC'} · ${m.duration_min} min`,
+              m.past ? 'Played' : m.locked ? 'Sign-ups closed' : `RSVPs close ${m.rsvp_close_hours}h before`,
+              m.past ? '' : nBooked === 0 ? 'Not booked yet' : nBooked === nCourts ? (nCourts > 1 ? '✓ All courts booked' : '✓ Court booked') : `✓ ${nBooked} of ${nCourts} courts booked`,
+              m.repeat_weekly ? '↻ Weekly' : '',
+            ].filter(Boolean).map(t => <span key={t} className="meta-chip">{t}</span>)}
+            {m.group && (m.is_member
+              ? <Link href={`/groups/${m.group.id}`} className="meta-chip" style={{ color: '#0E5A3A' }}>{m.group.name}</Link>
+              : <span className="meta-chip">{m.group.name}</span>)}
           </div>
         </div>
 
@@ -500,7 +493,6 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
   )
 }
 
-const heroChip = { flex: 'none', fontSize: 12, fontWeight: 700, letterSpacing: '.04em', padding: '8px 12px' } as const
 
 type Rpc = <T>(fn: string, args: Record<string, unknown>, done?: (data: T) => void) => Promise<void>
 
