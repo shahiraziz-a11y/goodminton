@@ -50,7 +50,7 @@ export function PlayerPicker({ exclude = [], onPick, onNew, newLabel = 'Add as n
             <button key={p.id} type="button" onClick={() => onPick(p)} className="picker-row">
               <Avatar p={pp} size={32} font={12} />
               <span style={{ flex: 1, textAlign: 'left', fontSize: 15, fontWeight: 600 }}>{p.full_name}</span>
-              {p.is_guest && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', color: '#9A9992' }}>GUEST</span>}
+              {p.is_guest && <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', color: '#9A9992' }}>GUEST</span>}
             </button>
           )
         })}

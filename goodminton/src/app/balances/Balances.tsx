@@ -51,13 +51,13 @@ export function Balances({ meId, meName, ledger, origin }: { meId: string; meNam
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '0 -18px', padding: '0 18px 2px', scrollbarWidth: 'none' }}>
             {[['all', 'All groups'] as const, ...groupsHere].map(([id, name]) => (
               <button key={id} className="chip-btn" onClick={() => setGf(id)}
-                style={{ flex: 'none', height: 34, background: gf === id ? '#111111' : '#fff', color: gf === id ? '#fff' : '#111111', boxShadow: gf === id ? 'none' : '0 0 0 1px #E2E0DA' }}>{name}</button>
+                style={{ flex: 'none', height: 36, padding: '0 16px', fontWeight: 600, fontSize: 13, background: gf === id ? '#111111' : 'rgba(255,255,255,.55)', color: gf === id ? '#fff' : '#111111' }}>{name}</button>
             ))}
           </div>
         )}
-        <div className="stack" style={{ borderRadius: 28, padding: '26px 22px', background: '#F1F0EC', boxShadow: '0 0 0 1px #E2E0DA', gap: 8 }}>
+        <div className="card stack" style={{ borderRadius: 28, padding: '26px 22px', gap: 8 }}>
           <span className="eyebrow">{total >= 0 ? 'You are owed' : 'You owe'}</span>
-          <span className="display" style={{ fontSize: 44, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1, color: '#0E5A3A' }}>{fmt(Math.abs(total))}</span>
+          <span className="display" style={{ fontSize: 48, letterSpacing: '-.05em', lineHeight: 1, color: '#0E5A3A' }}>{fmt(Math.abs(total))}</span>
           <span className="note">{gf === 'all' ? 'Across all groups, unsettled' : `In ${groupsHere.find(([id]) => id === gf)?.[1]}, unsettled`}</span>
         </div>
         {!list.length && <div className="card" style={{ padding: 24, textAlign: 'center', color: '#6B6B66', fontSize: 14 }}>All square with everyone.</div>}
@@ -94,8 +94,8 @@ export function Balances({ meId, meName, ledger, origin }: { meId: string; meNam
                     <span style={{ fontSize: 14, fontWeight: 700 }}>{l.owedToMe ? `${friend(l.other).first} owes you` : `You owe ${friend(l.other).first}`}</span>
                     <span style={{ fontSize: 12, color: '#6B6B66' }}>{fmtDate(l.match.starts_at, l.match.timezone)} · {l.match.title}{gf === 'all' && groupsHere.length > 1 && l.match.group_name ? ` · ${l.match.group_name}` : ''}</span>
                   </span>
-                  <span style={{ fontSize: 14, fontWeight: 800 }}>{fmt(l.transfer.settled ? l.transfer.amount : l.transfer.open)}</span>
-                  <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', color: l.transfer.settled ? '#0E5A3A' : '#D6336C', width: 36, textAlign: 'right' }}>
+                  <span style={{ fontSize: 14, fontWeight: 700 }}>{fmt(l.transfer.settled ? l.transfer.amount : l.transfer.open)}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', color: l.transfer.settled ? '#0E5A3A' : '#D6336C', width: 36, textAlign: 'right' }}>
                     {l.transfer.settled ? 'PAID' : 'OPEN'}
                   </span>
                 </div>

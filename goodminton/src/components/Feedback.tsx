@@ -38,7 +38,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
           {pieces.current.map((p, i) => (
             <span key={i} style={{ position: 'absolute', top: -24, left: `${p.l}%`, width: p.w, height: p.w * 1.6, background: p.c, borderRadius: 2, transform: `rotate(${p.r}deg)`, animation: `csFall ${p.t}s ${p.d}s cubic-bezier(.25,.6,.4,1) forwards` }} />
           ))}
-          <div style={{ position: 'absolute', top: '42%', left: '50%', transform: 'translate(-50%,-50%)', padding: '18px 26px', borderRadius: 24, background: '#0E5A3A', color: '#fff', fontFamily: 'var(--display)', fontWeight: 800, fontSize: 22, whiteSpace: 'nowrap', boxShadow: '0 20px 50px -10px rgba(14,143,158,.6)', animation: 'csPop 2.8s ease forwards' }}>
+          <div style={{ position: 'absolute', top: '42%', left: '50%', transform: 'translate(-50%,-50%)', padding: '18px 26px', borderRadius: 24, background: '#0E5A3A', color: '#fff', fontFamily: 'var(--display)', fontWeight: 700, fontSize: 22, whiteSpace: 'nowrap', boxShadow: '0 20px 50px -10px rgba(14,143,158,.6)', animation: 'csPop 2.8s ease forwards' }}>
             Match full!
           </div>
         </div>

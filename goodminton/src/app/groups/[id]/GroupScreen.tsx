@@ -9,6 +9,7 @@ import { useFeedback } from '@/components/Feedback'
 import { Sheet } from '@/components/Sheet'
 import { whatsappUrl } from '@/lib/match'
 import { person } from '@/lib/people'
+import { photoFor } from '@/lib/photos'
 import { createClient } from '@/lib/supabase/client'
 import type { GroupDetail, GroupMember } from '@/lib/types'
 
@@ -46,8 +47,8 @@ export function GroupScreen({ meId, meName, g, origin }: { meId: string; meName:
         <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: m.id === meId ? 800 : 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {m.full_name}{m.id === meId ? ' · You' : ''}
         </span>
-        {m.role === 'owner' && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', color: '#0E5A3A' }}>OWNER</span>}
-        {m.is_guest && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', color: '#9A9992' }}>GUEST</span>}
+        {m.role === 'owner' && <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', color: '#0E5A3A' }}>OWNER</span>}
+        {m.is_guest && <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', color: '#9A9992' }}>GUEST</span>}
         {canAct && <button className="link-btn" aria-label={`Options for ${p.first}`} style={{ fontSize: 18, color: '#9A9992', padding: '0 4px' }} onClick={() => setActing(m)}>⋯</button>}
       </div>
     )
@@ -64,14 +65,14 @@ export function GroupScreen({ meId, meName, g, origin }: { meId: string; meName:
           </div>
         </div>
 
-        <div style={{ background: '#0E4A30', color: '#fff', borderRadius: 22, padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase', color: '#9FE0BC' }}>Invite people</span>
+        <div style={{ background: `linear-gradient(180deg, rgba(14,74,48,.6) 0%, rgba(6,42,26,.94) 70%), #0E4A30 url(${photoFor(g.id)}) center/cover`, color: '#fff', borderRadius: 28, padding: 18, paddingTop: 90, display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 30px 50px -30px rgba(14,40,26,.65)' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#CFE3D5' }}>Invite people</span>
           <span style={{ fontSize: 13, color: '#CFE3D5', lineHeight: 1.45 }}>Anyone with this link can join and see the group&apos;s matches, results and balances.</span>
           <span style={{ fontSize: 13, fontWeight: 700, padding: '10px 12px', borderRadius: 12, background: 'rgba(255,255,255,.08)', overflowWrap: 'anywhere' }}>{link}</span>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <a className="btn" style={{ height: 46, fontSize: 14, background: '#9FE0BC', color: '#062A1A', display: 'flex', alignItems: 'center', justifyContent: 'center' }} target="_blank" rel="noreferrer"
+            <a className="btn" style={{ height: 46, fontSize: 14, background: '#fff', color: '#111111', display: 'flex', alignItems: 'center', justifyContent: 'center' }} target="_blank" rel="noreferrer"
               href={whatsappUrl(`Join ${g.name} on Goodminton to see our badminton matches 🏸 ${link}`)}>Share on WhatsApp</a>
-            <button className="btn-2" style={{ height: 46, fontSize: 14 }} onClick={copy}>Copy link</button>
+            <button className="btn-2" style={{ height: 46, fontSize: 14, color: '#fff', background: 'rgba(255,255,255,.16)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.3)' }} onClick={copy}>Copy link</button>
           </div>
           {owner && (
             <button className="link-btn" style={{ alignSelf: 'flex-start', fontSize: 12, color: '#CFE3D5' }} disabled={busy}

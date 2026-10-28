@@ -33,8 +33,8 @@ export function JoinGroup({ code, g, me }: { code: string; g: GroupPreview | nul
         ) : (
           <>
             <div style={{ background: '#0E4A30', color: '#fff', borderRadius: 28, padding: '28px 22px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.16em', textTransform: 'uppercase', color: '#9FE0BC' }}>{g.owner} invited you to</span>
-              <span className="display" style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.03em', lineHeight: 1.05, overflowWrap: 'anywhere' }}>{g.name}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.16em', textTransform: 'uppercase', color: '#9FE0BC' }}>{g.owner} invited you to</span>
+              <span className="display" style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.05, overflowWrap: 'anywhere' }}>{g.name}</span>
               <span style={{ fontSize: 14, color: '#CFE3D5' }}>{g.members} member{g.members === 1 ? '' : 's'} on Goodminton</span>
             </div>
             <span style={{ fontSize: 14, color: '#6B6B66', lineHeight: 1.5 }}>Join to see the group&apos;s matches, sign up for spots, and keep track of results and who owes what.</span>

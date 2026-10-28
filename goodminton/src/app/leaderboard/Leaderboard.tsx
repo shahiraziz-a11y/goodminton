@@ -18,7 +18,7 @@ const pctOf = (x: number) => `${Math.round(x * 100)}%`
 const MIN_GAMES = 3
 
 function Duo({ a, b, size, edge }: { a: Person; b: Person; size: number; edge: string }) {
-  const s = (p: Person) => ({ width: size, height: size, borderRadius: '50%', background: p.color, color: '#fff', fontWeight: 800, fontSize: Math.round(size * 0.34), display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', boxShadow: `0 0 0 2.5px ${edge}` })
+  const s = (p: Person) => ({ width: size, height: size, borderRadius: '50%', background: p.color, color: '#fff', fontWeight: 700, fontSize: Math.round(size * 0.34), display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', boxShadow: `0 0 0 2.5px ${edge}` })
   return (
     <span style={{ display: 'flex', flex: 'none' }}>
       <span style={s(a)}>{a.initials}</span>
@@ -48,10 +48,10 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
   const surge = all.filter(q => q !== hot && q.form.length >= 3 && last3(q) >= 2).sort((a, b) => last3(b) - last3(a) || b.pct - a.pct)[0]
   const cold = table.length >= 4 ? table[table.length - 1] : undefined
   const awards = [
-    hot && hot.streak >= 2 && { q: hot, title: 'On fire', big: `${hot.streak} in a row`, sub: 'Longest win streak', bg: '#E5484D', fg: '#fff', accent: '#FFE1E2', ring: 'none' },
-    most && most.w + most.l >= 2 && { q: most, title: 'Ride or die', big: `${most.w + most.l} games`, sub: 'Most games together', bg: '#111111', fg: '#fff', accent: '#9FE0BC', ring: 'none' },
-    surge && { q: surge, title: 'Heating up', big: `${last3(surge)} of 3`, sub: 'Wins in last 3', bg: '#E3EEE6', fg: '#111111', accent: '#0E5A3A', ring: 'none' },
-    cold && { q: cold, title: 'Due a win', big: `${cold.w} of ${cold.w + cold.l}`, sub: 'Comeback loading…', bg: '#FFFFFF', fg: '#111111', accent: '#D9622B', ring: '0 0 0 1px #E2E0DA' },
+    hot && hot.streak >= 2 && { q: hot, title: 'On fire', big: `${hot.streak} in a row`, sub: 'Longest win streak', bg: '#111111', fg: '#fff', accent: '#FF8A7A', ring: 'none' },
+    most && most.w + most.l >= 2 && { q: most, title: 'Ride or die', big: `${most.w + most.l} games`, sub: 'Most games together', bg: '#0E4A30', fg: '#fff', accent: '#9FE0BC', ring: 'none' },
+    surge && { q: surge, title: 'Heating up', big: `${last3(surge)} of 3`, sub: 'Wins in last 3', bg: 'rgba(255,255,255,.6)', fg: '#111111', accent: '#0E5A3A', ring: 'inset 0 0 0 1px rgba(255,255,255,.8)' },
+    cold && { q: cold, title: 'Due a win', big: `${cold.w} of ${cold.w + cold.l}`, sub: 'Comeback loading…', bg: 'rgba(255,255,255,.6)', fg: '#111111', accent: '#D9622B', ring: 'inset 0 0 0 1px rgba(255,255,255,.8)' },
   ].filter(Boolean) as { q: PairRecord; title: string; big: string; sub: string; bg: string; fg: string; accent: string; ring: string }[]
 
   // Players: ranked by rating (beating strong pairs counts more), with their best partner.
@@ -72,7 +72,7 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
 
   const logBtn = (dark: boolean) => (
     <button className="chip-btn" onClick={() => setLogging(true)}
-      style={{ height: 40, flex: 'none', border: 'none', background: dark ? '#9FE0BC' : '#0E5A3A', color: dark ? '#062A1A' : '#fff', fontWeight: 800 }}>+ Log result</button>
+      style={{ height: 40, flex: 'none', border: 'none', background: dark ? '#fff' : '#111111', color: dark ? '#111111' : '#fff', fontWeight: 700 }}>+ Log result</button>
   )
 
   return (
@@ -93,15 +93,15 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
         ) : (
           <>
             {/* Dark court-green header. */}
-            <div style={{ margin: '-8px -18px 0', background: '#0E4A30', color: '#fff', padding: '14px 18px 18px', display: 'flex', flexDirection: 'column', gap: 18, borderRadius: '0 0 32px 32px', overflow: 'hidden', position: 'relative' }}>
+            <div style={{ background: 'linear-gradient(180deg, rgba(14,74,48,.55) 0%, rgba(6,42,26,.92) 100%), #0E4A30 url(/photos/court-1.webp) center/cover', color: '#fff', padding: '18px 18px 22px', display: 'flex', flexDirection: 'column', gap: 18, borderRadius: 32, overflow: 'hidden', position: 'relative', boxShadow: '0 30px 50px -30px rgba(14,40,26,.65)' }}>
               <div style={{ position: 'absolute', left: 18, right: 18, top: 0, bottom: 0, borderLeft: '1.5px solid rgba(255,255,255,.08)', borderRight: '1.5px solid rgba(255,255,255,.08)', pointerEvents: 'none' }} />
               <GroupChips groups={groups} current={data.group?.id} dark />
               <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
                 <div className="stack" style={{ gap: 6 }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.16em', textTransform: 'uppercase', color: '#9FE0BC' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.16em', textTransform: 'uppercase', color: '#9FE0BC' }}>
                     {doubles ? `Doubles · ${doubles} game${doubles > 1 ? 's' : ''}` : `${data.games.length} game${data.games.length > 1 ? 's' : ''}`}
                   </span>
-                  <span className="display" style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-.03em', lineHeight: 1.02, textWrap: 'balance' }}>Who rules the court?</span>
+                  <span className="display" style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.02, textWrap: 'balance' }}>Who rules the court?</span>
                 </div>
                 {logBtn(true)}
               </div>
@@ -124,21 +124,21 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
                     const rank = i + 1
                     const first = rank === 1
                     const top = rank <= 3
-                    const edge = first ? '#0E4A30' : top ? '#E3EEE6' : '#fff'
+                    const edge = first ? '#0E4A30' : top ? 'rgba(227,238,230,.85)' : 'rgba(255,255,255,.6)'
                     return (
-                      <div key={q.ids.join()} style={{ background: edge, color: first ? '#fff' : '#111111', boxShadow: d.mine ? `0 0 0 2px ${first ? '#9FE0BC' : '#0E5A3A'}` : top ? 'none' : '0 0 0 1px #E2E0DA', borderRadius: 18, padding: top ? '14px' : '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span className="display" style={{ fontSize: top ? 22 : 18, fontWeight: 800, width: 24, flex: 'none', color: first ? '#9FE0BC' : top ? '#0E5A3A' : '#C9C7BF' }}>{rank}</span>
+                      <div key={q.ids.join()} style={{ background: edge, color: first ? '#fff' : '#111111', boxShadow: d.mine ? `0 0 0 2px ${first ? '#9FE0BC' : '#0E5A3A'}` : 'inset 0 0 0 1px rgba(255,255,255,.7)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', borderRadius: 20, padding: top ? '14px' : '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span className="display" style={{ fontSize: top ? 22 : 18, fontWeight: 700, width: 24, flex: 'none', color: first ? '#9FE0BC' : top ? '#0E5A3A' : '#C9C7BF' }}>{rank}</span>
                         <Duo a={d.a} b={d.b} size={top ? 34 : 30} edge={edge} />
                         <span className="stack" style={{ gap: 3, flex: 1, minWidth: 0 }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                             <span style={{ fontSize: 14, fontWeight: d.mine || top ? 800 : 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.names}{d.mine ? ' · You' : ''}</span>
                           </span>
                           <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: first ? '#CFE3D5' : '#6B6B66' }}>
-                            {first && <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '.14em', padding: '3px 7px', borderRadius: 99, background: '#E5484D', color: '#fff', flex: 'none' }}>CHAMPS</span>}
+                            {first && <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.14em', padding: '3px 7px', borderRadius: 99, background: '#E5484D', color: '#fff', flex: 'none' }}>CHAMPS</span>}
                             {q.w} won · {q.l} lost
                           </span>
                         </span>
-                        <span className="display" style={{ fontSize: top ? 16 : 14, fontWeight: 800, flex: 'none', color: first ? '#9FE0BC' : '#111111' }}>{pctOf(q.pct)}</span>
+                        <span className="display" style={{ fontSize: top ? 16 : 14, fontWeight: 700, flex: 'none', color: first ? '#9FE0BC' : '#111111' }}>{pctOf(q.pct)}</span>
                       </div>
                     )
                   })}
@@ -149,7 +149,7 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
             {partners.length > 0 && (
               <div style={{ background: '#111111', color: '#fff', borderRadius: 24, padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase', color: '#9FE0BC' }}>Your chemistry</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#9FE0BC' }}>Your chemistry</span>
                   <span style={{ fontSize: 11, fontWeight: 700, color: '#A8A79F' }}>win % by partner</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
@@ -158,7 +158,7 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
                     return (
                       <div key={y.partner} className="stack" style={{ alignItems: 'center', gap: 6, padding: '12px 6px', borderRadius: 16, background: i === 0 ? 'rgba(159,224,188,.14)' : 'rgba(255,255,255,.06)', minWidth: 0 }}>
                         <Avatar p={p} size={36} font={12} />
-                        <span className="display" style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-.03em', color: i === 0 ? '#9FE0BC' : '#fff' }}>{pctOf(y.pct)}</span>
+                        <span className="display" style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-.03em', color: i === 0 ? '#9FE0BC' : '#fff' }}>{pctOf(y.pct)}</span>
                         <span style={{ fontSize: 11, fontWeight: 700, color: '#A8A79F', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>w/ {p.first} · {y.w}–{y.l}</span>
                       </div>
                     )
@@ -182,15 +182,15 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
                     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr)', alignItems: 'center', gap: 10 }}>
                       <div className="stack" style={{ alignItems: 'flex-start', gap: 8, minWidth: 0 }}>
                         <Duo a={l.a} b={l.b} size={36} edge="#fff" />
-                        <span style={{ fontSize: 13, fontWeight: 800, lineHeight: 1.2 }}>{l.names}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>{l.names}</span>
                       </div>
                       <div className="stack" style={{ alignItems: 'center', gap: 2 }}>
-                        <span className="display" style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1 }}>{rival.lw}–{rival.rw}</span>
-                        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.14em', color: '#9A9992' }}>HEAD TO HEAD</span>
+                        <span className="display" style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-.04em', lineHeight: 1 }}>{rival.lw}–{rival.rw}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.14em', color: '#9A9992' }}>HEAD TO HEAD</span>
                       </div>
                       <div className="stack" style={{ alignItems: 'flex-end', gap: 8, minWidth: 0, textAlign: 'right' }}>
                         <Duo a={r.a} b={r.b} size={36} edge="#fff" />
-                        <span style={{ fontSize: 13, fontWeight: 800, lineHeight: 1.2 }}>{r.names}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>{r.names}</span>
                       </div>
                     </div>
                     <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', gap: 3 }}>
@@ -211,10 +211,10 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
                     const d = duo(aw.q.ids)
                     return (
                       <div key={aw.title} className="stack" style={{ flex: 'none', width: 150, borderRadius: 20, padding: 14, background: aw.bg, color: aw.fg, boxShadow: aw.ring, gap: 12 }}>
-                        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase', color: aw.accent }}>{aw.title}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: aw.accent }}>{aw.title}</span>
                         <Duo a={d.a} b={d.b} size={30} edge={aw.bg} />
                         <span className="stack" style={{ gap: 2 }}>
-                          <span className="display" style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-.03em', lineHeight: 1 }}>{aw.big}</span>
+                          <span className="display" style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1 }}>{aw.big}</span>
                           <span style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{d.names}</span>
                           <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.75 }}>{aw.sub}</span>
                         </span>
@@ -264,7 +264,7 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr)', gap: 10, alignItems: 'center' }}>
                         <span style={{ fontSize: 14, fontWeight: aWin ? 800 : 500, color: aWin ? '#111111' : '#6B6B66' }}>{nm(g.a)}</span>
-                        <span className="display panel" style={{ fontWeight: 800, padding: '6px 10px', borderRadius: 10, whiteSpace: 'nowrap', fontSize: 11, textAlign: 'center' }}>
+                        <span className="display panel" style={{ fontWeight: 700, padding: '6px 10px', borderRadius: 10, whiteSpace: 'nowrap', fontSize: 11, textAlign: 'center' }}>
                           {aWin ? 'BEAT' : 'LOST TO'}
                           {g.score_a != null && g.score_b != null && <span style={{ display: 'block', fontSize: 12, marginTop: 2 }}>{g.score_a}–{g.score_b}</span>}
                         </span>
@@ -293,8 +293,8 @@ function GroupChips({ groups, current, dark }: { groups: MyGroup[]; current?: st
         return (
           <Link key={g.id} href={`/leaderboard?group=${g.id}`} replace className="chip-btn"
             style={{ flex: 'none', height: 32, display: 'flex', alignItems: 'center', fontSize: 12,
-              background: sel ? (dark ? '#9FE0BC' : '#111111') : (dark ? 'rgba(255,255,255,.10)' : '#fff'),
-              color: sel ? (dark ? '#062A1A' : '#fff') : (dark ? '#fff' : '#111111'),
+              background: sel ? (dark ? '#fff' : '#111111') : (dark ? 'rgba(255,255,255,.16)' : 'rgba(255,255,255,.55)'),
+              color: sel ? (dark ? '#111111' : '#fff') : (dark ? '#fff' : '#111111'),
               boxShadow: sel || dark ? 'none' : '0 0 0 1px #E2E0DA' }}>{g.name}</Link>
         )
       })}

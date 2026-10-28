@@ -18,7 +18,7 @@ export function Sheet({ open, onClose, title, subtitle, children }: { open: bool
       <div role="dialog" aria-modal="true" aria-label={title} onClick={e => e.stopPropagation()} className="sheet">
         <span style={{ width: 36, height: 5, borderRadius: 3, background: '#C9C7BF', alignSelf: 'center', flex: 'none' }} />
         <div className="stack" style={{ gap: 4 }}>
-          <span className="display" style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-.02em' }}>{title}</span>
+          <span className="display" style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.02em' }}>{title}</span>
           {subtitle && <span style={{ fontSize: 13, color: '#6B6B66' }}>{subtitle}</span>}
         </div>
         {children}

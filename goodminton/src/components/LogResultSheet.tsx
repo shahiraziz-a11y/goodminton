@@ -115,7 +115,7 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
             )
           })}
         </div>
-        <span style={{ fontSize: 14, fontWeight: 800, textAlign: 'center', lineHeight: 1.2 }}>{full || ps.some(Boolean) ? names(ps) : half === 1 ? 'Pick 1' : 'Pick 2'}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>{full || ps.some(Boolean) ? names(ps) : half === 1 ? 'Pick 1' : 'Pick 2'}</span>
         <span className={`win-tag${sel ? ' sel' : ''}`}>{sel ? 'WINNER' : full ? 'TAP IF WON' : 'PICK PLAYERS'}</span>
       </div>
     )
@@ -153,7 +153,7 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
       <span style={{ fontSize: 13, color: '#6B6B66', marginTop: -8 }}>{full ? (half === 1 ? 'Tap who won.' : 'Tap the pair that won.') : half === 1 ? 'Tap + to pick each player.' : 'Tap + to pick the players for each pair.'}</span>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr)', gap: 10, alignItems: 'center' }}>
         <Pair side="a" ps={a} />
-        <span className="display" style={{ fontSize: 13, fontWeight: 800, color: '#9A9992' }}>VS</span>
+        <span className="display" style={{ fontSize: 13, fontWeight: 700, color: '#9A9992' }}>VS</span>
         <Pair side="b" ps={b} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr)', gap: 10, alignItems: 'center', marginTop: -6 }}>
