@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { BLOCKED_REASON, isBlockedEmail } from '@/lib/blocked'
 import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
@@ -10,9 +11,10 @@ export async function GET(request: NextRequest) {
   let reason = searchParams.get('error_description') ?? 'No sign-in code came back from Google.'
   if (code) {
     const supabase = await createClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) return NextResponse.redirect(`${origin}${safeNext}`)
-    reason = error.message
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    if (!error && !isBlockedEmail(data.user?.email)) return NextResponse.redirect(`${origin}${safeNext}`)
+    if (error) reason = error.message
+    else { await supabase.auth.signOut(); reason = BLOCKED_REASON }
   }
   const back = new URL('/', origin)
   back.searchParams.set('error', 'signin')
