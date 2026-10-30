@@ -67,7 +67,6 @@ export function GroupScreen({ meId, meName, g, origin }: { meId: string; meName:
 
         <div style={{ background: `linear-gradient(180deg, rgba(14,74,48,.6) 0%, rgba(6,42,26,.94) 70%), #0E4A30 url(${photoFor(g.id)}) center/cover`, color: '#fff', borderRadius: 28, padding: 18, paddingTop: 90, display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 30px 50px -30px rgba(14,40,26,.65)' }}>
           <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#CFE3D5' }}>Invite people</span>
-          <span style={{ fontSize: 13, color: '#CFE3D5', lineHeight: 1.45 }}>Anyone with this link can join and see the group&apos;s matches, results and balances.</span>
           <span style={{ fontSize: 13, fontWeight: 700, padding: '10px 12px', borderRadius: 12, background: 'rgba(255,255,255,.08)', overflowWrap: 'anywhere' }}>{link}</span>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <a className="btn" style={{ height: 46, fontSize: 14, background: '#fff', color: '#111111', display: 'flex', alignItems: 'center', justifyContent: 'center' }} target="_blank" rel="noreferrer"

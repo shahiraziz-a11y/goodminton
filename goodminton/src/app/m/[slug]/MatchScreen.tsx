@@ -14,13 +14,12 @@ import { photoFor } from '@/lib/photos'
 import { loadPlayers } from '@/components/PlayerPicker'
 import { AlertsCard } from '@/components/Pwa'
 import { Sheet } from '@/components/Sheet'
-import { balancedByRating, ratings, shuffled } from '@/lib/stats'
 import { courtNumber, fmtDate, localDateTime, money } from '@/lib/format'
 import { gameLine, matchLabels, matchSummary, whatsappUrl } from '@/lib/match'
 import { person, type Person } from '@/lib/people'
 import { transfersOf } from '@/lib/split'
 import { createClient, signInWithGoogle } from '@/lib/supabase/client'
-import { isVisible, perCourt, type Format, type Leaderboard, type MatchGame, type MatchView, type PlayerOption } from '@/lib/types'
+import { isVisible, perCourt, type Format, type MatchGame, type MatchView, type PlayerOption } from '@/lib/types'
 
 export function MatchScreen({ m, link, started }: { m: MatchView; link: string; started: boolean }) {
   const router = useRouter()
@@ -127,7 +126,8 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
     rpc<{ on_court: number }>('allow_extra', { p_match: m.id, p_user: id, p_court: c }, r => flash(`${first} is in · ${r.on_court} on court ${c}, rotating`))
   }
   const firstOpen = courts.find(c => !c.booking.booked)
-  const showGhost = nCourts < 4 && full && wc > 0 && !m.past
+  // The organiser has the waitlist itself; everyone else sees who's waiting as a court.
+  const showGhost = nCourts < 4 && full && wc > 0 && !m.past && !isOrg
   const ghostSlots: Slot[] = Array.from({ length: per }, (_, i) => {
     const w = m.waitlist?.[i]
     if (i >= Math.min(wc, per)) return { kind: 'empty' }
@@ -198,10 +198,11 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
               <span className="display" style={{ fontSize: 22, letterSpacing: '-.03em', lineHeight: 1.15 }}>{L.dateLabel} · {L.start}</span>
             </div>
           </div>
+          <span style={{ fontSize: 13, color: '#55554F', fontWeight: 600, padding: '0 6px', lineHeight: 1.4 }}>
+            {[m.venue || 'Venue TBC', `${m.duration_min} min`, `${singles ? 'Singles' : 'Doubles'} · ${m.size} players`, nCourts > 1 ? `${nCourts} courts` : '', canSee && m.parking ? `Parking: ${m.parking}` : ''].filter(Boolean).join(' · ')}
+          </span>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '0 4px' }}>
             {[
-              `${singles ? 'Singles' : 'Doubles'} · ${nCourts} court${nCourts > 1 ? 's' : ''} · ${m.size} players`,
-              `${m.venue || 'Venue TBC'} · ${m.duration_min} min`,
               m.past ? 'Played' : m.locked ? 'Sign-ups closed' : `RSVPs close ${m.rsvp_close_hours}h before`,
               m.past ? '' : nBooked === 0 ? 'Not booked yet' : nBooked === nCourts ? (nCourts > 1 ? '✓ All courts booked' : '✓ Court booked') : `✓ ${nBooked} of ${nCourts} courts booked`,
               m.repeat_weekly ? '↻ Weekly' : '',
@@ -237,16 +238,15 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
         {outsider && open && !full && (
           <div className="stack" style={{ gap: 10 }}>
             <span style={{ fontSize: 14, color: '#6B6B66', textAlign: 'center' }}>Signed in as <b style={{ color: '#111111' }}>{me?.name}</b></span>
-            {m.group && !m.is_member && <span className="note" style={{ textAlign: 'center' }}>Joining also adds you to <b>{m.group.name}</b>, so you&apos;ll see its matches.</span>}
+            {m.group && !m.is_member && <span className="note" style={{ textAlign: 'center' }}>You&apos;ll join <b>{m.group.name}</b> too.</span>}
             <button className="btn" disabled={busy} onClick={() => join()}>Confirm I&apos;m playing</button>
-            <span className="note" style={{ textAlign: 'center' }}>Or tap an open spot on a court to pick where you play.</span>
           </div>
         )}
         {outsider && open && full && (
           <div className="card stack" style={{ padding: 20, gap: 16 }}>
             <div className="stack" style={{ gap: 6 }}>
               <span className="display" style={{ fontSize: 17, fontWeight: 700 }}>Match is full</span>
-              <span style={{ fontSize: 14, color: '#6B6B66', lineHeight: 1.45 }}>Join the waitlist. You&apos;ll move up if someone drops out, or play on a second court once 4 are waiting.</span>
+              <span style={{ fontSize: 14, color: '#6B6B66', lineHeight: 1.45 }}>You&apos;ll move up if someone drops out.</span>
             </div>
             <button className="btn red" disabled={busy} onClick={() => rpc<{ position: number }>('join_match', { p_match: m.id }, r => flash(`You're #${r.position} on the waitlist`))}>Join waitlist</button>
           </div>
@@ -255,7 +255,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
           <div className="card stack" style={{ padding: 20, gap: 14 }}>
             <div className="stack" style={{ gap: 4 }}>
               <span className="display" style={{ fontSize: 16, fontWeight: 700 }}>You&apos;re organising, not playing</span>
-              <span style={{ fontSize: 13, color: '#6B6B66', lineHeight: 1.45 }}>You still run the match: edit it, book courts, add or remove players and see the costs.</span>
+              <span style={{ fontSize: 13, color: '#6B6B66', lineHeight: 1.45 }}>You still run the match.</span>
             </div>
             <button className="btn-2" style={{ color: '#0E5A3A', fontWeight: 700 }} disabled={busy}
               onClick={() => rpc<{ status: string; position?: number }>('join_match', { p_match: m.id }, r => flash(r.status === 'confirmed' ? "You're playing" : `You're #${r.position} on the waitlist`))}>
@@ -313,7 +313,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
         {!canSee && (
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '0 4px', color: '#9A9992' }}>
             <LockIcon />
-            <span className="note" style={{ lineHeight: 1.4, textWrap: 'pretty' }}>Court number and costs are visible to confirmed players only.</span>
+            <span className="note" style={{ lineHeight: 1.4, textWrap: 'pretty' }}>Court number shows once you&apos;re in.</span>
           </div>
         )}
 
@@ -327,7 +327,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
               {!firstOpen ? (
                 <div className="stack" style={{ gap: 2 }}>
                   <span style={{ fontSize: 14, fontWeight: 700, color: '#0E5A3A' }}>✓ {nCourts > 1 ? 'All courts booked' : 'Court booked'}</span>
-                  <span style={{ fontSize: 12, color: '#6B6B66' }}>Players are locked in. Only you can remove someone. Edit a booking on its court card.</span>
+                  <span style={{ fontSize: 12, color: '#6B6B66' }}>Players are locked in.</span>
                 </div>
               ) : (
                 <div className="stack" style={{ gap: 10 }}>
@@ -342,7 +342,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
               <div style={{ borderTop: '1px solid rgba(0,0,0,.06)' }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ flex: 1, fontSize: 14, color: '#6B6B66', lineHeight: 1.35 }}>
-                  {m.repeats ? 'Repeats weekly. This week\'s and next week\'s matches are always set up.' : 'One-off match'}
+                  {m.repeats ? 'Repeats weekly' : 'One-off match'}
                 </span>
                 <button className="chip-btn" disabled={busy} onClick={() => {
                   if (m.repeats && !confirm('Stop repeating? Later weeks that nobody else has joined will be removed.')) return
@@ -380,9 +380,6 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
                 <button className="btn red" disabled={busy} onClick={() => rpc('upgrade_match', { p_match: m.id }, () => { flash(`Now ${m.size + per} players on ${nCourts + 1} courts`); celebrate() })}>Open court {nCourts + 1}</button>
               </div>
             )}
-            {nCourts < 4 && full && wc > 0 && wc < per && (
-              <span className="note" style={{ padding: '0 4px' }}>Hold off booking another court. With fewer than {per} waiting, someone would sit out.</span>
-            )}
           </>
         )}
 
@@ -397,40 +394,10 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
                 <span className="display" style={{ fontSize: 18, fontWeight: 700 }}>{finalLine}</span>
               </div>
             )}
-            {nBooked > 0 && (
-              <div className="card stack" style={{ padding: '18px 20px', gap: 4 }}>
-                <span className="eyebrow">Venue</span>
-                <span style={{ fontSize: 16, fontWeight: 700 }}>{m.venue}</span>
-                <span style={{ fontSize: 13, color: '#6B6B66' }}>{[m.courts, m.parking].filter(Boolean).join(' · ')}</span>
-              </div>
-            )}
-
-            {!singles && !m.past && courts.some(c => c.players.length === per) && (
-              <div className="card stack" style={{ padding: '18px 20px', gap: 14 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                  <span className="eyebrow">Doubles pairs</span>
-                  <span style={{ fontSize: 12, color: '#6B6B66' }}>Left pair vs right pair</span>
-                </div>
-                {courts.map((c, i) => c.players.length === per && (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ flex: 1, fontSize: 13, fontWeight: 700, minWidth: 0 }}>{nCourts > 1 ? `Court ${i + 1}` : 'Court'}</span>
-                    <button className="chip-btn" disabled={busy} onClick={() => rpc('set_court_order', { p_match: m.id, p_ids: shuffled(c.players.map(p => p.id)) }, () => flash('Pairs shuffled'))}>Shuffle</button>
-                    <button className="chip-btn" disabled={busy} onClick={async () => {
-                      const { data, error } = await createClient().rpc('get_leaderboard', m.group ? { p_group: m.group.id } : {})
-                      if (error) return flash(error.message)
-                      const order = balancedByRating(c.players.map(p => p.id), ratings((data as Leaderboard).games))
-                      rpc('set_court_order', { p_match: m.id, p_ids: order }, () => flash('Balanced by rating'))
-                    }}>Balance</button>
-                  </div>
-                ))}
-              </div>
-            )}
-
             {(m.liable?.length ?? 0) > 0 && (
               <div className="card stack" style={{ padding: '18px 20px', gap: 10 }}>
                 <div className="stack" style={{ gap: 3 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', color: '#D9622B' }}>REMOVED AFTER BOOKING · STILL OWE A SHARE</span>
-                  <span style={{ fontSize: 12, color: '#6B6B66' }}>Cleared automatically when someone takes the spot.</span>
                 </div>
                 {m.liable!.map(p => (
                   <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -485,7 +452,6 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
                 setMySpot(false)
                 rpc<{ promoted: string | null }>('leave_match', { p_match: m.id }, r => flash(r.promoted ? `Spot passed to ${r.promoted.split(' ')[0]}` : 'You dropped out'))
               }}>Drop out</button>
-              <span style={{ fontSize: 13, color: '#6B6B66', textAlign: 'center' }}>Your spot goes to the next person on the waitlist.</span>
             </div>
           )}
         </Sheet>
@@ -518,10 +484,10 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
         <span className="eyebrow">Cost split</span>
         <span style={{ fontSize: 14, color: '#6B6B66', lineHeight: 1.45 }}>
           {hasCost
-            ? `Costs are split when sign-ups close (${m.rsvp_close_hours}h before the start, or when the organiser taps Lock now), so late changes and extra players are included. Until then nobody owes anything.`
+            ? 'Split when sign-ups close.'
             : m.status === 'booked'
-            ? 'Starts once a booked court has its cost entered. Tap Edit on the court card to add it.'
-            : 'Starts once a court is booked and its cost is entered. Whoever books a court pays for it, and it\'s split between the players on booked courts.'}
+            ? 'Add the court cost to start the split.'
+            : 'Starts once a court is booked.'}
         </span>
       </div>
     )
@@ -537,7 +503,7 @@ function CostSplit({ m, tr, fmt, personOf, busy, rpc, link }: {
         <span style={{ fontSize: 12, color: '#6B6B66', fontWeight: 600, paddingBottom: 4 }}>each · {fmt(tr.total)} total</span>
       </div>
       {meId && !(m.split_ids ?? []).includes(meId) && m.viewer.role === 'confirmed' && (
-        <span className="note" style={{ marginTop: -6 }}>Your court isn&apos;t booked yet, so you&apos;re not paying anything yet. Once it&apos;s booked, everyone on booked courts shares the total.</span>
+        <span className="note" style={{ marginTop: -6 }}>Your court isn&apos;t booked yet, so nothing to pay.</span>
       )}
       <div className="stack" style={{ gap: 12 }}>
         {(m.expenses ?? []).map((e, i) => (
@@ -631,7 +597,7 @@ function BookSheet({ court, onClose, m, rpc, count }: { court: number | null; on
   if (!court) return null
   return (
     <Sheet open={court !== null} onClose={onClose} title={booked ? `Court ${court} details` : `Book court ${court}`}
-      subtitle={booked ? 'Update what the players see.' : `The ${count} player${count === 1 ? '' : 's'} on this court get locked in. You pay for it; the cost is split between everyone on booked courts.`}>
+      subtitle={booked ? 'Update what the players see.' : 'You pay; everyone on booked courts shares it.'}>
       {!booked && count < per && (
         <span className="note" style={{ color: '#D9622B', marginTop: -6 }}>
           {count} of {per} on this court so far. You can still book it: the open spot{per - count > 1 ? 's stay' : ' stays'} open for anyone to join.
@@ -758,7 +724,7 @@ function AddPlayerSheet({ open, onClose, m, exclude, inviteMsg, rpc }: {
             style={{ flex: 1, minWidth: 0, height: 48, borderRadius: 14, border: 'none', boxShadow: '0 0 0 1px #E2E0DA', padding: '0 14px', fontSize: 15, color: '#111111', background: '#fff', outline: 'none' }} />
           <button type="submit" style={{ height: 48, padding: '0 18px', borderRadius: 14, border: 'none', background: '#0E5A3A', color: '#fff', fontWeight: 700, fontSize: 14, flex: 'none' }}>Add</button>
         </div>
-        <span className="note" style={{ fontSize: 12 }}>Not on Goodminton? They&apos;re added as your guest and you pay their share.</span>
+        <span className="note" style={{ fontSize: 12 }}>Not on the app? They&apos;re your guest; you cover their share.</span>
       </form>
       {usual.length > 0 && (
         <div className="stack" style={{ gap: 6 }}>

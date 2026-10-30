@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Avatar } from '@/components/Avatar'
 import { Frame } from '@/components/Chrome'
+import { NoGroup } from '@/components/NoGroup'
 import { useFeedback } from '@/components/Feedback'
 import { fmtDate, money } from '@/lib/format'
 import { whatsappUrl } from '@/lib/match'
@@ -13,7 +14,7 @@ import { createClient } from '@/lib/supabase/client'
 import { CURRENCY } from '@/lib/supabase/env'
 import type { LedgerMatch } from '@/lib/types'
 
-export function Balances({ meId, meName, ledger, origin }: { meId: string; meName: string; ledger: LedgerMatch[]; origin: string }) {
+export function Balances({ meId, meName, ledger, origin, inGroup = true }: { meId: string; meName: string; ledger: LedgerMatch[]; origin: string; inGroup?: boolean }) {
   const router = useRouter()
   const { flash } = useFeedback()
   const [busy, setBusy] = useState(false)
@@ -55,6 +56,17 @@ export function Balances({ meId, meName, ledger, origin }: { meId: string; meNam
     router.refresh()
   }
 
+  if (!inGroup && !ledger.length) {
+    return (
+      <Frame me={person(meId, meName)} tab="balances">
+        <div className="screen">
+          <span className="h1">Balances</span>
+          <NoGroup title="Split the court, not hairs" line="Organise a match. Court costs split themselves and you'll see who owes what." photo={4} />
+        </div>
+      </Frame>
+    )
+  }
+
   return (
     <Frame me={person(meId, meName)} tab="balances">
       <div className="screen">
@@ -70,7 +82,7 @@ export function Balances({ meId, meName, ledger, origin }: { meId: string; meNam
         <div className="card stack" style={{ borderRadius: 28, padding: '26px 22px', gap: 8 }}>
           <span className="eyebrow">{total >= 0 ? 'You are owed' : 'You owe'}</span>
           <span className="display" style={{ fontSize: 48, letterSpacing: '-.05em', lineHeight: 1, color: '#0E5A3A' }}>{fmt(Math.abs(total))}</span>
-          <span className="note">{gf === 'all' ? 'Across all groups, unsettled' : `In ${groupsHere.find(([id]) => id === gf)?.[1]}, unsettled`}</span>
+          <span className="note">{gf === 'all' ? 'Unsettled' : `Unsettled in ${groupsHere.find(([id]) => id === gf)?.[1]}`}</span>
         </div>
         {!list.length && <div className="card" style={{ padding: 24, textAlign: 'center', color: '#6B6B66', fontSize: 14 }}>All square with everyone.</div>}
         <div className="stack" style={{ gap: 14 }}>
@@ -121,7 +133,6 @@ export function Balances({ meId, meName, ledger, origin }: { meId: string; meNam
                 </div>
               ))}
             </div>
-            <span className="note" style={{ marginTop: -4 }}>You cover these in the split. Tap once they&apos;ve paid you back.</span>
           </div>
         )}
         <div className="stack" style={{ gap: 12 }}>

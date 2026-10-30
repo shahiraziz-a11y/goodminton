@@ -7,6 +7,7 @@ import { useFeedback } from '@/components/Feedback'
 import { EmailToggle } from '@/components/EmailToggle'
 import { AlertsCard, InstallCard } from '@/components/Pwa'
 import { LogResultSheet } from '@/components/LogResultSheet'
+import { NoGroup } from '@/components/NoGroup'
 import { Sheet } from '@/components/Sheet'
 import { BLOCKED_REASON } from '@/lib/blocked'
 import { fmtDate, fmtTime, money } from '@/lib/format'
@@ -31,7 +32,6 @@ export function SignIn({ failed, reason }: { failed?: boolean; reason?: string }
           </div>
           <div className="stack" style={{ position: 'relative', background: 'rgba(246,245,241,.84)', backdropFilter: 'blur(22px) saturate(140%)', WebkitBackdropFilter: 'blur(22px) saturate(140%)', borderRadius: 30, padding: '24px 20px 20px', gap: 16 }}>
             <span className="display" style={{ fontSize: 28, letterSpacing: '-.035em', lineHeight: 1.1 }}>Share one link. First in play.</span>
-            <span style={{ fontSize: 15, lineHeight: 1.5, color: '#55554F' }}>The rest wait for a second court. Your Google name is used, so there&apos;s nothing to type.</span>
             {failed && (
               <span className="note" style={{ color: '#E0245E' }}>
                 {reason === BLOCKED_REASON ? reason : <>Sign-in didn&apos;t complete. Try again.{reason ? <><br /><span style={{ color: '#9A9992' }}>Reason: {reason.slice(0, 160)}</span></> : null}</>}
@@ -71,6 +71,7 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
   const next = soon.find(m => kindOf(m) === 'live' && m.my_role) ?? soon.find(m => m.my_role) ?? soon[0]
   const groups = groupMatches(shownMatches.filter(m => m !== next))
   const bySlug = new Map(ledger.map(l => [l.slug, l]))
+  const fresh = !myGroups.length && !matches.length
   return (
     <Frame me={me} tab="home">
       <div className="screen" style={{ gap: 24, paddingLeft: 20, paddingRight: 20 }}>
@@ -79,9 +80,10 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
             <span style={{ fontSize: 15, color: '#55554F', fontWeight: 600 }}>Hey {me.first}</span>
             <span className="display" style={{ fontSize: 44, letterSpacing: '-.05em', lineHeight: 0.96 }}>Game on.</span>
           </div>
-          <button className="btn" aria-label="New match or log a game" onClick={() => setChoosing(true)}
-            style={{ width: 56, height: 56, borderRadius: '50%', fontSize: 28, fontWeight: 400, lineHeight: 1, padding: 0, flex: 'none', boxShadow: '0 12px 24px -10px rgba(0,0,0,.5)' }}>+</button>
+          {!fresh && <button className="btn" aria-label="New match or log a game" onClick={() => setChoosing(true)}
+            style={{ width: 56, height: 56, borderRadius: '50%', fontSize: 28, fontWeight: 400, lineHeight: 1, padding: 0, flex: 'none', boxShadow: '0 12px 24px -10px rgba(0,0,0,.5)' }}>+</button>}
         </div>
+        {fresh && <NoGroup title="Find your crew" line="Matches, results and who owes what, just for the people you play with." />}
         {next && <NextUp m={next} />}
         {stats && <StatsCard s={stats} />}
         {many && (
@@ -93,14 +95,13 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
           </div>
         )}
         {groups.map(g => <Group key={g.kind} g={g} ledger={bySlug} showGroup={many && gf === 'all'} />)}
-        {!shownMatches.length && (
-          <div className="card" style={{ padding: 28, textAlign: 'center', color: '#6B6B66', fontSize: 14 }}>
-            {myGroups.length
-              ? 'No matches yet. Tap + to organise one.'
-              : <>No matches yet. Tap + to organise one, or open a group invite link from a friend. <Link href="/groups" style={{ color: '#0E5A3A', fontWeight: 700 }}>Groups</Link></>}
+        {!fresh && !shownMatches.length && (
+          <div className="card stack" style={{ padding: 28, gap: 6, textAlign: 'center', alignItems: 'center' }}>
+            <span className="display" style={{ fontSize: 17, fontWeight: 700 }}>No matches yet</span>
+            <span className="note">Tap + to organise one.</span>
           </div>
         )}
-        <BalanceRow total={bal.total} currency={ledger[0]?.currency ?? CURRENCY} />
+        {!fresh && <BalanceRow total={bal.total} currency={ledger[0]?.currency ?? CURRENCY} />}
         <InstallCard />
         <AlertsCard />
         <EmailToggle />
@@ -110,14 +111,14 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
           <span className="avatar" style={{ width: 44, height: 44, borderRadius: 14, background: '#0E5A3A', fontSize: 22 }}>+</span>
           <span className="stack" style={{ flex: 1, gap: 2 }}>
             <span style={{ fontSize: 16, fontWeight: 700 }}>New match</span>
-            <span style={{ fontSize: 13, color: '#6B6B66' }}>Plan a game and share the link. Book the court once enough people are in.</span>
+            <span style={{ fontSize: 13, color: '#6B6B66' }}>Plan a game, share the link.</span>
           </span>
         </Link>
         <button className="card sheet-option" onClick={() => { setChoosing(false); setLogging(true) }}>
           <span className="avatar" style={{ width: 44, height: 44, borderRadius: 14, background: '#111111', fontSize: 20 }}>🏸</span>
           <span className="stack" style={{ flex: 1, gap: 2 }}>
             <span style={{ fontSize: 16, fontWeight: 700 }}>Log a game</span>
-            <span style={{ fontSize: 13, color: '#6B6B66' }}>Pick the two pairs, tap who won. Goes on the leaderboard.</span>
+            <span style={{ fontSize: 13, color: '#6B6B66' }}>Tap who won.</span>
           </span>
         </button>
       </Sheet>

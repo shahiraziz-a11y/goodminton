@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Frame } from '@/components/Chrome'
+import { NoGroup } from '@/components/NoGroup'
 import { useFeedback } from '@/components/Feedback'
 import { Sheet } from '@/components/Sheet'
 import { fmtDate } from '@/lib/format'
@@ -12,10 +13,10 @@ import { photoFor } from '@/lib/photos'
 import { createClient } from '@/lib/supabase/client'
 import type { MyGroup } from '@/lib/types'
 
-export function GroupsList({ meId, meName, groups }: { meId: string; meName: string; groups: MyGroup[] }) {
+export function GroupsList({ meId, meName, groups, startNew = false }: { meId: string; meName: string; groups: MyGroup[]; startNew?: boolean }) {
   const router = useRouter()
   const { flash } = useFeedback()
-  const [creating, setCreating] = useState(false)
+  const [creating, setCreating] = useState(startNew)
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -36,15 +37,9 @@ export function GroupsList({ meId, meName, groups }: { meId: string; meName: str
             <span style={{ fontSize: 14, color: '#6B6B66', fontWeight: 600 }}>Your crews</span>
             <span className="h1">Groups</span>
           </div>
-          <button className="chip-btn go" style={{ height: 40 }} onClick={() => { setName(''); setCreating(true) }}>+ New group</button>
+          {groups.length > 0 && <button className="chip-btn go" style={{ height: 40 }} onClick={() => { setName(''); setCreating(true) }}>+ New group</button>}
         </div>
-        <span className="note" style={{ marginTop: -10 }}>You only see matches, results and balances from your groups. Invite people with a group&apos;s link.</span>
-        {!groups.length && (
-          <div className="card stack" style={{ padding: 28, gap: 8, textAlign: 'center', alignItems: 'center' }}>
-            <span className="display" style={{ fontSize: 17, fontWeight: 700 }}>No groups yet</span>
-            <span className="note">Make one for the people you play with, then share its link.</span>
-          </div>
-        )}
+        {!groups.length && <NoGroup title="Find your crew" line="Organise a match or start a group, then share the link." photo={2} onStart={() => { setName(''); setCreating(true) }} />}
         <div className="stack" style={{ gap: 10 }}>
           {groups.map(g => (
             <Link key={g.id} href={`/groups/${g.id}`} className="card" style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 14 }}>

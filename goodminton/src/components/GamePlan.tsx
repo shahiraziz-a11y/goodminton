@@ -115,9 +115,6 @@ export function GamePlan({ m }: { m: MatchView }) {
       </div>
       {!plan.length ? (
         <div className="card stack" style={{ padding: 20, gap: 12 }}>
-          <span style={{ fontSize: 14, color: '#6B6B66', lineHeight: 1.45 }}>
-            Round 1 pairs everyone fairly, with sides evened out by rating. Each new round keeps the pairs as they were and only swaps in who&apos;s waiting. Tap a name to change anyone, or Mix it up for new partners. Tap who won as you go.
-          </span>
           <button className="btn" disabled={busy} onClick={() => makeRound()}>{busy ? 'Making…' : 'Make round 1'}</button>
         </div>
       ) : (
