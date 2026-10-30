@@ -117,6 +117,8 @@ export type LedgerMatch = {
   players: string[]
   expenses: Expense[]
   settlements: Settlement[]
+  /** Guest → who pays their share (and collects it from them). */
+  guests?: Record<string, string>
   people: Record<string, string>
 }
 

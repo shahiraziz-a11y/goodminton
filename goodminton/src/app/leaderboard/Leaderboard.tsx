@@ -111,7 +111,6 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
                   </span>
                   <span className="display" style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.02, textWrap: 'balance' }}>Who rules the court?</span>
                 </div>
-                {logBtn(true)}
               </div>
               {!table.length && (
                 <span style={{ position: 'relative', fontSize: 13, color: '#CFE3D5', fontWeight: 600, lineHeight: 1.4 }}>
@@ -299,6 +298,12 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
           </>
         )}
       </div>
+      {data.games.length > 0 && (
+        <button type="button" aria-label="Log result" onClick={() => { setDraft(null); setLogging(true) }}
+          style={{ position: 'fixed', right: 20, bottom: 'calc(env(safe-area-inset-bottom) + 100px)', zIndex: 6, width: 60, height: 60, borderRadius: '50%', border: 'none',
+            background: '#0E5A3A', color: '#fff', fontSize: 32, fontWeight: 300, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 12px 28px -8px rgba(14,90,58,.65), 0 0 0 4px rgba(255,255,255,.7)' }}>+</button>
+      )}
       <LogResultSheet open={logging} onClose={() => { setLogging(false); setDraft(null) }} groups={groups} defaultGroup={data.group?.id}
         recent={data.games} people={data.people} edit={draft?.edit} prefill={draft?.prefill}
         matchTitle={draft?.edit ? data.games.find(g => g.id === draft.edit!.id)?.match_title ?? undefined : undefined} />

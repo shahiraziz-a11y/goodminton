@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { balancesFor, transfersOf } from './split.ts'
+import { balancesFor, guestDues, transfersOf } from './split.ts'
 import { courtNumber, fmtDate, fmtTime, joinedAfter, money } from './format.ts'
 import { initials } from './people.ts'
 import type { LedgerMatch } from './types.ts'
@@ -90,4 +90,19 @@ test('booked one court, the other court pays nothing yet', () => {
 test('court number from a booked court label', () => {
   assert.equal(courtNumber('Court 3', 0), '03')
   assert.equal(courtNumber('Court 12', 0), '12')
+})
+
+test('guests to collect from: my guests only, their share, collected when settled', () => {
+  const m = (id: string, settlements: { from: string; to: string; amount: number }[] = []): LedgerMatch => ({
+    id, slug: id, title: id, starts_at: '2026-10-20T16:00:00Z', timezone: 'Asia/Dubai', currency: 'AED',
+    // Ann carries her guest g; Bob carries h. Ann paid the court.
+    players: ['ann', 'ann', 'bob', 'bob'], expenses: [{ amount: 120, paid_by: 'ann' }], settlements,
+    guests: { g: 'ann', h: 'bob' }, people: { g: 'Guest G', h: 'Guest H' },
+  })
+  const a = guestDues('ann', [m('m1'), m('m2', [{ from: 'g', to: 'ann', amount: 30 }])])
+  assert.deepEqual(a.dues.map(d => [d.match.id, d.guest, d.amount, d.collected]), [['m1', 'g', 30, false], ['m2', 'g', 30, true]])
+  assert.equal(a.open, 30)
+  assert.deepEqual(guestDues('bob', [m('m1')]).dues.map(d => d.guest), ['h'])
+  // A guest settlement doesn't change who owes whom between players.
+  assert.deepEqual(balancesFor('ann', [m('m2', [{ from: 'g', to: 'ann', amount: 30 }])]).net, { bob: 60 })
 })
