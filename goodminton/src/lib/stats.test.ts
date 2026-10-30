@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { balancedByRating, balancedOrder, bestPairs, biggestRivalry, myPartners, pairRecords, pairTable, ratings, standings, START_RATING } from './stats.ts'
+import { balancedByRating, balancedOrder, bestPairs, biggestRivalry, myPartners, pairRecords, pairTable, ratings, recentMatchups, recentPairs, recentPlayers, standings, START_RATING } from './stats.ts'
 import type { Game } from './types.ts'
 
 const G = (a: string[], b: string[], winner: 'a' | 'b'): Game =>
@@ -93,4 +93,23 @@ test('my partners and the biggest rivalry', () => {
   const r = biggestRivalry(gs)
   assert.deepEqual(r && [r.l, r.r, r.lw, r.rw, r.lastWinner], [['a', 'b'], ['c', 'd'], 2, 1, 'r'])
   assert.equal(biggestRivalry(gs.slice(3)), null)
+})
+
+test('recent matchups: newest first, side order and pair order ignored', () => {
+  const gs = [
+    G(['a', 'b'], ['c', 'd'], 'a'),
+    G(['d', 'c'], ['b', 'a'], 'b'),
+    G(['a', 'c'], ['b', 'd'], 'a'),
+    G(['x'], ['y'], 'a'),
+    G(['a', 'd'], ['b', 'c'], 'a'),
+    G(['e', 'f'], ['g', 'h'], 'a'),
+  ]
+  assert.deepEqual(recentMatchups(gs), [{ a: ['a', 'b'], b: ['c', 'd'] }, { a: ['a', 'c'], b: ['b', 'd'] }, { a: ['a', 'd'], b: ['b', 'c'] }])
+})
+
+test('recent pairs and players: distinct, newest first', () => {
+  const gs = [G(['a', 'b'], ['c', 'd'], 'a'), G(['b', 'a'], ['c', 'e'], 'b'), G(['x'], ['y'], 'a')]
+  assert.deepEqual(recentPairs(gs), [['a', 'b'], ['c', 'd'], ['c', 'e']])
+  assert.deepEqual(recentPairs(gs, 2), [['a', 'b'], ['c', 'd']])
+  assert.deepEqual(recentPlayers(gs), ['a', 'b', 'c', 'd', 'e', 'x', 'y'])
 })

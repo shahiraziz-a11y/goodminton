@@ -9,7 +9,7 @@ import { CourtCard, type Slot } from '@/components/Court'
 import { useFeedback } from '@/components/Feedback'
 import { FormatPicker } from '@/components/FormatPicker'
 import { GamePlan } from '@/components/GamePlan'
-import { LogResultSheet } from '@/components/LogResultSheet'
+import { LogResultSheet, type GameDraft } from '@/components/LogResultSheet'
 import { photoFor } from '@/lib/photos'
 import { loadPlayers } from '@/components/PlayerPicker'
 import { AlertsCard } from '@/components/Pwa'
@@ -31,6 +31,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
   const [adding, setAdding] = useState(false)
   const [mySpot, setMySpot] = useState(false)
   const [logCourt, setLogCourt] = useState<number | null>(null)
+  const [editGame, setEditGame] = useState<GameDraft | null>(null)
 
   // Keep the count live while the page is open.
   useEffect(() => {
@@ -385,7 +386,8 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
           </>
         )}
 
-        {m.games.length > 0 && <Results m={m} link={link} dateLabel={L.dateLabel} canRemove={(g) => isOrg || g.created_by === m.viewer.id} rpc={rpc} busy={busy} />}
+        {m.games.length > 0 && <Results m={m} link={link} dateLabel={L.dateLabel} canRemove={(g) => isOrg || g.created_by === m.viewer.id} rpc={rpc} busy={busy}
+          onEdit={g => setEditGame({ id: g.id, a: g.a.map(p => person(p.id, p.full_name)), b: g.b.map(p => person(p.id, p.full_name)), winner: g.winner, score_a: g.score_a, score_b: g.score_b })} />}
 
         {canSee && tr && (
           <>
@@ -489,8 +491,8 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
         </Sheet>
       )}
       {canSee && (
-        <LogResultSheet open={logCourt !== null} onClose={() => setLogCourt(null)} matchId={m.id} matchTitle={m.title} initialCourt={logCourt ?? 0}
-          courts={courts.map((c, i) => ({ label: `Court ${i + 1}`, players: c.players }))} />
+        <LogResultSheet open={logCourt !== null || !!editGame} onClose={() => { setLogCourt(null); setEditGame(null) }} matchId={m.id} matchTitle={m.title} initialCourt={logCourt ?? 0}
+          courts={courts.map((c, i) => ({ label: `Court ${i + 1}`, players: c.players }))} edit={editGame} defaultGroup={m.group?.id} />
       )}
     </Frame>
   )
@@ -798,8 +800,8 @@ function AddPlayerSheet({ open, onClose, m, exclude, inviteMsg, rpc }: {
 }
 
 /** Games logged in this match, and the summary to post to the group. */
-function Results({ m, link, dateLabel, canRemove, rpc, busy }: {
-  m: MatchView; link: string; dateLabel: string; canRemove: (g: MatchGame) => boolean; rpc: Rpc; busy: boolean
+function Results({ m, link, dateLabel, canRemove, rpc, busy, onEdit }: {
+  m: MatchView; link: string; dateLabel: string; canRemove: (g: MatchGame) => boolean; rpc: Rpc; busy: boolean; onEdit: (g: MatchGame) => void
 }) {
   const { flash } = useFeedback()
   const [all, setAll] = useState(false)
@@ -813,6 +815,7 @@ function Results({ m, link, dateLabel, canRemove, rpc, busy }: {
       {shown.map(g => (
         <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ flex: 1, fontSize: 14, lineHeight: 1.35 }}>{gameLine(g)}</span>
+          {canRemove(g) && <button className="link-btn" disabled={busy} onClick={() => onEdit(g)} style={{ fontSize: 12, fontWeight: 700, color: '#0E5A3A', flex: 'none' }}>Edit</button>}
           {canRemove(g) && (
             <button aria-label="Remove result" disabled={busy} onClick={() => {
               if (!confirm('Remove this result? It also comes off the leaderboard.')) return

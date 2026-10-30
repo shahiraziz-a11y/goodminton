@@ -145,3 +145,40 @@ export function biggestRivalry(games: Game[]): Rivalry | null {
   // The leading pair on the left.
   return rv.rw > rv.lw ? { l: rv.r, r: rv.l, lw: rv.rw, rw: rv.lw, lastWinner: rv.lastWinner === 'l' ? 'r' : 'l' } : rv
 }
+
+/** Last few distinct doubles matchups (either side order counts as the same), newest first. */
+export function recentMatchups(games: Game[], limit = 3): { a: string[]; b: string[] }[] {
+  const seen = new Set<string>()
+  const out: { a: string[]; b: string[] }[] = []
+  for (const g of games) {
+    if (g.a.length !== 2 || g.b.length !== 2) continue
+    const k = [pairKey(g.a), pairKey(g.b)].sort().join(' v ')
+    if (seen.has(k)) continue
+    seen.add(k)
+    out.push({ a: g.a, b: g.b })
+    if (out.length >= limit) break
+  }
+  return out
+}
+
+/** Last few distinct doubles pairs, newest first. */
+export function recentPairs(games: Game[], limit = 6): string[][] {
+  const seen = new Set<string>()
+  const out: string[][] = []
+  for (const g of games) {
+    for (const side of [g.a, g.b]) {
+      if (side.length !== 2 || seen.has(pairKey(side))) continue
+      seen.add(pairKey(side))
+      out.push(side)
+      if (out.length >= limit) return out
+    }
+  }
+  return out
+}
+
+/** Everyone in recent games, most recent first. */
+export function recentPlayers(games: Game[], limit = 12): string[] {
+  const out: string[] = []
+  for (const g of games) for (const id of [...g.a, ...g.b]) if (!out.includes(id)) out.push(id)
+  return out.slice(0, limit)
+}

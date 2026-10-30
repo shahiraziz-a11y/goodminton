@@ -6,23 +6,23 @@ import { useState } from 'react'
 import { Avatar } from '@/components/Avatar'
 import { Frame } from '@/components/Chrome'
 import { useFeedback } from '@/components/Feedback'
-import { LogResultSheet } from '@/components/LogResultSheet'
+import { LogResultSheet, type GameDraft } from '@/components/LogResultSheet'
 import { fmtDate } from '@/lib/format'
 import { person, type Person } from '@/lib/people'
 import { biggestRivalry, myPartners, pairRecords, pairTable, ratings, standings, START_RATING, type PairRecord } from '@/lib/stats'
 import { createClient } from '@/lib/supabase/client'
-import type { Leaderboard as Data, MyGroup } from '@/lib/types'
+import type { Game, Leaderboard as Data, MyGroup } from '@/lib/types'
 
 const fmtDay = (d: string) => fmtDate(d + 'T12:00:00Z', 'UTC')
 const pctOf = (x: number) => `${Math.round(x * 100)}%`
 const MIN_GAMES = 3
 
 function Duo({ a, b, size, edge }: { a: Person; b: Person; size: number; edge: string }) {
-  const s = (p: Person) => ({ width: size, height: size, borderRadius: '50%', background: p.color, color: '#fff', fontWeight: 700, fontSize: Math.round(size * 0.34), display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', boxShadow: `0 0 0 2.5px ${edge}` })
+  const ring = { display: 'flex', flex: 'none', borderRadius: '50%', boxShadow: `0 0 0 2.5px ${edge}` } as const
   return (
     <span style={{ display: 'flex', flex: 'none' }}>
-      <span style={s(a)}>{a.initials}</span>
-      <span style={{ ...s(b), marginLeft: -Math.round(size * 0.28) }}>{b.initials}</span>
+      <span style={ring}><Avatar p={a} size={size} font={Math.round(size * 0.34)} /></span>
+      <span style={{ ...ring, marginLeft: -Math.round(size * 0.28) }}><Avatar p={b} size={size} font={Math.round(size * 0.34)} /></span>
     </span>
   )
 }
@@ -31,6 +31,10 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
   const router = useRouter()
   const { flash } = useFeedback()
   const [logging, setLogging] = useState(false)
+  // Edit or duplicate a game from the history.
+  const [draft, setDraft] = useState<{ edit?: GameDraft; prefill?: GameDraft } | null>(null)
+  const [menu, setMenu] = useState<string | null>(null)
+  const [showAll, setShowAll] = useState(false)
   const who = (id: string) => person(id, data.people[id] ?? 'Player')
   const duo = (ids: [string, string]) => { const [a, b] = ids.map(who); return { a, b, names: `${a.first} & ${b.first}`, mine: ids.includes(meId) } }
   const nm = (ids: string[]) => ids.map(id => who(id).first).join(' & ')
@@ -60,7 +64,11 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
     .map(s => ({ ...s, rating: rating[s.id] ?? START_RATING, best: myPartners(data.games, s.id)[0] }))
     .sort((a, b) => b.rating - a.rating || b.w - a.w)
     .map((s, i) => ({ ...s, rank: i + 1, p: who(s.id) }))
-  const recent = data.games.slice(0, 8)
+  const recent = showAll ? data.games : data.games.slice(0, 8)
+  const toDraft = (g: Game, withResult: boolean): GameDraft => ({
+    id: withResult ? g.id : undefined, a: g.a.map(who), b: g.b.map(who),
+    ...(withResult ? { winner: g.winner, score_a: g.score_a, score_b: g.score_b } : {}),
+  })
 
   async function remove(id: string) {
     if (!confirm('Remove this result? The leaderboard will update.')) return
@@ -71,7 +79,7 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
   }
 
   const logBtn = (dark: boolean) => (
-    <button className="chip-btn" onClick={() => setLogging(true)}
+    <button className="chip-btn" onClick={() => { setDraft(null); setLogging(true) }}
       style={{ height: 40, flex: 'none', border: 'none', background: dark ? '#fff' : '#111111', color: dark ? '#111111' : '#fff', fontWeight: 700 }}>+ Log result</button>
   )
 
@@ -252,7 +260,10 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
             </div>
 
             <div className="stack" style={{ gap: 12 }}>
-              <span className="eyebrow">Recent games</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span className="eyebrow">{showAll ? `All games · ${data.games.length}` : 'Recent games'}</span>
+                {data.games.length > 8 && <button className="link-btn" style={{ fontSize: 12, fontWeight: 700, color: '#0E5A3A' }} onClick={() => setShowAll(!showAll)}>{showAll ? 'Show fewer' : `Show all ${data.games.length}`}</button>}
+              </div>
               <div className="card" style={{ padding: '4px 18px' }}>
                 {recent.map(g => {
                   const aWin = g.winner === 'a'
@@ -260,7 +271,8 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
                     <div key={g.id} className="row-line stack" style={{ gap: 8, padding: '14px 0' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                         <span style={{ fontSize: 11, fontWeight: 700, color: '#9A9992' }}>{fmtDay(g.played_on)} · {g.match_title ?? 'Friendly'}</span>
-                        {g.created_by === meId && <button className="link-btn" style={{ fontSize: 11, color: '#9A9992' }} onClick={() => remove(g.id)}>Remove</button>}
+                        <button className="link-btn" aria-label="More" aria-expanded={menu === g.id} onClick={() => setMenu(menu === g.id ? null : g.id)}
+                          style={{ fontSize: 16, lineHeight: 1, color: '#6B6B66', padding: '0 4px', marginTop: -4 }}>⋯</button>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr)', gap: 10, alignItems: 'center' }}>
                         <span style={{ fontSize: 14, fontWeight: aWin ? 800 : 500, color: aWin ? '#111111' : '#6B6B66' }}>{nm(g.a)}</span>
@@ -270,6 +282,15 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
                         </span>
                         <span style={{ fontSize: 14, fontWeight: aWin ? 500 : 800, color: aWin ? '#6B6B66' : '#111111', textAlign: 'right' }}>{nm(g.b)}</span>
                       </div>
+                      {menu === g.id && (
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                          <button className="chip-btn" style={{ height: 32, fontSize: 12 }} onClick={() => { setMenu(null); setDraft({ prefill: toDraft(g, false) }); setLogging(true) }}>Duplicate</button>
+                          {g.created_by === meId && <>
+                            <button className="chip-btn" style={{ height: 32, fontSize: 12 }} onClick={() => { setMenu(null); setDraft({ edit: toDraft(g, true) }); setLogging(true) }}>Edit</button>
+                            <button className="chip-btn" style={{ height: 32, fontSize: 12, color: '#C2410C' }} onClick={() => { setMenu(null); remove(g.id) }}>Delete</button>
+                          </>}
+                        </div>
+                      )}
                     </div>
                   )
                 })}
@@ -278,7 +299,9 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
           </>
         )}
       </div>
-      <LogResultSheet open={logging} onClose={() => setLogging(false)} groups={groups} defaultGroup={data.group?.id} />
+      <LogResultSheet open={logging} onClose={() => { setLogging(false); setDraft(null) }} groups={groups} defaultGroup={data.group?.id}
+        recent={data.games} people={data.people} edit={draft?.edit} prefill={draft?.prefill}
+        matchTitle={draft?.edit ? data.games.find(g => g.id === draft.edit!.id)?.match_title ?? undefined : undefined} />
     </Frame>
   )
 }
