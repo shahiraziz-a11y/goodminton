@@ -21,7 +21,6 @@ type Props = {
   num: string | null
   dateLabel: string
   start: string
-  end: string
   slots: Slot[]
   /** Confirmed viewer, but the court isn't booked yet. */
   tbc?: boolean
@@ -36,7 +35,7 @@ type Props = {
 }
 
 /** A court card: number, time, and a top-down court with players either side of the net. */
-export function CourtCard({ label, num, dateLabel, start, end, slots, tbc, ghost, footer, booking, action, extras = [] }: Props) {
+export function CourtCard({ label, num, dateLabel, start, slots, tbc, ghost, footer, booking, action, extras = [] }: Props) {
   return (
     <div className="card" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14, opacity: ghost ? 0.85 : 1 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 10 }}>
@@ -58,7 +57,6 @@ export function CourtCard({ label, num, dateLabel, start, end, slots, tbc, ghost
         <div className="panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, padding: '8px 12px', borderRadius: 14 }}>
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.12em', color: '#6B6B66' }}>{dateLabel}</span>
           <span className="display" style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>{start}</span>
-          <span className="display muted" style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>→ {end}</span>
         </div>
       </div>
       <div className="court-stage">

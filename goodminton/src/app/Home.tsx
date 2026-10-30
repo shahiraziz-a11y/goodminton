@@ -8,6 +8,7 @@ import { EmailToggle } from '@/components/EmailToggle'
 import { AlertsCard, InstallCard } from '@/components/Pwa'
 import { LogResultSheet } from '@/components/LogResultSheet'
 import { Sheet } from '@/components/Sheet'
+import { BLOCKED_REASON } from '@/lib/blocked'
 import { fmtDate, fmtTime, money } from '@/lib/format'
 import { person } from '@/lib/people'
 import { photoFor } from '@/lib/photos'
@@ -33,7 +34,7 @@ export function SignIn({ failed, reason }: { failed?: boolean; reason?: string }
             <span style={{ fontSize: 15, lineHeight: 1.5, color: '#55554F' }}>The rest wait for a second court. Your Google name is used, so there&apos;s nothing to type.</span>
             {failed && (
               <span className="note" style={{ color: '#E0245E' }}>
-                Sign-in didn&apos;t complete. Try again.{reason ? <><br /><span style={{ color: '#9A9992' }}>Reason: {reason.slice(0, 160)}</span></> : null}
+                {reason === BLOCKED_REASON ? reason : <>Sign-in didn&apos;t complete. Try again.{reason ? <><br /><span style={{ color: '#9A9992' }}>Reason: {reason.slice(0, 160)}</span></> : null}</>}
               </span>
             )}
             <GoogleButton busy={busy} onClick={async () => {

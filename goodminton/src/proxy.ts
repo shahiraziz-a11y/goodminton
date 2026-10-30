@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { BLOCKED_REASON, isBlockedEmail } from './lib/blocked'
 import { SITE_URL, SUPABASE_KEY, SUPABASE_URL } from './lib/supabase/env'
 
 // Keeps the Supabase session cookie fresh on every page request.
@@ -44,7 +45,17 @@ export async function proxy(request: NextRequest) {
     },
   })
   // Refreshes an expired session; verifies locally when it's still valid.
-  await supabase.auth.getClaims()
+  const { data } = await supabase.auth.getClaims()
+  // Already signed in with a work account: sign them out and say why.
+  if (isBlockedEmail(data?.claims?.email as string | undefined) && !pathname.startsWith('/auth/')) {
+    await supabase.auth.signOut()
+    const to = new URL('/', request.url)
+    to.searchParams.set('error', 'signin')
+    to.searchParams.set('reason', BLOCKED_REASON)
+    const out = NextResponse.redirect(to)
+    response.cookies.getAll().forEach(c => out.cookies.set(c))
+    return out
+  }
   return response
 }
 
