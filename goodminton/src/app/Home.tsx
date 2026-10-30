@@ -79,13 +79,13 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
           <div className="stack" style={{ gap: 4 }}>
             <span style={{ fontSize: 15, color: '#55554F', fontWeight: 600 }}>Hey {me.first}</span>
             <span className="display" style={{ fontSize: 44, letterSpacing: '-.05em', lineHeight: 0.96 }}>Game on.</span>
+            {stats && <div style={{ display: 'flex', gap: 6, marginTop: 6 }}><StatPills s={stats} /></div>}
           </div>
           {!fresh && <button className="btn" aria-label="New match or log a game" onClick={() => setChoosing(true)}
             style={{ width: 56, height: 56, borderRadius: '50%', fontSize: 28, fontWeight: 400, lineHeight: 1, padding: 0, flex: 'none', boxShadow: '0 12px 24px -10px rgba(0,0,0,.5)' }}>+</button>}
         </div>
         {fresh && <NoGroup title="Find your crew" line="Matches, results and who owes what, just for the people you play with." />}
         {next && <NextUp m={next} />}
-        {stats && <StatsCard s={stats} />}
         {many && (
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '0 -20px', padding: '0 20px 4px', scrollbarWidth: 'none' }}>
             {[{ id: 'all', name: 'All groups' }, ...myGroups].map(g => (
@@ -175,43 +175,17 @@ function Group({ g, ledger, showGroup }: { g: GroupData; ledger: Map<string, Led
 }
 
 /** Weeks in a row with a game, the last 8 weeks, and lifetime totals. Hidden until you've played. */
-function StatsCard({ s }: { s: HomeStats }) {
+/** Weekly streak and matches played, small, next to the greeting. */
+function StatPills({ s }: { s: HomeStats }) {
   if (!s.matches_played && !s.games_played) return null
   const w = s.week_streak
-  const note = !w ? 'Play this week to start a streak'
-    : s.played_this_week ? 'Played this week. Keep it going.'
-    : 'Play this week to keep it going.'
-  const weeks = s.last_weeks ?? []
-  const tile = (big: string | number, label: string) => (
-    <div className="panel stack" style={{ padding: 12, gap: 2 }}>
-      <span className="display" style={{ fontSize: 20 }}>{big}</span>
-      <span style={{ fontSize: 12, fontWeight: 600, color: '#6B6B66' }}>{label}</span>
-    </div>
-  )
   return (
-    <div className="card stack" style={{ borderRadius: 28, padding: '18px 20px', gap: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-        <div className="stack" style={{ gap: 4 }}>
-          <span className="display" style={{ fontSize: 20 }}>{w} week{w === 1 ? '' : 's'} in a row</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#0E5A3A' }}>{note}</span>
-        </div>
-        <span className="display" style={{ fontSize: 44, letterSpacing: '-.05em', lineHeight: 0.9, color: '#0E5A3A' }}>{w}</span>
-      </div>
-      {weeks.length > 0 && (
-        <div style={{ display: 'flex', gap: 6 }} aria-label="Last 8 weeks">
-          {weeks.map((on, i) => {
-            const now = i === weeks.length - 1
-            return <span key={i} title={now ? 'This week' : `${weeks.length - 1 - i} week${weeks.length - 1 - i === 1 ? '' : 's'} ago`}
-              style={{ flex: 1, height: 28, borderRadius: 8, background: on ? (now ? '#0E5A3A' : 'rgba(14,90,58,.55)') : 'rgba(255,255,255,.45)',
-                boxShadow: now ? '0 0 0 2px rgba(255,255,255,.9), 0 0 0 4px #0E5A3A' : 'inset 0 0 0 1px rgba(255,255,255,.6)' }} />
-          })}
-        </div>
-      )}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-        {tile(s.matches_played, `match${s.matches_played === 1 ? '' : 'es'} played`)}
-        {tile(s.games_played, `game${s.games_played === 1 ? '' : 's'} logged`)}
-      </div>
-    </div>
+    <>
+      <span className="meta-chip" style={{ whiteSpace: 'nowrap' }} title={s.played_this_week ? 'Played this week' : 'Play this week to keep it going'}>
+        {w ? <>🔥 <b style={{ color: s.played_this_week ? '#0E5A3A' : '#111111' }}>{w}</b> wk streak</> : 'No streak'}
+      </span>
+      <span className="meta-chip" style={{ whiteSpace: 'nowrap' }}><b style={{ color: '#111111' }}>{s.matches_played}</b> match{s.matches_played === 1 ? '' : 'es'}</span>
+    </>
   )
 }
 
