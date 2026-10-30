@@ -7,6 +7,7 @@ import { Avatar } from '@/components/Avatar'
 import { Frame } from '@/components/Chrome'
 import { useFeedback } from '@/components/Feedback'
 import { LogResultSheet, type GameDraft } from '@/components/LogResultSheet'
+import { NoGroup } from '@/components/NoGroup'
 import { fmtDate } from '@/lib/format'
 import { person, type Person } from '@/lib/people'
 import { biggestRivalry, myPartners, pairRecords, pairTable, ratings, standings, START_RATING, type PairRecord } from '@/lib/stats'
@@ -86,7 +87,12 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
   return (
     <Frame me={person(meId, meName)} tab="board">
       <div className="screen" style={{ gap: 22 }}>
-        {!data.games.length ? (
+        {!groups.length && !data.games.length ? (
+          <>
+            <span className="h1">Leaderboard</span>
+            <NoGroup title="Who rules the court?" line="Join or start a group, log who won, and the standings build up here." photo={1} />
+          </>
+        ) : !data.games.length ? (
           <>
             <GroupChips groups={groups} current={data.group?.id} dark={false} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 10 }}>
@@ -95,7 +101,7 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
             </div>
             <div className="card stack" style={{ padding: 28, gap: 8, textAlign: 'center', alignItems: 'center' }}>
               <span className="display" style={{ fontSize: 17, fontWeight: 700 }}>No games yet</span>
-              <span className="note">Log who won after each game and the standings build up here.</span>
+              <span className="note">Log who won and the standings build up here.</span>
             </div>
           </>
         ) : (

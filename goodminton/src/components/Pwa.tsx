@@ -143,7 +143,7 @@ export function AlertsCard({ compact, reason }: { compact?: boolean; reason?: st
       <span style={{ width: 44, height: 44, borderRadius: 12, background: '#E3EEE6', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}><BellIcon size={22} /></span>
       <span className="stack" style={{ flex: 1, minWidth: 0, gap: 2 }}>
         <span style={{ fontSize: 15, fontWeight: 700 }}>Turn on alerts</span>
-        <span style={{ fontSize: 12, color: '#6B6B66', lineHeight: 1.4 }}>Know when people join, the court is booked, or you move up the waitlist.</span>
+        <span style={{ fontSize: 12, color: '#6B6B66', lineHeight: 1.4 }}>Joins, bookings and waitlist moves.</span>
       </span>
       <button className="chip-btn go" disabled={busy} onClick={turnOn}>Turn on</button>
       <button onClick={() => { store(() => localStorage.setItem(ALERTS_DISMISS_KEY, '1')); setState(null) }} aria-label="Dismiss"

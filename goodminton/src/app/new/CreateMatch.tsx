@@ -70,13 +70,12 @@ export function CreateMatch({ groups = [], initialGroup }: { groups?: MyGroup[];
         <div className="stack" style={{ gap: 10 }}>
           <span className="eyebrow">RSVPs close</span>
           <Seg options={[2, 6, 24].map(h => ({ value: h, label: `${h}h before` }))} value={f.closes} onChange={v => set('closes', v)} />
-          <span className="note">Sign-ups lock automatically, so you have the final count in time to book.</span>
         </div>
         <div className="stack" style={{ gap: 10 }}>
           <span className="eyebrow">Repeats</span>
           <Seg options={[{ value: false, label: 'Just once' }, { value: true, label: 'Every week' }]} value={f.weekly} onChange={v => set('weekly', v)} />
           {f.weekly && (
-            <span className="note">Next week&apos;s match appears automatically once this one starts, open to everyone. This week&apos;s players get told. Nothing is booked until you book it.</span>
+            <span className="note">The next 2 weeks are always set up.</span>
           )}
         </div>
         <button className="btn" onClick={create} disabled={busy}>{busy ? 'Creating…' : 'Create plan & get link'}</button>

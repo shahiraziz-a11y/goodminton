@@ -37,7 +37,7 @@ export function JoinGroup({ code, g, me }: { code: string; g: GroupPreview | nul
               <span className="display" style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.05, overflowWrap: 'anywhere' }}>{g.name}</span>
               <span style={{ fontSize: 14, color: '#CFE3D5' }}>{g.members} member{g.members === 1 ? '' : 's'} on Goodminton</span>
             </div>
-            <span style={{ fontSize: 14, color: '#6B6B66', lineHeight: 1.5 }}>Join to see the group&apos;s matches, sign up for spots, and keep track of results and who owes what.</span>
+            <span style={{ fontSize: 14, color: '#6B6B66', lineHeight: 1.5 }}>Matches, results and balances, all in one place.</span>
             {me ? (
               <button className="btn" disabled={busy} onClick={join}>{busy ? 'Joining…' : `Join ${g.name}`}</button>
             ) : (
