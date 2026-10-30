@@ -61,7 +61,7 @@ export function Balances({ meId, meName, ledger, origin, inGroup = true }: { meI
       <Frame me={person(meId, meName)} tab="balances">
         <div className="screen">
           <span className="h1">Balances</span>
-          <NoGroup title="Split the court, not hairs" line="Join or start a group. Court costs split themselves and you'll see who owes what." photo={4} />
+          <NoGroup title="Split the court, not hairs" line="Organise a match. Court costs split themselves and you'll see who owes what." photo={4} />
         </div>
       </Frame>
     )

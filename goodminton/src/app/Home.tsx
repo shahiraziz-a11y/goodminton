@@ -83,7 +83,7 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
           {!fresh && <button className="btn" aria-label="New match or log a game" onClick={() => setChoosing(true)}
             style={{ width: 56, height: 56, borderRadius: '50%', fontSize: 28, fontWeight: 400, lineHeight: 1, padding: 0, flex: 'none', boxShadow: '0 12px 24px -10px rgba(0,0,0,.5)' }}>+</button>}
         </div>
-        {fresh && <NoGroup title="Find your crew" line="Matches, results and who owes what, just for the people you play with." match />}
+        {fresh && <NoGroup title="Find your crew" line="Matches, results and who owes what, just for the people you play with." />}
         {next && <NextUp m={next} />}
         {stats && <StatsCard s={stats} />}
         {many && (

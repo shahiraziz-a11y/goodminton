@@ -90,7 +90,7 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
         {!groups.length && !data.games.length ? (
           <>
             <span className="h1">Leaderboard</span>
-            <NoGroup title="Who rules the court?" line="Join or start a group, log who won, and the standings build up here." photo={1} />
+            <NoGroup title="Who rules the court?" line="Organise a match, log who won, and the standings build up here." photo={1} />
           </>
         ) : !data.games.length ? (
           <>

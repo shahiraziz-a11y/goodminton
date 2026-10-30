@@ -39,7 +39,7 @@ export function GroupsList({ meId, meName, groups, startNew = false }: { meId: s
           </div>
           {groups.length > 0 && <button className="chip-btn go" style={{ height: 40 }} onClick={() => { setName(''); setCreating(true) }}>+ New group</button>}
         </div>
-        {!groups.length && <NoGroup title="Find your crew" line="Start a group for the people you play with and share its link." photo={2} onStart={() => { setName(''); setCreating(true) }} />}
+        {!groups.length && <NoGroup title="Find your crew" line="Organise a match or start a group, then share the link." photo={2} onStart={() => { setName(''); setCreating(true) }} />}
         <div className="stack" style={{ gap: 10 }}>
           {groups.map(g => (
             <Link key={g.id} href={`/groups/${g.id}`} className="card" style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 14 }}>
