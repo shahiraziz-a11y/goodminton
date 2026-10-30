@@ -8,7 +8,7 @@ import { useFeedback } from '@/components/Feedback'
 import { fmtDate, money } from '@/lib/format'
 import { whatsappUrl } from '@/lib/match'
 import { person } from '@/lib/people'
-import { balancesFor } from '@/lib/split'
+import { balancesFor, guestDues } from '@/lib/split'
 import { createClient } from '@/lib/supabase/client'
 import { CURRENCY } from '@/lib/supabase/env'
 import type { LedgerMatch } from '@/lib/types'
@@ -27,12 +27,14 @@ export function Balances({ meId, meName, ledger, origin }: { meId: string; meNam
   const names: Record<string, string> = Object.assign({}, ...ledger.map(m => m.people))
   const friend = (id: string) => person(id, names[id] ?? 'Player')
   const list = Object.entries(net).filter(([, v]) => Math.abs(v) > 0.005)
+  const guests = guestDues(meId, shown)
 
-  // Mark every open transfer with this friend, where I'm the one paying, as settled.
-  async function settleWith(id: string) {
+  // Mark every open transfer with this friend as settled: what I owe them, or (when I'm
+  // the one receiving) what they owe me.
+  async function settleWith(id: string, owedToMe: boolean) {
     setBusy(true)
     const supabase = createClient()
-    const open = lines.filter(l => l.other === id && !l.owedToMe && !l.transfer.settled)
+    const open = lines.filter(l => l.other === id && l.owedToMe === owedToMe && !l.transfer.settled)
     const results = await Promise.all(open.map(l => supabase.rpc('set_settled', {
       p_match: l.match.id, p_from: l.transfer.from, p_to: l.transfer.to, p_amount: l.transfer.amount,
     })))
@@ -40,6 +42,16 @@ export function Balances({ meId, meName, ledger, origin }: { meId: string; meNam
     const err = results.find(r => r.error)?.error
     if (err) return flash(err.message)
     flash(`Settled up with ${friend(id).first}`)
+    router.refresh()
+  }
+
+  // A guest's share I carry: mark it collected (or not) once they've paid me back.
+  async function collect(matchId: string, guest: string, amount: number | null) {
+    setBusy(true)
+    const { error } = await createClient().rpc('set_settled', { p_match: matchId, p_from: guest, p_to: meId, p_amount: amount })
+    setBusy(false)
+    if (error) return flash(error.message)
+    flash(amount ? `Collected from ${friend(guest).first}` : 'Marked as not collected')
     router.refresh()
   }
 
@@ -66,7 +78,7 @@ export function Balances({ meId, meName, ledger, origin }: { meId: string; meNam
             const p = friend(id)
             const amt = fmt(Math.abs(v))
             return (
-              <div key={id} className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div key={id} className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <Avatar p={p} size={38} />
                 <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
                   <span style={{ fontSize: 15, fontWeight: 700 }}>{p.name}</span>
@@ -74,16 +86,44 @@ export function Balances({ meId, meName, ledger, origin }: { meId: string; meNam
                 </span>
                 <span className="display" style={{ fontSize: 15, fontWeight: 700, color: v > 0 ? '#0E5A3A' : '#E0245E' }}>{amt}</span>
                 {v > 0 ? (
-                  <a className="chip-btn" style={{ height: 34, marginLeft: 4, display: 'flex', alignItems: 'center' }} target="_blank" rel="noreferrer"
-                    href={whatsappUrl(`Hey ${p.first}, you owe me ${amt} from badminton 🏸 ${origin}/balances`)}>Nudge</a>
+                  // Their own line, so the name keeps its room.
+                  <span style={{ display: 'flex', gap: 8, flex: '1 0 100%', justifyContent: 'flex-end' }}>
+                    <a className="chip-btn" style={{ height: 34, display: 'flex', alignItems: 'center' }} target="_blank" rel="noreferrer"
+                      href={whatsappUrl(`Hey ${p.first}, you owe me ${amt} from badminton 🏸 ${origin}/balances`)}>Nudge</a>
+                    <button className="chip-btn" style={{ height: 34, background: '#0E5A3A', color: '#fff' }} disabled={busy}
+                      onClick={() => confirm(`Mark ${p.first}'s ${amt} as paid to you?`) && settleWith(id, true)}>Paid</button>
+                  </span>
                 ) : (
                   <button className="chip-btn" style={{ height: 34, marginLeft: 4 }} disabled={busy}
-                    onClick={() => confirm(`Mark ${amt} to ${p.first} as paid?`) && settleWith(id)}>Settle</button>
+                    onClick={() => confirm(`Mark ${amt} to ${p.first} as paid?`) && settleWith(id, false)}>Settle</button>
                 )}
               </div>
             )
           })}
         </div>
+        {guests.dues.length > 0 && (
+          <div className="stack" style={{ gap: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span className="eyebrow">Collect from your guests</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: guests.open ? '#C2410C' : '#0E5A3A' }}>{guests.open ? `${fmt(guests.open)} to collect` : 'All collected'}</span>
+            </div>
+            <div className="card" style={{ padding: '4px 18px' }}>
+              {guests.dues.map(d => (
+                <div key={`${d.match.id}:${d.guest}`} className="row-line" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0' }}>
+                  <Avatar p={friend(d.guest)} size={32} font={12} />
+                  <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{friend(d.guest).name}</span>
+                    <span style={{ fontSize: 12, color: '#6B6B66', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fmtDate(d.match.starts_at, d.match.timezone)} · {d.match.title}</span>
+                  </span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: d.collected ? '#9A9992' : '#111111', textDecoration: d.collected ? 'line-through' : 'none' }}>{fmt(d.amount)}</span>
+                  <button className="chip-btn" disabled={busy} style={{ height: 32, fontSize: 12, flex: 'none', ...(d.collected ? { color: '#0E5A3A' } : {}) }}
+                    onClick={() => collect(d.match.id, d.guest, d.collected ? null : d.amount)}>{d.collected ? 'Collected ✓' : 'Collected'}</button>
+                </div>
+              ))}
+            </div>
+            <span className="note" style={{ marginTop: -4 }}>You cover these in the split. Tap once they&apos;ve paid you back.</span>
+          </div>
+        )}
         <div className="stack" style={{ gap: 12 }}>
           <span className="eyebrow">History</span>
           {!lines.length ? <span className="note">No payments yet.</span> : (

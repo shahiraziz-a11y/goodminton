@@ -51,3 +51,20 @@ export function balancesFor(me: string, matches: LedgerMatch[]) {
   const total = round(Object.values(net).reduce((a, b) => a + b, 0))
   return { net, lines, total }
 }
+
+export type GuestDue = { match: LedgerMatch; guest: string; amount: number; collected: boolean }
+
+/** Guests whose share I carry, to collect from them offline. Collected = a settlement from the guest to me. */
+export function guestDues(me: string, matches: LedgerMatch[]) {
+  const dues: GuestDue[] = []
+  for (const m of matches) {
+    const { share } = transfersOf(m.players, m.expenses, m.settlements)
+    for (const [guest, payer] of Object.entries(m.guests ?? {})) {
+      if (payer !== me || share < 0.01) continue
+      const collected = m.settlements.some(s => s.from === guest && s.to === me && Number(s.amount) > 0)
+      dues.push({ match: m, guest, amount: round(share), collected })
+    }
+  }
+  const open = round(dues.filter(d => !d.collected).reduce((a, d) => a + d.amount, 0))
+  return { dues, open }
+}

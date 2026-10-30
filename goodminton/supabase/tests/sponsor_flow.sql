@@ -85,7 +85,8 @@ select pg_temp.check(not exists (select 1 from jsonb_array_elements(public.my_le
 select pg_temp.as_user('olly'); select public.set_lock(:'mid', true); select pg_temp.as_user('ann');
 select public.my_ledger() as l \gset
 select pg_temp.check((select pg_temp.names(array(select jsonb_array_elements_text(x -> 'players'))::uuid[]) from jsonb_array_elements(:'l'::jsonb) x where x ->> 'id' = :'mid') = 'Olly,Ann,Ann,Bob', 'ledger bills Raj to Ann');
-select pg_temp.check(not (:'l'::jsonb::text like '%' || :'raj' || '%'), 'guest never appears in balances');
+select pg_temp.check((select not ((x -> 'players')::text like '%' || :'raj' || '%') and pg_temp.names(array[(x -> 'guests' ->> :'raj')::uuid]) = 'Ann'
+                       from jsonb_array_elements(:'l'::jsonb) x where x ->> 'id' = :'mid'), 'guest never in the split; listed for Ann to collect from');
 
 -- Removal: Bob can't remove Raj; Ann (who added him) can; Raj's debt stays with Ann.
 select pg_temp.as_user('bob');

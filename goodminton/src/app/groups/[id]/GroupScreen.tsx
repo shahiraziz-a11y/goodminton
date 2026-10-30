@@ -111,6 +111,31 @@ export function GroupScreen({ meId, meName, g, origin }: { meId: string; meName:
           <button className="btn-2" disabled={busy}
             onClick={() => confirm(`Make ${acting.full_name} the owner? You'll become a member.`) && rpc('make_owner', { p_group: g.id, p_user: acting.id }, () => { setActing(null); flash(`${acting.full_name} owns the group now`) })}>Make owner</button>
         )}
+        {acting?.is_guest && (() => {
+          // Someone typed this name before the real person joined: merge the two.
+          const first = acting.full_name.trim().split(/\s+/)[0].toLowerCase()
+          const same = (m: GroupMember) => m.full_name.trim().split(/\s+/)[0].toLowerCase() === first
+          const options = [...people.filter(same), ...people.filter(m => !same(m))]
+          return (
+            <div className="stack" style={{ gap: 6 }}>
+              <span className="eyebrow">Same person as…</span>
+              <span className="note" style={{ marginTop: -2 }}>Moves {acting.full_name}&apos;s games, matches and balances to their real account.</span>
+              <div className="card" style={{ padding: '2px 14px', maxHeight: 260, overflowY: 'auto' }}>
+                {options.map(m => (
+                  <button key={m.id} type="button" className="row-line" disabled={busy}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', width: '100%', border: 'none', background: 'none', textAlign: 'left', color: '#111111' }}
+                    onClick={() => confirm(`Merge ${acting.full_name} (guest) into ${m.full_name}? Their games, matches and balances move over. This can't be undone.`)
+                      && rpc('merge_player', { p_from: acting.id, p_into: m.id }, () => { setActing(null); flash(`Merged into ${m.full_name}`) })}>
+                    <Avatar p={person(m.id, m.full_name)} size={30} font={11} />
+                    <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{m.full_name}</span>
+                    {same(m) && <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', color: '#0E5A3A' }}>SAME NAME</span>}
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#0E5A3A' }}>Merge</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
         {acting && (
           <button className="btn-2" style={{ color: '#E0245E' }} disabled={busy}
             onClick={() => confirm(`Remove ${acting.full_name} from ${g.name}? They'll stop seeing its matches (except ones they're in).`) && rpc('remove_member', { p_group: g.id, p_user: acting.id }, () => { setActing(null); flash('Removed') })}>Remove from group</button>
