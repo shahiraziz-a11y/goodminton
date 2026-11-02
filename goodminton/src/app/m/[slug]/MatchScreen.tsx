@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Avatar } from '@/components/Avatar'
-import { Frame, GoogleButton, LockIcon, Seg } from '@/components/Chrome'
+import { Frame, LockIcon, Seg } from '@/components/Chrome'
+import { GoogleSignIn } from '@/components/GoogleSignIn'
 import { CourtCard, type Slot } from '@/components/Court'
 import { useFeedback } from '@/components/Feedback'
 import { FormatPicker } from '@/components/FormatPicker'
@@ -18,7 +19,7 @@ import { courtNumber, fmtDate, localDateTime, money } from '@/lib/format'
 import { gameLine, matchLabels, matchSummary, whatsappUrl } from '@/lib/match'
 import { person, type Person } from '@/lib/people'
 import { transfersOf } from '@/lib/split'
-import { createClient, signInWithGoogle } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import { isVisible, perCourt, type Format, type MatchGame, type MatchView, type PlayerOption } from '@/lib/types'
 
 export function MatchScreen({ m, link, started }: { m: MatchView; link: string; started: boolean }) {
@@ -166,13 +167,9 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
           <span className="display" style={{ fontSize: 15, fontWeight: 700, textAlign: 'center', color: '#0E5A3A' }}>
             {m.past ? 'This match has been played' : m.locked ? 'Sign-ups are closed' : L.spotsLine}
           </span>
-          <GoogleButton busy={busy} onClick={async () => {
-            setBusy(true)
-            const { error } = await signInWithGoogle(`/m/${m.slug}`)
-            if (error) { setBusy(false); flash(error.message) }
-          }} />
+          <GoogleSignIn next={`/m/${m.slug}`} />
           <span className="note" style={{ textAlign: 'center', textWrap: 'pretty' }}>
-            Your Google name is used, so there&apos;s nothing to type. You can see who&apos;s playing. The court number unlocks once you&apos;re confirmed.
+            Your Google name is used, so there&apos;s nothing to type.
           </span>
         </div>
       </Frame>

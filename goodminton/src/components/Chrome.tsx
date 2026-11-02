@@ -11,18 +11,22 @@ import type { Person } from '@/lib/people'
  * Page frame: frosted top bar, content, and the bottom tabs whenever someone is signed in
  * (`me` or `tab` given). `tab` picks the highlighted tab; anything else counts as Matches.
  */
-export function Frame({ children, back, me, tab }: { children: ReactNode; back?: string; me?: Person | null; tab?: 'home' | 'board' | 'balances' | 'groups' }) {
+export function Frame({ children, back, me, tab, extra }: {
+  children: ReactNode; back?: string; me?: Person | null; tab?: 'home' | 'board' | 'balances' | 'groups'
+  /** Small things next to the account photo (e.g. Home's streak). */
+  extra?: ReactNode
+}) {
   const tabs = !!tab || !!me
   return (
     <div className={`app${tabs ? ' has-tabs' : ''}`}>
-      <TopBar back={back} me={me} />
+      <TopBar back={back} me={me} extra={extra} />
       <main>{children}</main>
       {tabs && <TabBar active={tab ?? 'home'} />}
     </div>
   )
 }
 
-function TopBar({ back, me }: { back?: string; me?: Person | null }) {
+function TopBar({ back, me, extra }: { back?: string; me?: Person | null; extra?: ReactNode }) {
   const router = useRouter()
   return (
     <header className="topbar">
@@ -35,6 +39,7 @@ function TopBar({ back, me }: { back?: string; me?: Person | null }) {
           )}
           <Link href="/" className="wordmark"><AppIcon size={28} />Goodminton</Link>
         </div>
+        {extra && <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto', marginRight: 12 }}>{extra}</div>}
         {me && (
           <form action="/auth/signout" method="post" onSubmit={e => { if (!confirm(`Signed in as ${me.name}. Sign out?`)) e.preventDefault() }}>
             <button type="submit" aria-label="Account" style={{ border: 'none', background: 'none', padding: 0 }}>

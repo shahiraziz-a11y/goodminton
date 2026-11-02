@@ -2,10 +2,11 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { Frame, GoogleButton } from '@/components/Chrome'
+import { Frame } from '@/components/Chrome'
+import { GoogleSignIn } from '@/components/GoogleSignIn'
 import { useFeedback } from '@/components/Feedback'
 import { person } from '@/lib/people'
-import { createClient, signInWithGoogle } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import type { GroupPreview } from '@/lib/types'
 
 /** The group invite link: shows the group, signs you in if needed, and joins. */
@@ -41,11 +42,7 @@ export function JoinGroup({ code, g, me }: { code: string; g: GroupPreview | nul
             {me ? (
               <button className="btn" disabled={busy} onClick={join}>{busy ? 'Joining…' : `Join ${g.name}`}</button>
             ) : (
-              <GoogleButton busy={busy} label="Continue with Google to join" onClick={async () => {
-                setBusy(true)
-                const { error } = await signInWithGoogle(`/g/${code}`)
-                if (error) { setBusy(false); flash(error.message) }
-              }} />
+              <GoogleSignIn next={`/g/${code}`} label="Continue with Google to join" />
             )}
           </>
         )}
