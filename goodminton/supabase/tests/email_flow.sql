@@ -3,6 +3,10 @@
 set client_min_messages = warning;
 \pset tuples_only on
 \o /dev/null
+-- Calendar invites have their own test (calendar.sql); keep them out of these counts.
+alter table public.match_players disable trigger match_players_calendar;
+alter table public.matches disable trigger matches_calendar;
+alter table public.matches disable trigger matches_calendar_delete;
 create function pg_temp.as_user(u text) returns void language plpgsql security definer as $$
 begin perform set_config('request.jwt.claim.sub', coalesce((select id::text from auth.users where email = u || '@mail.test'), ''), false); end $$;
 create function pg_temp.check(ok boolean, what text) returns void language plpgsql as $$
@@ -165,5 +169,8 @@ reset role;
 select pg_temp.check(public.flush_emails() = false, 'no pg_net here: never errors');
 
 reset role;
+alter table public.match_players enable trigger match_players_calendar;
+alter table public.matches enable trigger matches_calendar;
+alter table public.matches enable trigger matches_calendar_delete;
 \o
 \echo EMAIL CHECKS PASSED
