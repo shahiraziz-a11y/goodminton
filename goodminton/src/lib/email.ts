@@ -1,7 +1,8 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import type { CalEvent } from './calendar.ts'
 
 /** A ready-to-send email from claim_due_emails(). */
-export type DueEmail = { ids: string[]; user_id: string; to: string; name: string; subject: string; body: string; url: string }
+export type DueEmail = { ids: string[]; user_id: string; to: string; name: string; subject: string; body: string; url: string; cal?: CalEvent }
 
 /** Signature for one-tap unsubscribe links, so nobody can unsubscribe someone else. */
 export function unsubscribeToken(userId: string, secret: string) {

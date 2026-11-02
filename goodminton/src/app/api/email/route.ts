@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import nodemailer from 'nodemailer'
+import { icsFor } from '@/lib/calendar'
 import { renderEmail, unsubscribeToken, type DueEmail } from '@/lib/email'
 import { SITE_URL, SUPABASE_URL } from '@/lib/supabase/env'
 import { authorised } from '@/lib/webhook'
@@ -40,6 +41,8 @@ export async function POST(req: Request) {
         subject: e.subject, text, html,
         list: { unsubscribe: { url: unsubscribe, comment: 'Stop Goodminton emails' } },
         headers: { 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
+        // Calendar emails carry the event: Gmail adds, moves or removes it in Google Calendar.
+        ...(e.cal ? { icalEvent: { method: e.cal.method, filename: 'match.ics', content: icsFor(e.cal, site, GMAIL_USER, { name: e.name, address: e.to }) } } : {}),
       })
       sent++
     } catch (err) {

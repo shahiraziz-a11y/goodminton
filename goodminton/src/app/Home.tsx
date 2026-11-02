@@ -2,8 +2,8 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { Frame, GoogleButton } from '@/components/Chrome'
-import { useFeedback } from '@/components/Feedback'
+import { Frame } from '@/components/Chrome'
+import { GoogleSignIn } from '@/components/GoogleSignIn'
 import { EmailToggle } from '@/components/EmailToggle'
 import { AlertsCard, InstallCard } from '@/components/Pwa'
 import { LogResultSheet } from '@/components/LogResultSheet'
@@ -14,13 +14,10 @@ import { fmtDate, fmtTime, money } from '@/lib/format'
 import { person } from '@/lib/people'
 import { photoFor } from '@/lib/photos'
 import { balancesFor, transfersOf } from '@/lib/split'
-import { signInWithGoogle } from '@/lib/supabase/client'
 import { CURRENCY } from '@/lib/supabase/env'
 import { perCourt, type HomeMatch, type HomeStats, type LedgerMatch, type MyGroup } from '@/lib/types'
 
 export function SignIn({ failed, reason }: { failed?: boolean; reason?: string }) {
-  const { flash } = useFeedback()
-  const [busy, setBusy] = useState(false)
   return (
     <Frame>
       <div style={{ padding: '4px 12px 16px' }}>
@@ -37,11 +34,7 @@ export function SignIn({ failed, reason }: { failed?: boolean; reason?: string }
                 {reason === BLOCKED_REASON ? reason : <>Sign-in didn&apos;t complete. Try again.{reason ? <><br /><span style={{ color: '#9A9992' }}>Reason: {reason.slice(0, 160)}</span></> : null}</>}
               </span>
             )}
-            <GoogleButton busy={busy} onClick={async () => {
-              setBusy(true)
-              const { error } = await signInWithGoogle('/')
-              if (error) { setBusy(false); flash(error.message) }
-            }} />
+            <GoogleSignIn next="/" />
             <span style={{ fontSize: 12, color: '#6B6B66', textAlign: 'center' }}>
               <a href="/privacy" style={{ textDecoration: 'underline' }}>Privacy</a> · <a href="/terms" style={{ textDecoration: 'underline' }}>Terms</a>
             </span>
@@ -71,9 +64,11 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
   const next = soon.find(m => kindOf(m) === 'live' && m.my_role) ?? soon.find(m => m.my_role) ?? soon[0]
   const groups = groupMatches(shownMatches.filter(m => m !== next))
   const bySlug = new Map(ledger.map(l => [l.slug, l]))
-  const fresh = !myGroups.length && !matches.length
+  // Not in a group: always offer to organise or start one; with nothing else to show, that's all.
+  const noGroup = !myGroups.length
+  const fresh = noGroup && !matches.length
   return (
-    <Frame me={me} tab="home">
+    <Frame me={me} tab="home" extra={stats && <StatPills s={stats} />}>
       <div className="screen" style={{ gap: 24, paddingLeft: 20, paddingRight: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12 }}>
           <div className="stack" style={{ gap: 4 }}>
@@ -83,9 +78,8 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
           {!fresh && <button className="btn" aria-label="New match or log a game" onClick={() => setChoosing(true)}
             style={{ width: 56, height: 56, borderRadius: '50%', fontSize: 28, fontWeight: 400, lineHeight: 1, padding: 0, flex: 'none', boxShadow: '0 12px 24px -10px rgba(0,0,0,.5)' }}>+</button>}
         </div>
-        {fresh && <NoGroup title="Find your crew" line="Matches, results and who owes what, just for the people you play with." />}
+        {noGroup && <NoGroup title="Find your crew" line="Matches, results and who owes what, just for the people you play with." photo={5} />}
         {next && <NextUp m={next} />}
-        {stats && <StatsCard s={stats} />}
         {many && (
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '0 -20px', padding: '0 20px 4px', scrollbarWidth: 'none' }}>
             {[{ id: 'all', name: 'All groups' }, ...myGroups].map(g => (
@@ -174,44 +168,20 @@ function Group({ g, ledger, showGroup }: { g: GroupData; ledger: Map<string, Led
   )
 }
 
-/** Weeks in a row with a game, the last 8 weeks, and lifetime totals. Hidden until you've played. */
-function StatsCard({ s }: { s: HomeStats }) {
+/** Weekly streak and matches played, small, in the top bar. Hidden until you've played. */
+function StatPills({ s }: { s: HomeStats }) {
   if (!s.matches_played && !s.games_played) return null
   const w = s.week_streak
-  const note = !w ? 'Play this week to start a streak'
-    : s.played_this_week ? 'Played this week. Keep it going.'
-    : 'Play this week to keep it going.'
-  const weeks = s.last_weeks ?? []
-  const tile = (big: string | number, label: string) => (
-    <div className="panel stack" style={{ padding: 12, gap: 2 }}>
-      <span className="display" style={{ fontSize: 20 }}>{big}</span>
-      <span style={{ fontSize: 12, fontWeight: 600, color: '#6B6B66' }}>{label}</span>
-    </div>
-  )
+  const pill = { display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, color: '#55554F', whiteSpace: 'nowrap' } as const
   return (
-    <div className="card stack" style={{ borderRadius: 28, padding: '18px 20px', gap: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-        <div className="stack" style={{ gap: 4 }}>
-          <span className="display" style={{ fontSize: 20 }}>{w} week{w === 1 ? '' : 's'} in a row</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#0E5A3A' }}>{note}</span>
-        </div>
-        <span className="display" style={{ fontSize: 44, letterSpacing: '-.05em', lineHeight: 0.9, color: '#0E5A3A' }}>{w}</span>
-      </div>
-      {weeks.length > 0 && (
-        <div style={{ display: 'flex', gap: 6 }} aria-label="Last 8 weeks">
-          {weeks.map((on, i) => {
-            const now = i === weeks.length - 1
-            return <span key={i} title={now ? 'This week' : `${weeks.length - 1 - i} week${weeks.length - 1 - i === 1 ? '' : 's'} ago`}
-              style={{ flex: 1, height: 28, borderRadius: 8, background: on ? (now ? '#0E5A3A' : 'rgba(14,90,58,.55)') : 'rgba(255,255,255,.45)',
-                boxShadow: now ? '0 0 0 2px rgba(255,255,255,.9), 0 0 0 4px #0E5A3A' : 'inset 0 0 0 1px rgba(255,255,255,.6)' }} />
-          })}
-        </div>
-      )}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-        {tile(s.matches_played, `match${s.matches_played === 1 ? '' : 'es'} played`)}
-        {tile(s.games_played, `game${s.games_played === 1 ? '' : 's'} logged`)}
-      </div>
-    </div>
+    <>
+      <span style={pill} title={w ? `${w}-week streak${s.played_this_week ? '' : ' · play this week to keep it'}` : 'No streak yet'} aria-label={`${w} week streak`}>
+        🔥<span style={{ color: w && s.played_this_week ? '#0E5A3A' : '#111111' }}>{w}w</span>
+      </span>
+      <span style={pill} title={`${s.matches_played} match${s.matches_played === 1 ? '' : 'es'} played`} aria-label={`${s.matches_played} matches played`}>
+        🏸<span style={{ color: '#111111' }}>{s.matches_played}</span>
+      </span>
+    </>
   )
 }
 
