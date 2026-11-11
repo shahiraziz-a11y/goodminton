@@ -9,7 +9,6 @@ import { GoogleSignIn } from '@/components/GoogleSignIn'
 import { CourtCard, type Slot } from '@/components/Court'
 import { useFeedback } from '@/components/Feedback'
 import { FormatPicker } from '@/components/FormatPicker'
-import { GamePlan } from '@/components/GamePlan'
 import { LogResultSheet, type GameDraft } from '@/components/LogResultSheet'
 import { photoFor } from '@/lib/photos'
 import { loadPlayers } from '@/components/PlayerPicker'
@@ -224,7 +223,20 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
           </div>
         )}
 
-        {canSee && <GamePlan m={m} />}
+        {canSee && (() => {
+          // Match day: the peg board runs the courts (Play tab).
+          const start = new Date(m.starts_at).getTime(), now = Date.now()
+          if (now < start - 12 * 3600e3 || now > start + (m.duration_min + 180) * 60e3) return null
+          return (
+            <Link href={`/play/${m.slug}`} className="card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12, background: 'linear-gradient(160deg, #135F3D, #0A3B26)', color: '#fff' }}>
+              <span className="stack" style={{ flex: 1, gap: 2 }}>
+                <span className="display" style={{ fontSize: 17, fontWeight: 700 }}>Open peg board</span>
+                <span style={{ fontSize: 13, color: '#CFE3D5' }}>Who&apos;s on each court, who&apos;s next</span>
+              </span>
+              <span style={{ fontSize: 22 }}>›</span>
+            </Link>
+          )
+        })()}
 
         {outsider && m.locked && !m.past && (
           <div className="card stack" style={{ padding: 20, gap: 6 }}>

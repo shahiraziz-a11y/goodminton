@@ -94,7 +94,7 @@ input[type=date]::-webkit-calendar-picker-indicator, input[type=time]::-webkit-c
   display: grid; grid-template-columns: repeat(4, 1fr);
   padding: 12px 0 14px;
 }
-.tab { border: none; background: transparent; font-weight: 500; font-size: 12px; color: rgba(255,255,255,.55); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.tab { border: none; background: transparent; font-weight: 500; font-size: 12px; white-space: nowrap; color: rgba(255,255,255,.55); display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .tab.sel { font-weight: 700; color: #fff; }
 
 .screen { padding: 8px 18px 30px; display: flex; flex-direction: column; gap: 22px; }

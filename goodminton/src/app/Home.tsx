@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Frame } from '@/components/Chrome'
 import { GoogleSignIn } from '@/components/GoogleSignIn'
@@ -10,12 +11,14 @@ import { LogResultSheet } from '@/components/LogResultSheet'
 import { NoGroup } from '@/components/NoGroup'
 import { SamplePreview } from '@/components/Sample'
 import { Sheet } from '@/components/Sheet'
+import { useFeedback } from '@/components/Feedback'
 import { BLOCKED_REASON } from '@/lib/blocked'
 import { fmtDate, fmtTime, money } from '@/lib/format'
 import { person } from '@/lib/people'
 import { photoFor } from '@/lib/photos'
 import { sampleMatches } from '@/lib/samples'
 import { balancesFor, transfersOf } from '@/lib/split'
+import { createClient } from '@/lib/supabase/client'
 import { CURRENCY } from '@/lib/supabase/env'
 import { perCourt, type HomeMatch, type HomeStats, type LedgerMatch, type MyGroup } from '@/lib/types'
 
@@ -52,8 +55,23 @@ const PHOTOS_SIGNIN = '/photos/court-1.webp'
 export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { meId: string; meName: string; matches: HomeMatch[]; ledger: LedgerMatch[]; stats: HomeStats | null; myGroups?: MyGroup[] }) {
   const me = person(meId, meName)
   const bal = balancesFor(meId, ledger)
+  const router = useRouter()
+  const { flash } = useFeedback()
   const [choosing, setChoosing] = useState(false)
   const [logging, setLogging] = useState(false)
+  // New group, from the + sheet or the groups list.
+  const [naming, setNaming] = useState(false)
+  const [groupName, setGroupName] = useState('')
+  const [creating, setCreating] = useState(false)
+  const newGroup = () => { setGroupName(''); setNaming(true); setChoosing(true) }
+  async function createGroup() {
+    if (!groupName.trim()) return flash('Give the group a name')
+    setCreating(true)
+    const { data, error } = await createClient().rpc('create_group', { p_name: groupName.trim() })
+    setCreating(false)
+    if (error) return flash(error.message)
+    router.push(`/groups/${data}`)
+  }
   // Which group's matches to show (remembered on this phone); 'all' when you're in several.
   const [gf, setGf] = useState('all')
   useEffect(() => { try { const v = localStorage.getItem('home-group'); if (v && (v === 'all' || myGroups.some(g => g.id === v))) setGf(v) } catch {} }, [myGroups])
@@ -77,10 +95,10 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
             <span style={{ fontSize: 15, color: '#55554F', fontWeight: 600 }}>Hey {me.first}</span>
             <span className="display" style={{ fontSize: 44, letterSpacing: '-.05em', lineHeight: 0.96 }}>Game on.</span>
           </div>
-          {!fresh && <button className="btn" aria-label="New match or log a game" onClick={() => setChoosing(true)}
+          {!fresh && <button className="btn" aria-label="New match, group or game" onClick={() => setChoosing(true)}
             style={{ width: 56, height: 56, borderRadius: '50%', fontSize: 28, fontWeight: 400, lineHeight: 1, padding: 0, flex: 'none', boxShadow: '0 12px 24px -10px rgba(0,0,0,.5)' }}>+</button>}
         </div>
-        {noGroup && <NoGroup title="Find your crew" line="Matches, results and who owes what, just for the people you play with." photo={2} />}
+        {noGroup && <NoGroup title="Find your crew" line="Matches, results and who owes what, just for the people you play with." photo={2} onStart={newGroup} />}
         {fresh && <SampleMatches />}
         {next && <NextUp m={next} />}
         {many && (
@@ -99,11 +117,38 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
           </div>
         )}
         {!fresh && <BalanceRow total={bal.total} currency={ledger[0]?.currency ?? CURRENCY} />}
+        {myGroups.length > 0 && (
+          <div className="stack" style={{ gap: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '0 4px' }}>
+              <span className="eyebrow">Your groups</span>
+              <button className="link-btn" style={{ fontSize: 13, fontWeight: 700, color: '#0E5A3A' }} onClick={newGroup}>+ New group</button>
+            </div>
+            <div className="card" style={{ padding: '2px 14px', borderRadius: 24 }}>
+              {myGroups.map(g => (
+                <Link key={g.id} href={`/groups/${g.id}`} className="row-line" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0' }}>
+                  <span aria-hidden style={{ width: 40, height: 40, borderRadius: 12, flex: 'none', background: `#0E4A30 url(${photoFor(g.id)}) center/cover` }} />
+                  <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.name}</span>
+                    <span style={{ fontSize: 12, color: '#6B6B66' }}>{g.members} member{g.members === 1 ? '' : 's'}{g.my_role === 'owner' ? ' · you run it' : ''}</span>
+                  </span>
+                  <span style={{ color: '#9A9992', fontSize: 18 }}>›</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
         <InstallCard />
         <AlertsCard />
         <EmailToggle />
       </div>
-      <Sheet open={choosing} onClose={() => setChoosing(false)} title="What's up?">
+      <Sheet open={choosing} onClose={() => { setChoosing(false); setNaming(false) }} title={naming ? 'New group' : "What's up?"} subtitle={naming ? 'e.g. Tuesday crew, Office badminton' : undefined}>
+        {naming ? (
+          <>
+            <input className="field" style={{ height: 50 }} placeholder="Group name" value={groupName} maxLength={60} autoFocus
+              onChange={e => setGroupName(e.target.value)} onKeyDown={e => e.key === 'Enter' && createGroup()} />
+            <button className="btn" onClick={createGroup} disabled={creating}>{creating ? 'Creating…' : 'Create group'}</button>
+          </>
+        ) : <>
         <Link href="/new" className="card sheet-option" onClick={() => setChoosing(false)}>
           <span className="avatar" style={{ width: 44, height: 44, borderRadius: 14, background: '#0E5A3A', fontSize: 22 }}>+</span>
           <span className="stack" style={{ flex: 1, gap: 2 }}>
@@ -111,6 +156,13 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
             <span style={{ fontSize: 13, color: '#6B6B66' }}>Plan a game, share the link.</span>
           </span>
         </Link>
+        <button className="card sheet-option" onClick={() => { setGroupName(''); setNaming(true) }}>
+          <span className="avatar" style={{ width: 44, height: 44, borderRadius: 14, background: '#3B5BA9', fontSize: 20 }}>👥</span>
+          <span className="stack" style={{ flex: 1, gap: 2, textAlign: 'left' }}>
+            <span style={{ fontSize: 16, fontWeight: 700 }}>New group</span>
+            <span style={{ fontSize: 13, color: '#6B6B66' }}>For the people you play with.</span>
+          </span>
+        </button>
         <button className="card sheet-option" onClick={() => { setChoosing(false); setLogging(true) }}>
           <span className="avatar" style={{ width: 44, height: 44, borderRadius: 14, background: '#111111', fontSize: 20 }}>🏸</span>
           <span className="stack" style={{ flex: 1, gap: 2 }}>
@@ -118,6 +170,7 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
             <span style={{ fontSize: 13, color: '#6B6B66' }}>Tap who won.</span>
           </span>
         </button>
+        </>}
       </Sheet>
       <LogResultSheet open={logging} onClose={() => setLogging(false)} groups={myGroups} defaultGroup={gf !== 'all' ? gf : myGroups[0]?.id} />
     </Frame>

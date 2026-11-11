@@ -55,7 +55,7 @@ export function GroupScreen({ meId, meName, g, origin }: { meId: string; meName:
   }
 
   return (
-    <Frame me={person(meId, meName)} tab="groups" back="/groups">
+    <Frame me={person(meId, meName)} tab="groups" back="/">
       <div className="screen" style={{ gap: 22 }}>
         <div className="stack" style={{ gap: 6 }}>
           <span className="eyebrow">{people.length} member{people.length === 1 ? '' : 's'}{owner ? ' · you run it' : ''}</span>
@@ -97,7 +97,7 @@ export function GroupScreen({ meId, meName, g, origin }: { meId: string; meName:
 
         {!owner && (
           <button className="link-btn" style={{ alignSelf: 'center', color: '#E0245E' }} disabled={busy}
-            onClick={() => confirm(`Leave ${g.name}? You'll stop seeing its matches (except ones you're in).`) && rpc('leave_group', { p_group: g.id }, () => { flash(`Left ${g.name}`); router.push('/groups') })}>Leave group</button>
+            onClick={() => confirm(`Leave ${g.name}? You'll stop seeing its matches (except ones you're in).`) && rpc('leave_group', { p_group: g.id }, () => { flash(`Left ${g.name}`); router.push('/') })}>Leave group</button>
         )}
       </div>
 

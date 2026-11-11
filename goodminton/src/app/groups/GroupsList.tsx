@@ -30,7 +30,7 @@ export function GroupsList({ meId, meName, groups, startNew = false }: { meId: s
   }
 
   return (
-    <Frame me={person(meId, meName)} tab="groups">
+    <Frame me={person(meId, meName)} tab="groups" back="/">
       <div className="screen" style={{ gap: 22 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 10 }}>
           <div className="stack" style={{ gap: 6 }}>
