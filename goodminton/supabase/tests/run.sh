@@ -33,6 +33,7 @@ psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f photos_work.sql
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f log_edit.sql
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f merge_ledger.sql
 psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f calendar.sql
+psql -X -q -v ON_ERROR_STOP=1 "$@" -d "$DB" -f peg_board.sql
 ./concurrency.sh "$@" -d "$DB"
 ./concurrency_booking.sh "$@" -d "$DB"
 ./upgrade_0009.sh "$@"

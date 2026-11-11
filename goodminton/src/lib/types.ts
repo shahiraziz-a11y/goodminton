@@ -169,3 +169,12 @@ export type PlanEntry = {
   score_a: number | null
   score_b: number | null
 }
+
+/** From get_board: the match-day peg board (players in the match only). */
+export type BoardView = {
+  id: string; slug: string; title: string; starts_at: string; duration_min: number; timezone: string
+  format: Format; court_count: number; courts: string | null; group_id: string | null; open: boolean
+  players: import('./board.ts').BoardPlayer[]
+  games: import('./board.ts').BoardGame[]
+  people: Record<string, string>
+}

@@ -91,10 +91,10 @@ input[type=date]::-webkit-calendar-picker-indicator, input[type=time]::-webkit-c
   backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%);
   border-radius: 99px;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.12), 0 18px 36px -16px rgba(0,0,0,.5);
-  display: grid; grid-template-columns: repeat(4, 1fr);
-  padding: 12px 0 14px;
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  padding: 12px 4px 14px;
 }
-.tab { border: none; background: transparent; font-weight: 500; font-size: 12px; color: rgba(255,255,255,.55); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.tab { border: none; background: transparent; font-weight: 500; font-size: 11px; white-space: nowrap; color: rgba(255,255,255,.55); display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .tab.sel { font-weight: 700; color: #fff; }
 
 .screen { padding: 8px 18px 30px; display: flex; flex-direction: column; gap: 22px; }

@@ -12,7 +12,7 @@ import type { Person } from '@/lib/people'
  * (`me` or `tab` given). `tab` picks the highlighted tab; anything else counts as Matches.
  */
 export function Frame({ children, back, me, tab, extra }: {
-  children: ReactNode; back?: string; me?: Person | null; tab?: 'home' | 'board' | 'balances' | 'groups'
+  children: ReactNode; back?: string; me?: Person | null; tab?: 'home' | 'play' | 'board' | 'balances' | 'groups'
   /** Small things next to the account photo (e.g. Home's streak). */
   extra?: ReactNode
 }) {
@@ -52,12 +52,16 @@ function TopBar({ back, me, extra }: { back?: string; me?: Person | null; extra?
   )
 }
 
-function TabBar({ active }: { active: 'home' | 'board' | 'balances' | 'groups' }) {
+function TabBar({ active }: { active: 'home' | 'play' | 'board' | 'balances' | 'groups' }) {
   return (
     <nav className="tabbar">
       <Link href="/" className={`tab${active === 'home' ? ' sel' : ''}`}>
         <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="3.5" y="5" width="19" height="17" rx="3.5" /><path d="M3.5 10.5h19M8.5 3v4M17.5 3v4" /></svg>
         Matches
+      </Link>
+      <Link href="/play" className={`tab${active === 'play' ? ' sel' : ''}`}>
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M13 15.5 7 6.5a1.5 1.5 0 0 1 1-2.3l5-.7 5 .7a1.5 1.5 0 0 1 1 2.3l-6 9Z" /><path d="M10 5l1.4 9M16 5l-1.4 9" /><circle cx="13" cy="19" r="3.5" /></svg>
+        Play
       </Link>
       <Link href="/leaderboard" className={`tab${active === 'board' ? ' sel' : ''}`}>
         <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M8 4h10v6a5 5 0 0 1-10 0V4Z" /><path d="M8 6H4.5a3.5 3.5 0 0 0 4 4M18 6h3.5a3.5 3.5 0 0 1-4 4M13 15v4M9 22h8" /></svg>
