@@ -8,9 +8,11 @@ import { Frame } from '@/components/Chrome'
 import { useFeedback } from '@/components/Feedback'
 import { LogResultSheet, type GameDraft } from '@/components/LogResultSheet'
 import { NoGroup } from '@/components/NoGroup'
+import { SamplePreview } from '@/components/Sample'
 import { fmtDate } from '@/lib/format'
 import { person, type Person } from '@/lib/people'
 import { biggestRivalry, myPartners, pairRecords, pairTable, ratings, standings, START_RATING, type PairRecord } from '@/lib/stats'
+import { SAMPLE_GAMES, SAMPLE_PAIRS } from '@/lib/samples'
 import { createClient } from '@/lib/supabase/client'
 import type { Game, Leaderboard as Data, MyGroup } from '@/lib/types'
 
@@ -91,6 +93,7 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
           <>
             <span className="h1">Leaderboard</span>
             <NoGroup title="Who rules the court?" line="Organise a match, log who won, and the standings build up here." photo={1} />
+            <SampleBoard />
           </>
         ) : !data.games.length ? (
           <>
@@ -314,6 +317,39 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
         recent={data.games} people={data.people} edit={draft?.edit} prefill={draft?.prefill}
         matchTitle={draft?.edit ? data.games.find(g => g.id === draft.edit!.id)?.match_title ?? undefined : undefined} />
     </Frame>
+  )
+}
+
+/** What the leaderboard looks like, for someone who hasn't played yet. */
+function SampleBoard() {
+  const p = (name: string) => person('sample-' + name, name)
+  return (
+    <SamplePreview title="Leaderboard">
+      <div className="stack" style={{ gap: 10 }}>
+        <div className="card" style={{ padding: '2px 16px' }}>
+          {SAMPLE_PAIRS.map((q, i) => (
+            <div key={q.a} className="row-line" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0' }}>
+              <span className="display" style={{ width: 16, fontSize: 18, fontWeight: 700, color: i === 0 ? '#0E5A3A' : '#9A9992' }}>{i + 1}</span>
+              <Duo a={p(q.a)} b={p(q.b)} size={30} edge="#fff" />
+              <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                <span style={{ fontSize: 14, fontWeight: 700 }}>{q.a} &amp; {q.b}</span>
+                <span style={{ fontSize: 12, color: '#6B6B66', fontWeight: 600 }}>{q.w} won · {q.l} lost</span>
+              </span>
+              <span className="display" style={{ fontSize: 15, fontWeight: 700 }}>{pctOf(q.w / (q.w + q.l))}</span>
+            </div>
+          ))}
+        </div>
+        <div className="card" style={{ padding: '2px 16px' }}>
+          {SAMPLE_GAMES.map(g => (
+            <div key={g.a + g.b} className="row-line" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr)', gap: 10, alignItems: 'center', padding: '12px 0' }}>
+              <span style={{ fontSize: 13, fontWeight: g.aWon ? 800 : 500 }}>{g.a}</span>
+              <span className="display panel" style={{ fontSize: 11, fontWeight: 700, padding: '6px 10px', borderRadius: 10, textAlign: 'center' }}>{g.aWon ? 'BEAT' : 'LOST TO'}<span style={{ display: 'block', fontSize: 12 }}>{g.score}</span></span>
+              <span style={{ fontSize: 13, fontWeight: g.aWon ? 500 : 800, textAlign: 'right' }}>{g.b}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </SamplePreview>
   )
 }
 

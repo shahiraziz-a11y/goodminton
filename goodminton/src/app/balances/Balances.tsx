@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Avatar } from '@/components/Avatar'
 import { Frame } from '@/components/Chrome'
 import { NoGroup } from '@/components/NoGroup'
+import { SamplePreview } from '@/components/Sample'
 import { useFeedback } from '@/components/Feedback'
 import { fmtDate, money } from '@/lib/format'
 import { whatsappUrl } from '@/lib/match'
@@ -62,6 +63,25 @@ export function Balances({ meId, meName, ledger, origin, inGroup = true }: { meI
         <div className="screen">
           <span className="h1">Balances</span>
           <NoGroup title="Split the court, not hairs" line="Organise a match. Court costs split themselves and you'll see who owes what." photo={4} />
+          <SamplePreview title="Balances">
+            <div className="stack" style={{ gap: 10 }}>
+              <div className="card stack" style={{ borderRadius: 24, padding: '18px 20px', gap: 4 }}>
+                <span className="eyebrow">You are owed</span>
+                <span className="display" style={{ fontSize: 36, letterSpacing: '-.05em', lineHeight: 1, color: '#0E5A3A' }}>{money(20, CURRENCY)}</span>
+              </div>
+              {([['Alex', 40, true], ['Priya', 20, false]] as const).map(([name, amt, owesMe]) => (
+                <div key={name} className="card" style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <Avatar p={person('sample-' + name, name)} size={34} font={12} />
+                  <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700 }}>{name}</span>
+                    <span style={{ fontSize: 12, color: '#6B6B66' }}>{owesMe ? 'owes you' : 'you owe'}</span>
+                  </span>
+                  <span className="display" style={{ fontSize: 14, fontWeight: 700, color: owesMe ? '#0E5A3A' : '#E0245E' }}>{money(amt, CURRENCY)}</span>
+                  <span className="chip-btn" style={{ height: 32, display: 'flex', alignItems: 'center' }}>{owesMe ? 'Paid' : 'Settle'}</span>
+                </div>
+              ))}
+            </div>
+          </SamplePreview>
         </div>
       </Frame>
     )

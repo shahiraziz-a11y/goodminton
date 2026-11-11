@@ -8,11 +8,13 @@ import { EmailToggle } from '@/components/EmailToggle'
 import { AlertsCard, InstallCard } from '@/components/Pwa'
 import { LogResultSheet } from '@/components/LogResultSheet'
 import { NoGroup } from '@/components/NoGroup'
+import { SamplePreview } from '@/components/Sample'
 import { Sheet } from '@/components/Sheet'
 import { BLOCKED_REASON } from '@/lib/blocked'
 import { fmtDate, fmtTime, money } from '@/lib/format'
 import { person } from '@/lib/people'
 import { photoFor } from '@/lib/photos'
+import { sampleMatches } from '@/lib/samples'
 import { balancesFor, transfersOf } from '@/lib/split'
 import { CURRENCY } from '@/lib/supabase/env'
 import { perCourt, type HomeMatch, type HomeStats, type LedgerMatch, type MyGroup } from '@/lib/types'
@@ -78,7 +80,8 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
           {!fresh && <button className="btn" aria-label="New match or log a game" onClick={() => setChoosing(true)}
             style={{ width: 56, height: 56, borderRadius: '50%', fontSize: 28, fontWeight: 400, lineHeight: 1, padding: 0, flex: 'none', boxShadow: '0 12px 24px -10px rgba(0,0,0,.5)' }}>+</button>}
         </div>
-        {noGroup && <NoGroup title="Find your crew" line="Matches, results and who owes what, just for the people you play with." photo={5} />}
+        {noGroup && <NoGroup title="Find your crew" line="Matches, results and who owes what, just for the people you play with." photo={2} />}
+        {fresh && <SampleMatches />}
         {next && <NextUp m={next} />}
         {many && (
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '0 -20px', padding: '0 20px 4px', scrollbarWidth: 'none' }}>
@@ -144,6 +147,19 @@ function groupMatches(matches: HomeMatch[]): GroupData[] {
     items.sort((a, b) => (g.kind === 'upcoming' || g.kind === 'live' ? t(a) - t(b) : t(b) - t(a)))
     return { ...g, items }
   }).filter(g => g.items.length)
+}
+
+/** What matches look like, for someone who hasn't joined one yet. */
+function SampleMatches() {
+  const { upcoming, played } = sampleMatches()
+  return (
+    <SamplePreview title="Matches">
+      <div className="card" style={{ padding: '2px 16px', borderRadius: 22 }}>
+        <MatchRow m={upcoming} kind="upcoming" />
+        <MatchRow m={played} kind="completed" />
+      </div>
+    </SamplePreview>
+  )
 }
 
 function Group({ g, ledger, showGroup }: { g: GroupData; ledger: Map<string, LedgerMatch>; showGroup?: boolean }) {
