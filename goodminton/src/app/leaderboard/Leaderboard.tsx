@@ -14,7 +14,8 @@ import { person, type Person } from '@/lib/people'
 import { biggestRivalry, myPartners, pairRecords, pairTable, ratings, standings, START_RATING, type PairRecord } from '@/lib/stats'
 import { SAMPLE_GAMES, SAMPLE_PAIRS } from '@/lib/samples'
 import { createClient } from '@/lib/supabase/client'
-import type { Game, Leaderboard as Data, MyGroup } from '@/lib/types'
+import type { Game, Insights, Leaderboard as Data, MyGroup } from '@/lib/types'
+import { YouInsights } from './YouInsights'
 
 const fmtDay = (d: string) => fmtDate(d + 'T12:00:00Z', 'UTC')
 const pctOf = (x: number) => `${Math.round(x * 100)}%`
@@ -30,7 +31,7 @@ function Duo({ a, b, size, edge }: { a: Person; b: Person; size: number; edge: s
   )
 }
 
-export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string; meName: string; data: Data; groups?: MyGroup[] }) {
+export function Leaderboard({ meId, meName, data, groups = [], insights }: { meId: string; meName: string; data: Data; groups?: MyGroup[]; insights?: Insights | null }) {
   const router = useRouter()
   const { flash } = useFeedback()
   const [logging, setLogging] = useState(false)
@@ -46,7 +47,6 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
   const table = pairTable(data.games, MIN_GAMES)
   const all = pairRecords(data.games)
   const doubles = data.games.filter(g => g.a.length === 2).length
-  const partners = myPartners(data.games, meId)
   const rival = biggestRivalry(data.games)
 
   const hot = [...all].sort((a, b) => b.streak - a.streak || b.w - a.w)[0]
@@ -89,19 +89,19 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
   return (
     <Frame me={person(meId, meName)} tab="board">
       <div className="screen" style={{ gap: 22 }}>
+        <span className="h1">Insights</span>
+        {/* About you first (all your groups); the group's standings below. */}
+        {insights && <YouInsights meId={meId} ins={insights} />}
+        {groups.length > 0 && insights && <span className="eyebrow" style={{ marginBottom: -10 }}>Group leaderboard</span>}
         {!groups.length && !data.games.length ? (
           <>
-            <span className="h1">Leaderboard</span>
             <NoGroup title="Who rules the court?" line="Organise a match, log who won, and the standings build up here." photo={1} />
             <SampleBoard />
           </>
         ) : !data.games.length ? (
           <>
             <GroupChips groups={groups} current={data.group?.id} dark={false} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 10 }}>
-              <span className="h1">Leaderboard</span>
-              {logBtn(false)}
-            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>{logBtn(false)}</div>
             <div className="card stack" style={{ padding: 28, gap: 8, textAlign: 'center', alignItems: 'center' }}>
               <span className="display" style={{ fontSize: 17, fontWeight: 700 }}>No games yet</span>
               <span className="note">Log who won and the standings build up here.</span>
@@ -162,31 +162,6 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
               </div>
             )}
 
-            {partners.length > 0 && (
-              <div style={{ background: '#111111', color: '#fff', borderRadius: 24, padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#9FE0BC' }}>Your chemistry</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#A8A79F' }}>win % by partner</span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
-                  {partners.slice(0, 3).map((y, i) => {
-                    const p = who(y.partner)
-                    return (
-                      <div key={y.partner} className="stack" style={{ alignItems: 'center', gap: 6, padding: '12px 6px', borderRadius: 16, background: i === 0 ? 'rgba(159,224,188,.14)' : 'rgba(255,255,255,.06)', minWidth: 0 }}>
-                        <Avatar p={p} size={36} font={12} />
-                        <span className="display" style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-.03em', color: i === 0 ? '#9FE0BC' : '#fff' }}>{pctOf(y.pct)}</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#A8A79F', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>w/ {p.first} · {y.w}–{y.l}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-                <span style={{ fontSize: 12, color: '#CFE3D5', fontWeight: 600, lineHeight: 1.4 }}>
-                  {partners.length > 1
-                    ? `You win ${pctOf(partners[0].pct)} with ${who(partners[0].partner).first} vs ${pctOf(partners[partners.length - 1].pct)} with ${who(partners[partners.length - 1].partner).first}. Team up with ${who(partners[0].partner).first} again.`
-                    : `You've only paired with ${who(partners[0].partner).first} so far.`}
-                </span>
-              </div>
-            )}
 
             {rival && (() => {
               const l = duo(rival.l), r = duo(rival.r)
@@ -324,8 +299,17 @@ export function Leaderboard({ meId, meName, data, groups = [] }: { meId: string;
 function SampleBoard() {
   const p = (name: string) => person('sample-' + name, name)
   return (
-    <SamplePreview title="Leaderboard">
+    <SamplePreview title="Insights">
       <div className="stack" style={{ gap: 10 }}>
+        <div className="stack" style={{ borderRadius: 22, padding: 16, gap: 10, color: '#fff', background: 'linear-gradient(160deg, #135F3D, #0A3B26)' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.16em', color: '#9FE0BC' }}>YOUR SEASON</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {([['12', 'matches'], ['41', 'games'], ['58%', 'wins']] as const).map(([v, l]) => (
+              <span key={l} className="stack" style={{ gap: 2 }}><span className="display" style={{ fontSize: 26, lineHeight: 1 }}>{v}</span><span style={{ fontSize: 12, color: '#CFE3D5' }}>{l}</span></span>
+            ))}
+          </div>
+          <span style={{ fontSize: 12, color: '#CFE3D5', fontWeight: 600 }}>Best with Alex · 7–2 · Most played with Sam</span>
+        </div>
         <div className="card" style={{ padding: '2px 16px' }}>
           {SAMPLE_PAIRS.map((q, i) => (
             <div key={q.a} className="row-line" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0' }}>

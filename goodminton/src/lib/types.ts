@@ -178,3 +178,11 @@ export type BoardView = {
   games: import('./board.ts').BoardGame[]
   people: Record<string, string>
 }
+
+/** From my_insights: my games across all my groups (newest first), names, and 12 weeks of activity. */
+export type Insights = HomeStats & {
+  games: import('./insights.ts').InsightGame[]
+  people: Record<string, string>
+  weeks: { week: string; matches: number; games: number }[]
+  first_played: string | null
+}
