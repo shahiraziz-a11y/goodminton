@@ -110,9 +110,10 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
       booking: ic?.booked
         ? { booked: true, text: `✓ BOOKED${ic.booked_by_name ? ` BY ${ic.booked_by === m.viewer.id ? 'YOU' : ic.booked_by_name.split(' ')[0].toUpperCase()}` : ''}` }
         : { booked: false, text: 'NOT BOOKED YET' },
-      action: !conf || m.past ? null
-        : !ic?.booked ? <button className="chip-btn go" onClick={() => setBooking(c)}>Book court {c}</button>
-        : canEdit ? <button className="chip-btn" onClick={() => setBooking(c)}>Edit</button> : null,
+      // Booking lives in its own card below, so the court picture is only about who's playing.
+      action: null,
+      canEdit,
+      cost: ic?.cost ?? null,
     }
   })
   // Organiser: a waitlisted person can play as an extra (rotating) on a court with fewer than 2 extras.
@@ -326,6 +327,28 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
           </div>
         )}
 
+        {conf && !m.past && (
+          <div className="card stack" style={{ padding: 20, gap: 12 }}>
+            <div className="stack" style={{ gap: 3 }}>
+              <span className="eyebrow">Court booking</span>
+              <span style={{ fontSize: 13, color: '#6B6B66', lineHeight: 1.4 }}>Booked a court at the venue? Add it here so the cost is split.</span>
+            </div>
+            {courts.map(c => (
+              <div key={c.court} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700 }}>Court {c.court}</span>
+                  <span style={{ fontSize: 12, color: c.booking.booked ? '#0E5A3A' : '#9A9992', fontWeight: 600 }}>
+                    {c.booking.booked ? `${c.booking.text.replace('✓ BOOKED', '✓ Booked').replace(/ BY (.+)$/, (_, n: string) => ` by ${n === 'YOU' ? 'you' : n.charAt(0) + n.slice(1).toLowerCase()}`)}${c.cost ? ` · ${money(c.cost, m.currency)}` : ''}` : 'Not booked yet'}
+                  </span>
+                </span>
+                {!c.booking.booked
+                  ? <button className="chip-btn" onClick={() => setBooking(c.court)}>Mark booked</button>
+                  : c.canEdit ? <button className="chip-btn" onClick={() => setBooking(c.court)}>Edit</button> : null}
+              </div>
+            ))}
+          </div>
+        )}
+
         {isOrg && !m.past && (
           <>
             <div className="card stack" style={{ padding: 20, gap: 14 }}>
@@ -339,14 +362,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
                   <span style={{ fontSize: 12, color: '#6B6B66' }}>Players are locked in.</span>
                 </div>
               ) : (
-                <div className="stack" style={{ gap: 10 }}>
-                  <span style={{ fontSize: 14, color: '#6B6B66', lineHeight: 1.4 }}>
-                    {nCourts > 1
-                      ? `${nBooked} of ${nCourts} courts booked. Book each court once you've booked it at the venue; it doesn't have to be full. Only players on a booked court are locked in.`
-                      : firstOpen.count >= per ? `${m.size} in. Book the court, then add the details here.` : `${firstOpen.count}/${per} in. You can book now or wait for ${per - firstOpen.count} more.`}
-                  </span>
-                  <button className="btn" style={{ height: 48, fontSize: 15 }} onClick={() => setBooking(firstOpen.court)}>Book court {firstOpen.court}{nCourts > 1 ? ` · ${firstOpen.count}/${per} in` : ''}</button>
-                </div>
+                <span style={{ fontSize: 14, color: '#6B6B66' }}>{nBooked} of {nCourts} court{nCourts > 1 ? 's' : ''} booked</span>
               )}
               <div style={{ borderTop: '1px solid rgba(0,0,0,.06)' }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
