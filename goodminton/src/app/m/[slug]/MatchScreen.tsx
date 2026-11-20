@@ -483,7 +483,8 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
       )}
       {canSee && (
         <LogResultSheet open={logCourt !== null || !!editGame} onClose={() => { setLogCourt(null); setEditGame(null) }} matchId={m.id} matchTitle={m.title} initialCourt={logCourt ?? 0}
-          courts={courts.map((c, i) => ({ label: `Court ${i + 1}`, players: c.players }))} edit={editGame} defaultGroup={m.group?.id} />
+          courts={courts.map((c, i) => ({ label: `Court ${i + 1}`, players: c.players }))} edit={editGame} defaultGroup={m.group?.id}
+          pool={m.players.filter(isVisible).map(p => person(p.id, p.full_name))} />
       )}
     </Frame>
   )

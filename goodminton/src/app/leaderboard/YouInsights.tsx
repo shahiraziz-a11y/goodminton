@@ -2,6 +2,7 @@
 
 import { Avatar } from '@/components/Avatar'
 import { FormDots, RatingLine, WeekBars } from '@/components/InsightsCharts'
+import { RatingInfo } from '@/components/RatingInfo'
 import { fmtDate } from '@/lib/format'
 import { clutch, form, funFacts, partners, ratingChange, ratingHistory, rivals, summary } from '@/lib/insights'
 import { person } from '@/lib/people'
@@ -75,11 +76,10 @@ export function YouInsights({ meId, ins }: { meId: string; ins: Insights }) {
       {pts.length >= 3 && (
         <div className="card stack" style={card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span className="eyebrow">Rating</span>
+            <span className="eyebrow">Rating<RatingInfo /></span>
             <span style={{ fontSize: 13, fontWeight: 700 }}>{pts[pts.length - 1].rating} <span style={{ color: change >= 0 ? '#0E5A3A' : '#C2410C' }}>{change >= 0 ? '+' : ''}{change} this month</span></span>
           </div>
           <RatingLine points={pts} />
-          <span className="note" style={{ fontSize: 12 }}>Everyone starts at 1000. Beating stronger pairs counts more.</span>
         </div>
       )}
 

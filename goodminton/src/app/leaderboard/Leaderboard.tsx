@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Avatar } from '@/components/Avatar'
 import { Frame } from '@/components/Chrome'
+import { Sheet } from '@/components/Sheet'
 import { useFeedback } from '@/components/Feedback'
 import { LogResultSheet, type GameDraft } from '@/components/LogResultSheet'
 import { NoGroup } from '@/components/NoGroup'
+import { RatingInfo } from '@/components/RatingInfo'
 import { SamplePreview } from '@/components/Sample'
 import { fmtDate } from '@/lib/format'
 import { person, type Person } from '@/lib/people'
@@ -39,6 +41,8 @@ export function Leaderboard({ meId, meName, data, groups = [], insights }: { meI
   const [draft, setDraft] = useState<{ edit?: GameDraft; prefill?: GameDraft } | null>(null)
   const [menu, setMenu] = useState<string | null>(null)
   const [showAll, setShowAll] = useState(false)
+  // A pair's own match history, from the standings or an award.
+  const [pairOpen, setPairOpen] = useState<[string, string] | null>(null)
   const who = (id: string) => person(id, data.people[id] ?? 'Player')
   const duo = (ids: [string, string]) => { const [a, b] = ids.map(who); return { a, b, names: `${a.first} & ${b.first}`, mine: ids.includes(meId) } }
   const nm = (ids: string[]) => ids.map(id => who(id).first).join(' & ')
@@ -92,7 +96,7 @@ export function Leaderboard({ meId, meName, data, groups = [], insights }: { meI
         <span className="h1">Insights</span>
         {/* About you first (all your groups); the group's standings below. */}
         {insights && <YouInsights meId={meId} ins={insights} />}
-        {groups.length > 0 && insights && <span className="eyebrow" style={{ marginBottom: -10 }}>Group leaderboard</span>}
+        {(groups.length > 0 || data.games.length > 0) && insights && <span id="group" className="eyebrow" style={{ marginBottom: -10, scrollMarginTop: 80 }}>{data.group?.name ? `${data.group.name} · rankings` : 'Group leaderboard'}</span>}
         {!groups.length && !data.games.length ? (
           <>
             <NoGroup title="Who rules the court?" line="Organise a match, log who won, and the standings build up here." photo={1} />
@@ -142,7 +146,7 @@ export function Leaderboard({ meId, meName, data, groups = [], insights }: { meI
                     const top = rank <= 3
                     const edge = first ? '#0E4A30' : top ? 'rgba(227,238,230,.85)' : 'rgba(255,255,255,.6)'
                     return (
-                      <div key={q.ids.join()} style={{ background: edge, color: first ? '#fff' : '#111111', boxShadow: d.mine ? `0 0 0 2px ${first ? '#9FE0BC' : '#0E5A3A'}` : 'inset 0 0 0 1px rgba(255,255,255,.7)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', borderRadius: 20, padding: top ? '14px' : '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div key={q.ids.join()} role="button" tabIndex={0} onClick={() => setPairOpen(q.ids)} onKeyDown={e => e.key === 'Enter' && setPairOpen(q.ids)} style={{ cursor: 'pointer', background: edge, color: first ? '#fff' : '#111111', boxShadow: d.mine ? `0 0 0 2px ${first ? '#9FE0BC' : '#0E5A3A'}` : 'inset 0 0 0 1px rgba(255,255,255,.7)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', borderRadius: 20, padding: top ? '14px' : '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
                         <span className="display" style={{ fontSize: top ? 22 : 18, fontWeight: 700, width: 24, flex: 'none', color: first ? '#9FE0BC' : top ? '#0E5A3A' : '#C9C7BF' }}>{rank}</span>
                         <Duo a={d.a} b={d.b} size={top ? 34 : 30} edge={edge} />
                         <span className="stack" style={{ gap: 3, flex: 1, minWidth: 0 }}>
@@ -201,7 +205,7 @@ export function Leaderboard({ meId, meName, data, groups = [], insights }: { meI
                   {awards.map(aw => {
                     const d = duo(aw.q.ids)
                     return (
-                      <div key={aw.title} className="stack" style={{ flex: 'none', width: 150, borderRadius: 20, padding: 14, background: aw.bg, color: aw.fg, boxShadow: aw.ring, gap: 12 }}>
+                      <div key={aw.title} className="stack" role="button" tabIndex={0} onClick={() => setPairOpen(aw.q.ids)} style={{ cursor: 'pointer', flex: 'none', width: 150, borderRadius: 20, padding: 14, background: aw.bg, color: aw.fg, boxShadow: aw.ring, gap: 12 }}>
                         <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: aw.accent }}>{aw.title}</span>
                         <Duo a={d.a} b={d.b} size={30} edge={aw.bg} />
                         <span className="stack" style={{ gap: 2 }}>
@@ -217,7 +221,7 @@ export function Leaderboard({ meId, meName, data, groups = [], insights }: { meI
             )}
 
             <div className="stack" style={{ gap: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="eyebrow">Players</span><span className="eyebrow">Best partner</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="eyebrow">Players<RatingInfo /></span><span className="eyebrow">Best partner</span></div>
               <div className="card" style={{ padding: '4px 16px' }}>
                 {players.map(r => {
                   const me = r.id === meId
@@ -288,6 +292,34 @@ export function Leaderboard({ meId, meName, data, groups = [], insights }: { meI
             background: '#0E5A3A', color: '#fff', fontSize: 32, fontWeight: 300, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: '0 12px 28px -8px rgba(14,90,58,.65), 0 0 0 4px rgba(255,255,255,.7)' }}>+</button>
       )}
+      {pairOpen && (() => {
+        const has = (side: string[]) => side.length === 2 && pairOpen.every(id => side.includes(id))
+        const gs = data.games.filter(g => has(g.a) || has(g.b))
+        const w = gs.filter(g => (has(g.a) ? 'a' : 'b') === g.winner).length
+        const d = duo(pairOpen)
+        return (
+          <Sheet open onClose={() => setPairOpen(null)} title={d.names} subtitle={`${w} won · ${gs.length - w} lost together`}>
+            <div className="card" style={{ padding: '2px 14px', maxHeight: '55vh', overflowY: 'auto' }}>
+              {gs.map(g => {
+                const us = has(g.a) ? 'a' : 'b'
+                const them = us === 'a' ? g.b : g.a
+                const won = g.winner === us
+                const sc = g.score_a != null && g.score_b != null ? (us === 'a' ? `${g.score_a}–${g.score_b}` : `${g.score_b}–${g.score_a}`) : null
+                return (
+                  <div key={g.id} className="row-line" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0' }}>
+                    <span style={{ width: 24, height: 24, borderRadius: '50%', flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800,
+                      background: won ? '#0E5A3A' : 'transparent', color: won ? '#fff' : '#9A9992', boxShadow: won ? 'none' : 'inset 0 0 0 1.5px #9A9992' }}>{won ? 'W' : 'L'}</span>
+                    <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700 }}>vs {nm(them)}{sc ? ` · ${sc}` : ''}</span>
+                      <span style={{ fontSize: 12, color: '#6B6B66' }}>{fmtDay(g.played_on)} · {g.match_title ?? 'Friendly'}</span>
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </Sheet>
+        )
+      })()}
       <LogResultSheet open={logging} onClose={() => { setLogging(false); setDraft(null) }} groups={groups} defaultGroup={data.group?.id}
         recent={data.games} people={data.people} edit={draft?.edit} prefill={draft?.prefill}
         matchTitle={draft?.edit ? data.games.find(g => g.id === draft.edit!.id)?.match_title ?? undefined : undefined} />

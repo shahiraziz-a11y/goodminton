@@ -23,13 +23,15 @@ export type GameDraft = { id?: string; a: Person[]; b: Person[]; winner?: Win; s
  * With `courts` (from a match) the players are fixed per court; without, pick any 4 from your players,
  * or tap a recent matchup or pair. `edit` changes one logged game; `prefill` starts with its players.
  */
-export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, initialCourt = 0, groups = [], defaultGroup, recent, people, edit, prefill }: {
+export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, initialCourt = 0, groups = [], defaultGroup, recent, people, edit, prefill, pool }: {
   open: boolean; onClose: () => void; matchId?: string; matchTitle?: string; courts?: Court[]; initialCourt?: number
   /** Without a match: the game goes in one of these groups, and players come from it. */
   groups?: MyGroup[]; defaultGroup?: string | null
   /** Recent games in the group and their names (else they're loaded when the sheet opens). */
   recent?: Game[]; people?: Record<string, string>
   edit?: GameDraft | null; prefill?: GameDraft | null
+  /** In a match: everyone confirmed. Any of them can be swapped in, whatever their court. */
+  pool?: Person[]
 }) {
   const router = useRouter()
   const { flash } = useFeedback()
@@ -42,7 +44,7 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
   const [picking, setPicking] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const free = !courts
-  const canPick = free || !!edit
+  const canPick = free || !!edit || !!pool?.length
   const [group, setGroup] = useState<string | null>(defaultGroup ?? groups[0]?.id ?? null)
   const [loaded, setLoaded] = useState<{ group: string | null; games: Game[]; people: Record<string, string> } | null>(null)
 
@@ -156,6 +158,22 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
     fill(left ? [...pair, ...other] : [...other, ...pair])
   }
 
+  if (picking !== null && pool?.length) {
+    const taken = slots.filter((x, i) => x && i !== picking).map(x => x!.id)
+    return (
+      <Sheet open={open} onClose={() => setPicking(null)} title={`Pick player ${picking + 1} of ${slots.length}`} subtitle="Anyone playing in this match">
+        <div className="stack picker-list">
+          {pool.filter(x => !taken.includes(x.id)).map(x => (
+            <button key={x.id} type="button" className="picker-row" onClick={() => place(x)}>
+              <Avatar p={x} size={32} font={12} />
+              <span style={{ flex: 1, textAlign: 'left', fontSize: 15, fontWeight: 600 }}>{x.name}</span>
+            </button>
+          ))}
+        </div>
+        <button className="btn-2" onClick={() => setPicking(null)}>Back</button>
+      </Sheet>
+    )
+  }
   if (picking !== null) {
     return (
       <Sheet open={open} onClose={() => setPicking(null)} title={`Pick player ${picking + 1} of ${slots.length}`} subtitle={half === 1 ? (picking === 0 ? 'Left side' : 'Right side') : picking < 2 ? 'Left pair' : 'Right pair'}>
@@ -206,8 +224,9 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
         <div className="seg">
           {courts.map((c, i) => (
             <button key={i} className={court === i ? 'sel' : ''} style={{ height: 40 }} onClick={() => {
-              if (c.players.length < slots.length) return flash("That court isn't full")
-              setCourt(i); fill(c.players)
+              if (c.players.length < slots.length && !pool?.length) return flash("That court isn't full")
+              // Short court: the empty spots can be filled from anyone in the match.
+              setCourt(i); fill([...c.players.slice(0, slots.length), ...Array(Math.max(0, slots.length - c.players.length)).fill(null)])
             }}>{c.label}</button>
           ))}
         </div>
@@ -253,7 +272,7 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
         </div>
       )}
       <span style={{ fontSize: 13, color: '#6B6B66' }}>
-        {full ? (half === 1 ? 'Tap who won.' : 'Tap the pair that won.') : half === 1 ? 'Tap + to pick each player.' : pairs.length ? 'Tap a recent pair, or + to pick players.' : 'Tap + to pick the players for each pair.'}
+        {full ? (half === 1 ? 'Tap who won.' : pool?.length ? 'Tap the pair that won, or a face to swap.' : 'Tap the pair that won.') : half === 1 ? 'Tap + to pick each player.' : pairs.length ? 'Tap a recent pair, or + to pick players.' : 'Tap + to pick the players for each pair.'}
       </span>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr)', gap: 10, alignItems: 'center' }}>
         <Pair side="a" ps={a} />

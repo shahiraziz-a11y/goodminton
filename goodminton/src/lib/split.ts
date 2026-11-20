@@ -68,3 +68,42 @@ export function guestDues(me: string, matches: LedgerMatch[]) {
   const open = round(dues.filter(d => !d.collected).reduce((a, d) => a + d.amount, 0))
   return { dues, open }
 }
+
+export type BreakdownRow = {
+  match: LedgerMatch; total: number; share: number; people: number
+  /** What I paid for this match, and my share of it (two shares if I carry a guest). */
+  iPaid: number; myShare: number
+  /** Between me and them in this match: positive = they owe me. */
+  amount: number; paid: number; open: number
+}
+
+/** Every match that adds to what's between me and one person, and every payment between us. */
+export function breakdownWith(me: string, other: string, matches: LedgerMatch[]) {
+  const rows: BreakdownRow[] = []
+  const payments: { match: LedgerMatch; from: string; to: string; amount: number; at?: string }[] = []
+  for (const m of matches) {
+    const { out, total, share } = transfersOf(m.players, m.expenses, m.settlements)
+    const t = out.find(x => (x.from === other && x.to === me) || (x.from === me && x.to === other))
+    if (t) {
+      const sign = t.to === me ? 1 : -1
+      rows.push({
+        match: m, total, share, people: m.players.length,
+        iPaid: round(m.expenses.filter(e => e.paid_by === me).reduce((s, e) => s + Number(e.amount), 0)),
+        myShare: round(share * m.players.filter(p => p === me).length),
+        amount: sign * t.amount + 0, paid: sign * t.paid + 0, open: sign * t.open + 0,
+      })
+    }
+    for (const s of m.settlements) {
+      if ((s.from === me && s.to === other) || (s.from === other && s.to === me)) payments.push({ match: m, from: s.from, to: s.to, amount: Number(s.amount), at: s.settled_at })
+    }
+  }
+  const net = round(rows.reduce((a, r) => a + r.open, 0))
+  payments.sort((x, y) => (y.at ?? y.match.starts_at).localeCompare(x.at ?? x.match.starts_at))
+  return { rows, payments, net }
+}
+
+/** Every payment I made or received, newest first. */
+export function paymentsOf(me: string, matches: LedgerMatch[]) {
+  return matches.flatMap(m => m.settlements.filter(s => s.from === me || s.to === me).map(s => ({ match: m, ...s, amount: Number(s.amount) })))
+    .sort((x, y) => (y.settled_at ?? y.match.starts_at).localeCompare(x.settled_at ?? x.match.starts_at))
+}

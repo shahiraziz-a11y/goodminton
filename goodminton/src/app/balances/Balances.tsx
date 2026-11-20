@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Avatar } from '@/components/Avatar'
@@ -10,7 +11,7 @@ import { useFeedback } from '@/components/Feedback'
 import { fmtDate, money } from '@/lib/format'
 import { whatsappUrl } from '@/lib/match'
 import { person } from '@/lib/people'
-import { balancesFor, guestDues } from '@/lib/split'
+import { balancesFor, guestDues, paymentsOf } from '@/lib/split'
 import { createClient } from '@/lib/supabase/client'
 import { CURRENCY } from '@/lib/supabase/env'
 import type { LedgerMatch } from '@/lib/types'
@@ -111,12 +112,15 @@ export function Balances({ meId, meName, ledger, origin, inGroup = true }: { meI
             const amt = fmt(Math.abs(v))
             return (
               <div key={id} className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                <Avatar p={p} size={38} />
-                <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
-                  <span style={{ fontSize: 15, fontWeight: 700 }}>{p.name}</span>
-                  <span style={{ fontSize: 12, color: '#6B6B66' }}>{v > 0 ? 'owes you' : 'you owe'}</span>
-                </span>
-                <span className="display" style={{ fontSize: 15, fontWeight: 700, color: v > 0 ? '#0E5A3A' : '#E0245E' }}>{amt}</span>
+                {/* Tap the person for every match behind the number. */}
+                <Link href={`/balances/${id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+                  <Avatar p={p} size={38} />
+                  <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                    <span style={{ fontSize: 15, fontWeight: 700 }}>{p.name}</span>
+                    <span style={{ fontSize: 12, color: '#6B6B66' }}>{v > 0 ? 'owes you' : 'you owe'} · details ›</span>
+                  </span>
+                  <span className="display" style={{ fontSize: 15, fontWeight: 700, color: v > 0 ? '#0E5A3A' : '#E0245E' }}>{amt}</span>
+                </Link>
                 {v > 0 ? (
                   // Their own line, so the name keeps its room.
                   <span style={{ display: 'flex', gap: 8, flex: '1 0 100%', justifyContent: 'flex-end' }}>
@@ -156,23 +160,28 @@ export function Balances({ meId, meName, ledger, origin, inGroup = true }: { meI
           </div>
         )}
         <div className="stack" style={{ gap: 12 }}>
-          <span className="eyebrow">History</span>
-          {!lines.length ? <span className="note">No payments yet.</span> : (
-            <div className="card" style={{ padding: '4px 18px' }}>
-              {lines.map(l => (
-                <div key={`${l.match.id}:${l.transfer.from}>${l.transfer.to}`} className="row-line" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0' }}>
-                  <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700 }}>{l.owedToMe ? `${friend(l.other).first} owes you` : `You owe ${friend(l.other).first}`}</span>
-                    <span style={{ fontSize: 12, color: '#6B6B66' }}>{fmtDate(l.match.starts_at, l.match.timezone)} · {l.match.title}{gf === 'all' && groupsHere.length > 1 && l.match.group_name ? ` · ${l.match.group_name}` : ''}</span>
-                  </span>
-                  <span style={{ fontSize: 14, fontWeight: 700 }}>{fmt(l.transfer.settled ? l.transfer.amount : l.transfer.open)}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', color: l.transfer.settled ? '#0E5A3A' : '#D6336C', width: 36, textAlign: 'right' }}>
-                    {l.transfer.settled ? 'PAID' : 'OPEN'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+          <span className="eyebrow">Payments</span>
+          {(() => {
+            const pays = paymentsOf(meId, shown).filter(x => x.to !== meId || !(shown.find(m => m.id === x.match.id)?.guests ?? {})[x.from])
+            if (!pays.length) return <span className="note">No payments yet.</span>
+            return (
+              <div className="card" style={{ padding: '4px 18px' }}>
+                {pays.map(x => {
+                  const mine = x.from === meId
+                  const other = friend(mine ? x.to : x.from)
+                  return (
+                    <div key={`${x.match.id}:${x.from}>${x.to}`} className="row-line" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0' }}>
+                      <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700 }}>{mine ? `You paid ${other.first}` : `${other.first} paid you`}</span>
+                        <span style={{ fontSize: 12, color: '#6B6B66' }}>{fmtDate(x.settled_at ?? x.match.starts_at, x.match.timezone)} · for {x.match.title}</span>
+                      </span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: mine ? '#111111' : '#0E5A3A' }}>{mine ? '' : '+'}{fmt(x.amount)}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
         </div>
       </div>
     </Frame>

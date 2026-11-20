@@ -9,7 +9,7 @@ import { useFeedback } from '@/components/Feedback'
 import { Sheet } from '@/components/Sheet'
 import { fmtDate } from '@/lib/format'
 import { person } from '@/lib/people'
-import { photoFor } from '@/lib/photos'
+import { groupArtFor } from '@/lib/photos'
 import { createClient } from '@/lib/supabase/client'
 import type { MyGroup } from '@/lib/types'
 
@@ -43,7 +43,7 @@ export function GroupsList({ meId, meName, groups, startNew = false }: { meId: s
         <div className="stack" style={{ gap: 10 }}>
           {groups.map(g => (
             <Link key={g.id} href={`/groups/${g.id}`} className="card" style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 14 }}>
-              <span aria-hidden style={{ width: 56, height: 56, borderRadius: 16, flex: 'none', background: `#0E4A30 url(${photoFor(g.id)}) center/cover`, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.4)' }} />
+              <span aria-hidden style={{ width: 56, height: 56, borderRadius: '50%', flex: 'none', background: `#0E4A30 url(${groupArtFor(g.id)}) center/cover`, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.4)' }} />
               <span className="stack" style={{ flex: 1, minWidth: 0, gap: 2 }}>
                 <span className="display" style={{ fontSize: 16, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.name}</span>
                 <span style={{ fontSize: 12, color: '#6B6B66' }}>

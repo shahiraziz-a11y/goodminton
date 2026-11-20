@@ -42,6 +42,7 @@ select public.create_group('Tuesday crew') as tue \gset
 select pg_temp.check(pg_temp.fails('select public.create_group(''  '')') like '%name%', 'group needs a name');
 select pg_temp.as_user('wes');
 select public.create_group('Office') as off \gset
+select public.set_group_public(:'off', false);  -- private: the checks below are about who can't see it
 reset role;
 select pg_temp.check(pg_temp.code(:'tue') ~ '^[a-z2-9]{12}$' and pg_temp.code(:'tue') <> pg_temp.code(:'off'), 'invite codes');
 select pg_temp.code(:'tue') as tue_code, pg_temp.code(:'off') as off_code \gset
@@ -131,7 +132,8 @@ select public.remove_member(:'tue', pg_temp.uid('zed'));
 select public.remove_member(:'tue', pg_temp.uid('yan'));
 select pg_temp.as_user('zed'); select pg_temp.check(pg_temp.home() = '', 'removed: group matches gone');
 select pg_temp.as_user('yan'); select pg_temp.check(pg_temp.home() = 'G Tue', 'removed but playing: still sees that match');
-select pg_temp.check(jsonb_array_length(public.get_leaderboard(:'tue') -> 'games') = 0, 'removed: no leaderboard');
+-- Tuesday crew is public, so its rankings stay visible like anyone else's (games and names only).
+select pg_temp.check(jsonb_array_length(public.get_leaderboard(:'tue') -> 'games') >= 1, 'removed: public rankings still visible');
 
 -- Leaving and ownership.
 select pg_temp.as_user('tara');

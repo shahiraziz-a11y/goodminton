@@ -15,7 +15,7 @@ import { useFeedback } from '@/components/Feedback'
 import { BLOCKED_REASON } from '@/lib/blocked'
 import { fmtDate, fmtTime, money } from '@/lib/format'
 import { person } from '@/lib/people'
-import { photoFor } from '@/lib/photos'
+import { groupArtFor, photoFor } from '@/lib/photos'
 import { sampleMatches } from '@/lib/samples'
 import { balancesFor, transfersOf } from '@/lib/split'
 import { createClient } from '@/lib/supabase/client'
@@ -99,8 +99,11 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
             style={{ width: 56, height: 56, borderRadius: '50%', fontSize: 28, fontWeight: 400, lineHeight: 1, padding: 0, flex: 'none', boxShadow: '0 12px 24px -10px rgba(0,0,0,.5)' }}>+</button>}
         </div>
         {noGroup && <NoGroup title="Find your crew" line="Matches, results and who owes what, just for the people you play with." photo={2} onStart={newGroup} />}
+        {/* Newcomers: browsing groups comes straight after the welcome. */}
+        {noGroup && <GroupRow groups={myGroups} onNew={newGroup} />}
         {fresh && <SampleMatches />}
         {next && <NextUp m={next} />}
+        {!noGroup && <GroupRow groups={myGroups} onNew={newGroup} />}
         {many && (
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '0 -20px', padding: '0 20px 4px', scrollbarWidth: 'none' }}>
             {[{ id: 'all', name: 'All groups' }, ...myGroups].map(g => (
@@ -117,26 +120,6 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
           </div>
         )}
         {!fresh && <BalanceRow total={bal.total} currency={ledger[0]?.currency ?? CURRENCY} />}
-        {myGroups.length > 0 && (
-          <div className="stack" style={{ gap: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '0 4px' }}>
-              <span className="eyebrow">Your groups</span>
-              <button className="link-btn" style={{ fontSize: 13, fontWeight: 700, color: '#0E5A3A' }} onClick={newGroup}>+ New group</button>
-            </div>
-            <div className="card" style={{ padding: '2px 14px', borderRadius: 24 }}>
-              {myGroups.map(g => (
-                <Link key={g.id} href={`/groups/${g.id}`} className="row-line" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0' }}>
-                  <span aria-hidden style={{ width: 40, height: 40, borderRadius: 12, flex: 'none', background: `#0E4A30 url(${photoFor(g.id)}) center/cover` }} />
-                  <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.name}</span>
-                    <span style={{ fontSize: 12, color: '#6B6B66' }}>{g.members} member{g.members === 1 ? '' : 's'}{g.my_role === 'owner' ? ' · you run it' : ''}</span>
-                  </span>
-                  <span style={{ color: '#9A9992', fontSize: 18 }}>›</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
         <InstallCard />
         <AlertsCard />
         <EmailToggle />
@@ -200,6 +183,40 @@ function groupMatches(matches: HomeMatch[]): GroupData[] {
     items.sort((a, b) => (g.kind === 'upcoming' || g.kind === 'live' ? t(a) - t(b) : t(b) - t(a)))
     return { ...g, items }
   }).filter(g => g.items.length)
+}
+
+/** Your groups as a row of small photo cards, with New group first and Find groups last. */
+function GroupRow({ groups, onNew }: { groups: MyGroup[]; onNew: () => void }) {
+  // Round bubbles with the name underneath.
+  const item = { flex: 'none', width: 76, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, border: 'none', background: 'none', padding: 0, color: '#111111', textAlign: 'center' } as const
+  const circle = { width: 68, height: 68, borderRadius: '50%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', boxShadow: '0 0 0 2.5px #fff, 0 8px 18px -10px rgba(0,0,0,.5)' } as const
+  const label = { fontSize: 12, fontWeight: 700, lineHeight: 1.2, width: '100%', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as const
+  return (
+    <div className="stack" style={{ gap: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '0 4px' }}>
+        <span className="eyebrow">{groups.length ? 'Your groups' : 'Groups'}</span>
+        <Link href="/groups/discover" style={{ fontSize: 13, fontWeight: 700, color: '#0E5A3A' }}>Find groups</Link>
+      </div>
+      <div style={{ display: 'flex', gap: 12, overflowX: 'auto', margin: '0 -20px', padding: '4px 20px 6px', scrollbarWidth: 'none' }}>
+        <button type="button" onClick={onNew} style={item}>
+          <span style={{ ...circle, border: '1.5px dashed #9A9992', background: 'rgba(255,255,255,.6)', boxShadow: 'none', fontSize: 28, color: '#0E5A3A' }}>+</span>
+          <span style={label}>New group</span>
+        </button>
+        {groups.map(g => (
+          <Link key={g.id} href={`/groups/${g.id}`} style={item}>
+            <span style={{ ...circle, background: `#0E4A30 url(${groupArtFor(g.id)}) center/cover` }}>
+              {!!g.requests && <span aria-label={`${g.requests} join request${g.requests > 1 ? 's' : ''}`} style={{ position: 'absolute', top: -2, right: -2, minWidth: 22, height: 22, borderRadius: 11, padding: '0 6px', background: '#E5484D', color: '#fff', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 2px #fff' }}>{g.requests}</span>}
+            </span>
+            <span style={label}>{g.name}</span>
+          </Link>
+        ))}
+        <Link href="/groups/discover" style={item}>
+          <span style={{ ...circle, background: '#111111', fontSize: 24 }}>🔎</span>
+          <span style={label}>Find groups</span>
+        </Link>
+      </div>
+    </div>
+  )
 }
 
 /** What matches look like, for someone who hasn't joined one yet. */
