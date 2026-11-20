@@ -6,7 +6,7 @@ import { Frame } from '@/components/Chrome'
 import { useFeedback } from '@/components/Feedback'
 import { fmtDate } from '@/lib/format'
 import { person } from '@/lib/people'
-import { photoFor } from '@/lib/photos'
+import { groupArtFor } from '@/lib/photos'
 import { createClient } from '@/lib/supabase/client'
 import type { GroupListing } from '@/lib/types'
 
@@ -44,7 +44,7 @@ export function Discover({ meId, meName, initial }: { meId: string; meName: stri
           {groups.map(g => (
             <div key={g.id} className="card" style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
               <Link href={`/groups/${g.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
-                <span aria-hidden style={{ width: 52, height: 52, borderRadius: 14, flex: 'none', background: `#0E4A30 url(${photoFor(g.id)}) center/cover` }} />
+                <span aria-hidden style={{ width: 52, height: 52, borderRadius: '50%', flex: 'none', background: `#0E4A30 url(${groupArtFor(g.id)}) center/cover` }} />
                 <span className="stack" style={{ minWidth: 0, gap: 2 }}>
                   <span className="display" style={{ fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.name}</span>
                   <span style={{ fontSize: 12, color: '#6B6B66' }}>

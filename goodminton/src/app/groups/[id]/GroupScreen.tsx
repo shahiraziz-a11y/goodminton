@@ -9,7 +9,7 @@ import { useFeedback } from '@/components/Feedback'
 import { Sheet } from '@/components/Sheet'
 import { whatsappUrl } from '@/lib/match'
 import { person } from '@/lib/people'
-import { photoFor } from '@/lib/photos'
+import { groupArtFor } from '@/lib/photos'
 import { fmtDate, fmtTime } from '@/lib/format'
 import { createClient } from '@/lib/supabase/client'
 import type { GroupDetail, GroupMember } from '@/lib/types'
@@ -69,7 +69,7 @@ export function GroupScreen({ meId, meName, g, origin }: { meId: string; meName:
 
         {/* Someone finding the group: ask to join; the owner approves. */}
         {!member && (
-          <div style={{ background: `linear-gradient(180deg, rgba(14,74,48,.55) 0%, rgba(6,42,26,.94) 75%), #0E4A30 url(${photoFor(g.id)}) center/cover`, color: '#fff', borderRadius: 28, padding: 18, paddingTop: 90, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ background: `linear-gradient(180deg, rgba(14,74,48,.55) 0%, rgba(6,42,26,.94) 75%), #0E4A30 url(${groupArtFor(g.id)}) center/cover`, color: '#fff', borderRadius: 28, padding: 18, paddingTop: 90, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <span style={{ fontSize: 14, color: '#CFE3D5', lineHeight: 1.4 }}>Ask to join and the organiser will let you in. Then you can sign up for matches.</span>
             {g.my_status === 'requested'
               ? <span className="btn" style={{ height: 48, background: 'rgba(255,255,255,.16)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Request sent</span>
@@ -95,7 +95,7 @@ export function GroupScreen({ meId, meName, g, origin }: { meId: string; meName:
           </div>
         )}
 
-        {member && <div style={{ background: `linear-gradient(180deg, rgba(14,74,48,.6) 0%, rgba(6,42,26,.94) 70%), #0E4A30 url(${photoFor(g.id)}) center/cover`, color: '#fff', borderRadius: 28, padding: 18, paddingTop: 90, display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 30px 50px -30px rgba(14,40,26,.65)' }}>
+        {member && <div style={{ background: `linear-gradient(180deg, rgba(14,74,48,.6) 0%, rgba(6,42,26,.94) 70%), #0E4A30 url(${groupArtFor(g.id)}) center/cover`, color: '#fff', borderRadius: 28, padding: 18, paddingTop: 90, display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 30px 50px -30px rgba(14,40,26,.65)' }}>
           <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#CFE3D5' }}>Invite people</span>
           <span style={{ fontSize: 13, fontWeight: 700, padding: '10px 12px', borderRadius: 12, background: 'rgba(255,255,255,.08)', overflowWrap: 'anywhere' }}>{link}</span>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>

@@ -15,7 +15,7 @@ import { useFeedback } from '@/components/Feedback'
 import { BLOCKED_REASON } from '@/lib/blocked'
 import { fmtDate, fmtTime, money } from '@/lib/format'
 import { person } from '@/lib/people'
-import { photoFor } from '@/lib/photos'
+import { groupArtFor, photoFor } from '@/lib/photos'
 import { sampleMatches } from '@/lib/samples'
 import { balancesFor, transfersOf } from '@/lib/split'
 import { createClient } from '@/lib/supabase/client'
@@ -187,29 +187,32 @@ function groupMatches(matches: HomeMatch[]): GroupData[] {
 
 /** Your groups as a row of small photo cards, with New group first and Find groups last. */
 function GroupRow({ groups, onNew }: { groups: MyGroup[]; onNew: () => void }) {
-  const tile = { flex: 'none', width: 118, height: 128, borderRadius: 20, overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 10 } as const
+  // Round bubbles with the name underneath.
+  const item = { flex: 'none', width: 76, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, border: 'none', background: 'none', padding: 0, color: '#111111', textAlign: 'center' } as const
+  const circle = { width: 68, height: 68, borderRadius: '50%', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', boxShadow: '0 0 0 2.5px #fff, 0 8px 18px -10px rgba(0,0,0,.5)' } as const
+  const label = { fontSize: 12, fontWeight: 700, lineHeight: 1.2, width: '100%', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as const
   return (
     <div className="stack" style={{ gap: 10 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '0 4px' }}>
         <span className="eyebrow">{groups.length ? 'Your groups' : 'Groups'}</span>
         <Link href="/groups/discover" style={{ fontSize: 13, fontWeight: 700, color: '#0E5A3A' }}>Find groups</Link>
       </div>
-      <div style={{ display: 'flex', gap: 10, overflowX: 'auto', margin: '0 -20px', padding: '2px 20px 6px', scrollbarWidth: 'none' }}>
-        <button type="button" onClick={onNew} style={{ ...tile, border: '1.5px dashed #C9C6BD', background: 'rgba(255,255,255,.5)', alignItems: 'flex-start', gap: 6, textAlign: 'left' }}>
-          <span style={{ fontSize: 26, color: '#0E5A3A', lineHeight: 1 }}>+</span>
-          <span style={{ fontSize: 13, fontWeight: 700 }}>New group</span>
+      <div style={{ display: 'flex', gap: 12, overflowX: 'auto', margin: '0 -20px', padding: '4px 20px 6px', scrollbarWidth: 'none' }}>
+        <button type="button" onClick={onNew} style={item}>
+          <span style={{ ...circle, border: '1.5px dashed #9A9992', background: 'rgba(255,255,255,.6)', boxShadow: 'none', fontSize: 28, color: '#0E5A3A' }}>+</span>
+          <span style={label}>New group</span>
         </button>
         {groups.map(g => (
-          <Link key={g.id} href={`/groups/${g.id}`} style={{ ...tile, color: '#fff', background: `linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,.72) 100%), #0E4A30 url(${photoFor(g.id)}) center/cover` }}>
-            {!!g.requests && <span aria-label={`${g.requests} join request${g.requests > 1 ? 's' : ''}`} style={{ position: 'absolute', top: 8, right: 8, minWidth: 20, height: 20, borderRadius: 10, padding: '0 6px', background: '#E5484D', color: '#fff', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{g.requests}</span>}
-            <span style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.15, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{g.name}</span>
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#CFE3D5' }}>{g.members} member{g.members === 1 ? '' : 's'}</span>
+          <Link key={g.id} href={`/groups/${g.id}`} style={item}>
+            <span style={{ ...circle, background: `#0E4A30 url(${groupArtFor(g.id)}) center/cover` }}>
+              {!!g.requests && <span aria-label={`${g.requests} join request${g.requests > 1 ? 's' : ''}`} style={{ position: 'absolute', top: -2, right: -2, minWidth: 22, height: 22, borderRadius: 11, padding: '0 6px', background: '#E5484D', color: '#fff', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 2px #fff' }}>{g.requests}</span>}
+            </span>
+            <span style={label}>{g.name}</span>
           </Link>
         ))}
-        <Link href="/groups/discover" style={{ ...tile, background: '#111111', color: '#fff', gap: 4 }}>
-          <span style={{ fontSize: 20 }}>🔎</span>
-          <span style={{ fontSize: 13, fontWeight: 700 }}>Find groups</span>
-          <span style={{ fontSize: 11, color: '#A8A79F' }}>Join players near you</span>
+        <Link href="/groups/discover" style={item}>
+          <span style={{ ...circle, background: '#111111', fontSize: 24 }}>🔎</span>
+          <span style={label}>Find groups</span>
         </Link>
       </div>
     </div>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8A5CD6"/><stop offset="1" stop-color="#4B2A86"/></linearGradient>
+<radialGradient id="l" cx=".25" cy=".15" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+<rect width="400" height="400" fill="url(#g)"/><g opacity="1" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="4" stroke-dasharray="2 14" stroke-linecap="round"><path d="M40 330 Q200 -60 360 330"/><path d="M10 360 Q200 -120 390 360"/></g><g transform="translate(300 300) rotate(40) scale(0.9)" opacity="1">
+  <path d="M-34 -70 L34 -70 L16 10 L-16 10 Z" fill="rgba(255,255,255,.9)"/>
+  <path d="M-34 -70 L-16 10 M-12 -70 L-6 10 M12 -70 L6 10 M34 -70 L16 10" stroke="rgba(255,255,255,.35)" stroke-width="3"/>
+  <path d="M-30 -52 H30 M-24 -26 H24" stroke="rgba(255,255,255,.35)" stroke-width="3"/>
+  <circle cx="0" cy="22" r="20" fill="rgba(255,255,255,.95)"/></g><rect width="400" height="400" fill="url(#l)"/></svg>
