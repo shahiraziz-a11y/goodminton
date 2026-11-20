@@ -10,6 +10,7 @@ import { Sheet } from '@/components/Sheet'
 import { whatsappUrl } from '@/lib/match'
 import { person } from '@/lib/people'
 import { photoFor } from '@/lib/photos'
+import { fmtDate, fmtTime } from '@/lib/format'
 import { createClient } from '@/lib/supabase/client'
 import type { GroupDetail, GroupMember } from '@/lib/types'
 
@@ -21,6 +22,7 @@ export function GroupScreen({ meId, meName, g, origin }: { meId: string; meName:
   const [name, setName] = useState(g.name)
   const [acting, setActing] = useState<GroupMember | null>(null)
   const owner = g.my_role === 'owner'
+  const member = !!g.my_role
   const link = `${origin}/g/${g.invite_code}`
   const people = g.members.filter(m => !m.is_guest)
   const guests = g.members.filter(m => m.is_guest)
@@ -65,7 +67,35 @@ export function GroupScreen({ meId, meName, g, origin }: { meId: string; meName:
           </div>
         </div>
 
-        <div style={{ background: `linear-gradient(180deg, rgba(14,74,48,.6) 0%, rgba(6,42,26,.94) 70%), #0E4A30 url(${photoFor(g.id)}) center/cover`, color: '#fff', borderRadius: 28, padding: 18, paddingTop: 90, display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 30px 50px -30px rgba(14,40,26,.65)' }}>
+        {/* Someone finding the group: ask to join; the owner approves. */}
+        {!member && (
+          <div style={{ background: `linear-gradient(180deg, rgba(14,74,48,.55) 0%, rgba(6,42,26,.94) 75%), #0E4A30 url(${photoFor(g.id)}) center/cover`, color: '#fff', borderRadius: 28, padding: 18, paddingTop: 90, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <span style={{ fontSize: 14, color: '#CFE3D5', lineHeight: 1.4 }}>Ask to join and the organiser will let you in. Then you can sign up for matches.</span>
+            {g.my_status === 'requested'
+              ? <span className="btn" style={{ height: 48, background: 'rgba(255,255,255,.16)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Request sent</span>
+              : <button className="btn" style={{ height: 48, background: '#fff', color: '#111111' }} disabled={busy}
+                  onClick={() => rpc('request_join', { p_group: g.id }, () => flash(`Asked to join ${g.name}`))}>Ask to join</button>}
+          </div>
+        )}
+
+        {owner && !!g.requests?.length && (
+          <div className="card stack" style={{ padding: '16px 18px', gap: 10, boxShadow: 'inset 0 0 0 1.5px rgba(229,72,77,.35)' }}>
+            <span className="eyebrow" style={{ color: '#C2410C' }}>Join requests · {g.requests.length}</span>
+            {g.requests.map(q => (
+              <div key={q.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Avatar p={person(q.user_id, q.full_name)} size={32} font={11} />
+                <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700 }}>{q.full_name}</span>
+                  <span style={{ fontSize: 12, color: '#9A9992' }}>asked {fmtDate(q.created_at, 'Asia/Dubai').replace(/^\w+ /, '')}</span>
+                </span>
+                <button className="chip-btn" style={{ height: 32, fontSize: 12, padding: '0 10px' }} disabled={busy} onClick={() => rpc('decide_request', { p_request: q.id, p_approve: false }, () => flash('Declined'))}>Decline</button>
+                <button className="chip-btn go" style={{ height: 32, fontSize: 12, padding: '0 10px' }} disabled={busy} onClick={() => rpc('decide_request', { p_request: q.id, p_approve: true }, () => flash(`${q.full_name.split(' ')[0]} is in`))}>Approve</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {member && <div style={{ background: `linear-gradient(180deg, rgba(14,74,48,.6) 0%, rgba(6,42,26,.94) 70%), #0E4A30 url(${photoFor(g.id)}) center/cover`, color: '#fff', borderRadius: 28, padding: 18, paddingTop: 90, display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 30px 50px -30px rgba(14,40,26,.65)' }}>
           <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#CFE3D5' }}>Invite people</span>
           <span style={{ fontSize: 13, fontWeight: 700, padding: '10px 12px', borderRadius: 12, background: 'rgba(255,255,255,.08)', overflowWrap: 'anywhere' }}>{link}</span>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -77,12 +107,29 @@ export function GroupScreen({ meId, meName, g, origin }: { meId: string; meName:
             <button className="link-btn" style={{ alignSelf: 'flex-start', fontSize: 12, color: '#CFE3D5' }} disabled={busy}
               onClick={() => confirm('Make a new link? The old one stops working.') && rpc('reset_invite', { p_group: g.id }, () => flash('New link made'))}>Reset link</button>
           )}
+        </div>}
+
+        <div style={{ display: 'grid', gridTemplateColumns: member ? '1fr 1fr' : '1fr', gap: 8 }}>
+          {member && <Link className="row-btn go" href={`/new?group=${g.id}`}>+ New match</Link>}
+          <Link className="row-btn" href={`/leaderboard?group=${g.id}#group`}>Rankings</Link>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <Link className="row-btn go" href={`/new?group=${g.id}`}>+ New match</Link>
-          <Link className="row-btn" href={`/leaderboard?group=${g.id}`}>Leaderboard</Link>
-        </div>
+        {!!g.upcoming?.length && (
+          <div className="stack" style={{ gap: 12 }}>
+            <span className="eyebrow">Upcoming matches</span>
+            <div className="card" style={{ padding: '2px 16px' }}>
+              {g.upcoming.map(m => (
+                <Link key={m.slug} href={`/m/${m.slug}`} className="row-line" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0' }}>
+                  <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700 }}>{m.title}</span>
+                    <span style={{ fontSize: 12, color: '#6B6B66' }}>{fmtDate(m.starts_at, m.timezone)} · {fmtTime(m.starts_at, m.timezone)}{m.venue ? ` · ${m.venue}` : ''}</span>
+                  </span>
+                  <span className="badge" style={{ background: m.confirmed >= m.size ? '#111111' : '#0E5A3A', color: '#fff' }}>{m.confirmed}/{m.size}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="stack" style={{ gap: 12 }}>
           <span className="eyebrow">Members</span>
@@ -95,7 +142,18 @@ export function GroupScreen({ meId, meName, g, origin }: { meId: string; meName:
           </div>
         )}
 
-        {!owner && (
+        {owner && (
+          <div className="card" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span className="stack" style={{ flex: 1, gap: 2 }}>
+              <span style={{ fontSize: 14, fontWeight: 700 }}>{g.is_public === false ? 'Private group' : 'Public group'}</span>
+              <span style={{ fontSize: 12, color: '#6B6B66' }}>{g.is_public === false ? 'Hidden from Find groups. Invite link only.' : 'Anyone can find it and ask to join.'}</span>
+            </span>
+            <button className="chip-btn" disabled={busy} onClick={() => rpc('set_group_public', { p_group: g.id, p_public: g.is_public === false }, () => flash(g.is_public === false ? 'Now public' : 'Now private'))}>
+              {g.is_public === false ? 'Make public' : 'Make private'}
+            </button>
+          </div>
+        )}
+        {member && !owner && (
           <button className="link-btn" style={{ alignSelf: 'center', color: '#E0245E' }} disabled={busy}
             onClick={() => confirm(`Leave ${g.name}? You'll stop seeing its matches (except ones you're in).`) && rpc('leave_group', { p_group: g.id }, () => { flash(`Left ${g.name}`); router.push('/') })}>Leave group</button>
         )}

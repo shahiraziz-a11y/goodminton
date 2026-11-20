@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { balancesFor, guestDues, transfersOf } from './split.ts'
+import { balancesFor, breakdownWith, guestDues, paymentsOf, transfersOf } from './split.ts'
 import { courtNumber, fmtDate, fmtTime, joinedAfter, money } from './format.ts'
 import { initials } from './people.ts'
 import type { LedgerMatch } from './types.ts'
@@ -105,4 +105,18 @@ test('guests to collect from: my guests only, their share, collected when settle
   assert.deepEqual(guestDues('bob', [m('m1')]).dues.map(d => d.guest), ['h'])
   // A guest settlement doesn't change who owes whom between players.
   assert.deepEqual(balancesFor('ann', [m('m2', [{ from: 'g', to: 'ann', amount: 30 }])]).net, { bob: 60 })
+})
+
+test('breakdown with one person adds up to the balance; payments listed newest first', () => {
+  const m = (id: string, day: string, paidBy: string, settlements: LedgerMatch['settlements'] = []): LedgerMatch => ({
+    id, slug: id, title: id, starts_at: `2026-11-${day}T16:00:00Z`, timezone: 'Asia/Dubai', currency: 'AED',
+    players: ['me', 'ann', 'ben', 'cat'], expenses: [{ amount: 120, paid_by: paidBy }], settlements, people: {},
+  })
+  const ledger = [m('m1', '10', 'me'), m('m2', '12', 'ann', [{ from: 'me', to: 'ann', amount: 30, settled_at: '2026-11-13T09:00:00Z' }]), m('m3', '14', 'me', [{ from: 'ann', to: 'me', amount: 10, settled_at: '2026-11-15T09:00:00Z' }])]
+  const b = breakdownWith('me', 'ann', ledger)
+  assert.deepEqual(b.rows.map(r => [r.match.id, r.amount, r.open, r.iPaid, r.myShare]), [['m1', 30, 30, 120, 30], ['m2', -30, 0, 0, 30], ['m3', 30, 20, 120, 30]])
+  assert.equal(b.net, 50)
+  assert.equal(b.net, balancesFor('me', ledger).net.ann)
+  assert.deepEqual(b.payments.map(p => [p.from, p.amount]), [['ann', 10], ['me', 30]])
+  assert.deepEqual(paymentsOf('me', ledger).map(p => p.match.id), ['m3', 'm2'])
 })

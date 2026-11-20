@@ -99,8 +99,11 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
             style={{ width: 56, height: 56, borderRadius: '50%', fontSize: 28, fontWeight: 400, lineHeight: 1, padding: 0, flex: 'none', boxShadow: '0 12px 24px -10px rgba(0,0,0,.5)' }}>+</button>}
         </div>
         {noGroup && <NoGroup title="Find your crew" line="Matches, results and who owes what, just for the people you play with." photo={2} onStart={newGroup} />}
+        {/* Newcomers: browsing groups comes straight after the welcome. */}
+        {noGroup && <GroupRow groups={myGroups} onNew={newGroup} />}
         {fresh && <SampleMatches />}
         {next && <NextUp m={next} />}
+        {!noGroup && <GroupRow groups={myGroups} onNew={newGroup} />}
         {many && (
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '0 -20px', padding: '0 20px 4px', scrollbarWidth: 'none' }}>
             {[{ id: 'all', name: 'All groups' }, ...myGroups].map(g => (
@@ -117,26 +120,6 @@ export function Home({ meId, meName, matches, ledger, stats, myGroups = [] }: { 
           </div>
         )}
         {!fresh && <BalanceRow total={bal.total} currency={ledger[0]?.currency ?? CURRENCY} />}
-        {myGroups.length > 0 && (
-          <div className="stack" style={{ gap: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '0 4px' }}>
-              <span className="eyebrow">Your groups</span>
-              <button className="link-btn" style={{ fontSize: 13, fontWeight: 700, color: '#0E5A3A' }} onClick={newGroup}>+ New group</button>
-            </div>
-            <div className="card" style={{ padding: '2px 14px', borderRadius: 24 }}>
-              {myGroups.map(g => (
-                <Link key={g.id} href={`/groups/${g.id}`} className="row-line" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0' }}>
-                  <span aria-hidden style={{ width: 40, height: 40, borderRadius: 12, flex: 'none', background: `#0E4A30 url(${photoFor(g.id)}) center/cover` }} />
-                  <span className="stack" style={{ flex: 1, minWidth: 0, gap: 1 }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{g.name}</span>
-                    <span style={{ fontSize: 12, color: '#6B6B66' }}>{g.members} member{g.members === 1 ? '' : 's'}{g.my_role === 'owner' ? ' · you run it' : ''}</span>
-                  </span>
-                  <span style={{ color: '#9A9992', fontSize: 18 }}>›</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
         <InstallCard />
         <AlertsCard />
         <EmailToggle />
@@ -200,6 +183,37 @@ function groupMatches(matches: HomeMatch[]): GroupData[] {
     items.sort((a, b) => (g.kind === 'upcoming' || g.kind === 'live' ? t(a) - t(b) : t(b) - t(a)))
     return { ...g, items }
   }).filter(g => g.items.length)
+}
+
+/** Your groups as a row of small photo cards, with New group first and Find groups last. */
+function GroupRow({ groups, onNew }: { groups: MyGroup[]; onNew: () => void }) {
+  const tile = { flex: 'none', width: 118, height: 128, borderRadius: 20, overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 10 } as const
+  return (
+    <div className="stack" style={{ gap: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '0 4px' }}>
+        <span className="eyebrow">{groups.length ? 'Your groups' : 'Groups'}</span>
+        <Link href="/groups/discover" style={{ fontSize: 13, fontWeight: 700, color: '#0E5A3A' }}>Find groups</Link>
+      </div>
+      <div style={{ display: 'flex', gap: 10, overflowX: 'auto', margin: '0 -20px', padding: '2px 20px 6px', scrollbarWidth: 'none' }}>
+        <button type="button" onClick={onNew} style={{ ...tile, border: '1.5px dashed #C9C6BD', background: 'rgba(255,255,255,.5)', alignItems: 'flex-start', gap: 6, textAlign: 'left' }}>
+          <span style={{ fontSize: 26, color: '#0E5A3A', lineHeight: 1 }}>+</span>
+          <span style={{ fontSize: 13, fontWeight: 700 }}>New group</span>
+        </button>
+        {groups.map(g => (
+          <Link key={g.id} href={`/groups/${g.id}`} style={{ ...tile, color: '#fff', background: `linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,.72) 100%), #0E4A30 url(${photoFor(g.id)}) center/cover` }}>
+            {!!g.requests && <span aria-label={`${g.requests} join request${g.requests > 1 ? 's' : ''}`} style={{ position: 'absolute', top: 8, right: 8, minWidth: 20, height: 20, borderRadius: 10, padding: '0 6px', background: '#E5484D', color: '#fff', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{g.requests}</span>}
+            <span style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.15, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{g.name}</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#CFE3D5' }}>{g.members} member{g.members === 1 ? '' : 's'}</span>
+          </Link>
+        ))}
+        <Link href="/groups/discover" style={{ ...tile, background: '#111111', color: '#fff', gap: 4 }}>
+          <span style={{ fontSize: 20 }}>🔎</span>
+          <span style={{ fontSize: 13, fontWeight: 700 }}>Find groups</span>
+          <span style={{ fontSize: 11, color: '#A8A79F' }}>Join players near you</span>
+        </Link>
+      </div>
+    </div>
+  )
 }
 
 /** What matches look like, for someone who hasn't joined one yet. */

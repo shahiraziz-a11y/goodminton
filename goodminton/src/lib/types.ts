@@ -8,7 +8,7 @@ export type HiddenPlayer = { hidden: true; court: number }
 export type MatchPlayer = VisiblePlayer | HiddenPlayer
 
 export type Expense = { id?: string; label?: string; amount: number; paid_by: string }
-export type Settlement = { from: string; to: string; amount: number }
+export type Settlement = { from: string; to: string; amount: number; settled_at?: string; settled_by?: string }
 
 /** One per court. Number, cost and booker are only sent to confirmed players. */
 export type CourtInfo = { court: number; booked: boolean; label?: string; cost?: number; booked_by?: string; booked_by_name?: string }
@@ -153,9 +153,16 @@ export type MatchGame = {
 export type Leaderboard = { games: Game[]; people: Record<string, string>; group?: { id: string; name: string } | null }
 
 /** From my_groups: newest activity first. */
-export type MyGroup = { id: string; name: string; my_role: 'owner' | 'member'; members: number; last_match: string | null }
+export type MyGroup = { id: string; name: string; my_role: 'owner' | 'member'; members: number; last_match: string | null; is_public?: boolean; requests?: number }
 export type GroupMember = { id: string; full_name: string; is_guest: boolean; role: 'owner' | 'member' }
-export type GroupDetail = { id: string; name: string; invite_code: string; owner_id: string; my_role: 'owner' | 'member'; members: GroupMember[] }
+export type GroupDetail = {
+  id: string; name: string; invite_code: string | null; owner_id: string; my_role: 'owner' | 'member' | null; members: GroupMember[]
+  is_public?: boolean; my_status?: 'member' | 'requested' | 'none'
+  upcoming?: { slug: string; title: string; starts_at: string; timezone: string; venue: string; size: number; confirmed: number }[]
+  requests?: { id: string; user_id: string; full_name: string; created_at: string }[] | null
+}
+/** From list_groups: the directory. */
+export type GroupListing = { id: string; name: string; is_public: boolean; owner: string; members: number; next_match: string | null; is_member: boolean; requested: boolean }
 export type GroupPreview = { id: string; name: string; owner: string; members: number; is_member: boolean }
 
 export type PlanEntry = {
