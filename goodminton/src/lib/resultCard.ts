@@ -104,10 +104,9 @@ export async function drawResultCard({ title, dateLabel, games, photos = {} }: {
   recs.forEach((r, i) => {
     const cx = PAD + (i % 2) * (cw + 20), cy = y + Math.floor(i / 2) * REC
     card(x, cx, cy, cw, REC - 12, 18)
-    const crown = i === 0 && r.w > 0 && (recs.length < 2 || r.w > recs[1].w || r.l < recs[1].l)
     face(r, cx + 44, cy + 38, 52)
     x.textAlign = 'left'; x.textBaseline = 'middle'; x.fillStyle = '#141413'; x.font = font(30, 600)
-    x.fillText(fit(x, `${r.name}${crown ? ' 👑' : ''}`, cw - 250), cx + 84, cy + 32)
+    x.fillText(fit(x, r.name, cw - 250), cx + 84, cy + 32)
     x.textAlign = 'right'; x.font = font(30, 700)
     x.fillStyle = '#C0392B'; x.fillText(`${r.l}`, cx + cw - 24, cy + 32)
     const lw = x.measureText(`${r.l}`).width
