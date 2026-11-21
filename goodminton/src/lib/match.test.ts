@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { gameLine, matchSummary } from './match.ts'
+import { gameLine, gameSides, matchSummary, nightRecords } from './match.ts'
 import type { MatchGame } from './types.ts'
 
 const p = (id: string, full_name: string) => ({ id, full_name })
@@ -38,4 +38,19 @@ test('summary keeps the last 8 games', () => {
   const s = matchSummary('S', 'Mon 1 Jan', games, 'l').split('\n')
   assert.equal(s[1], '10 games (last 8)')
   assert.equal(s.filter(l => l.startsWith('•')).length, 8)
+})
+
+test('game sides: winners first, score high–low, blank without score', () => {
+  const s = gameSides(g([priya, karan], [omar, lena], 'b', 15, 21))
+  assert.deepEqual([s.win, s.lose, s.score, s.winP[0].id], [['Omar', 'Lena'], ['Priya', 'Karan'], '21–15', 'o'])
+  assert.equal(gameSides(g([priya], [omar], 'a')).score, '')
+})
+
+test('night records: counts a player on either side, best first', () => {
+  const r = nightRecords([
+    g([priya, karan], [omar, lena], 'a'),
+    g([priya, omar], [karan, lena], 'b'),
+    g([priya, lena], [omar, karan], 'a'),
+  ])
+  assert.deepEqual(r.map(x => `${x.name} ${x.w}-${x.l}`), ['Priya 2-1', 'Karan 2-1', 'Lena 2-1', 'Omar 0-3'])
 })

@@ -817,7 +817,55 @@ function Results({ m, link, dateLabel, canRemove, rpc, busy, onEdit }: {
         </div>
       ))}
       {m.games.length > shown.length && <button className="link-btn" style={{ alignSelf: 'flex-start', color: '#0E5A3A' }} onClick={() => setAll(true)}>Show all {m.games.length}</button>}
-      <a className="btn-2" href={whatsappUrl(matchSummary(m.title, dateLabel, m.games, link))} target="_blank" rel="noreferrer" style={{ height: 46, color: '#128A5C' }}>Share summary on WhatsApp</a>
+      <ShareResults m={m} link={link} dateLabel={dateLabel} />
     </div>
+  )
+}
+
+/** Share tonight's results as an image (phone share sheet → WhatsApp); text and download as fallbacks. */
+function ShareResults({ m, link, dateLabel }: { m: MatchView; link: string; dateLabel: string }) {
+  const { flash } = useFeedback()
+  const [making, setMaking] = useState(false)
+  const [preview, setPreview] = useState<{ url: string; file: File } | null>(null)
+  const textUrl = whatsappUrl(matchSummary(m.title, dateLabel, m.games, link))
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview.url) }, [preview])
+
+  async function share() {
+    setMaking(true)
+    try {
+      const [{ drawResultCard }, { getPhotos }] = await Promise.all([import('@/lib/resultCard'), import('@/lib/avatars')])
+      const photos = await Promise.race([getPhotos(), new Promise<Record<string, string>>(r => setTimeout(() => r({}), 2500))])
+      const blob = await drawResultCard({ title: m.title, dateLabel, games: m.games, photos })
+      const file = new File([blob], 'goodminton-result.png', { type: 'image/png' })
+      if (navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], text: `🏸 ${m.title} results ${link}` })
+        } catch (e) {
+          if ((e as Error).name !== 'AbortError') setPreview({ url: URL.createObjectURL(blob), file })
+        }
+      } else setPreview({ url: URL.createObjectURL(blob), file })
+    } catch {
+      flash('Could not make the image, sending as text')
+      window.open(textUrl, '_blank')
+    } finally {
+      setMaking(false)
+    }
+  }
+
+  return (
+    <>
+      <button className="btn wa" disabled={making} onClick={share} style={{ height: 48 }}>{making ? 'Making image…' : 'Share result card'}</button>
+      <a className="link-btn" href={textUrl} target="_blank" rel="noreferrer" style={{ alignSelf: 'center', fontSize: 13, color: '#6B6B66' }}>Send as text instead</a>
+      <Sheet open={!!preview} onClose={() => setPreview(null)} title="Result card" subtitle="Save it, then attach it in WhatsApp">
+        {preview && (
+          <div className="stack" style={{ gap: 12 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- local blob */}
+            <img src={preview.url} alt="Tonight's results" style={{ width: '100%', borderRadius: 14, boxShadow: '0 2px 12px rgba(0,0,0,.08)' }} />
+            <a className="btn" href={preview.url} download={preview.file.name}>Download image</a>
+            <a className="btn-2" href={textUrl} target="_blank" rel="noreferrer" style={{ height: 46, color: '#128A5C' }}>Send as text on WhatsApp</a>
+          </div>
+        )}
+      </Sheet>
+    </>
   )
 }
