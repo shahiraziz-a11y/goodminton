@@ -35,19 +35,32 @@ export function gameLine(g: MatchGame) {
   return `${side(w)} beat ${side(l)}${score}`
 }
 
-/** The end-of-night summary to post to the group. Games are newest first. */
-export function matchSummary(title: string, dateLabel: string, games: MatchGame[], link: string) {
-  const played = [...games].reverse()
-  const rec: Record<string, { name: string; w: number; l: number }> = {}
-  for (const g of played) {
+/** One game as winner / loser sides (first names) and the score high–low. */
+export function gameSides(g: MatchGame) {
+  const [w, l] = g.winner === 'a' ? [g.a, g.b] : [g.b, g.a]
+  const score = g.score_a != null && g.score_b != null
+    ? `${Math.max(g.score_a, g.score_b)}–${Math.min(g.score_a, g.score_b)}` : ''
+  return { win: w.map(p => first(p.full_name)), lose: l.map(p => first(p.full_name)), winP: w, loseP: l, score }
+}
+
+/** Tonight's W–L per player, best first. Games can be in any order. */
+export function nightRecords(games: MatchGame[]) {
+  const rec: Record<string, { id: string; full_name: string; name: string; w: number; l: number }> = {}
+  for (const g of games) {
     for (const [ps, won] of [[g.a, g.winner === 'a'], [g.b, g.winner === 'b']] as const) {
       for (const p of ps) {
-        rec[p.id] ??= { name: first(p.full_name), w: 0, l: 0 }
+        rec[p.id] ??= { id: p.id, full_name: p.full_name, name: first(p.full_name), w: 0, l: 0 }
         if (won) rec[p.id].w++; else rec[p.id].l++
       }
     }
   }
-  const top = Object.values(rec).sort((a, b) => b.w - a.w || a.l - b.l).slice(0, 3)
+  return Object.values(rec).sort((a, b) => b.w - a.w || a.l - b.l)
+}
+
+/** The end-of-night summary to post to the group. Games are newest first. */
+export function matchSummary(title: string, dateLabel: string, games: MatchGame[], link: string) {
+  const played = [...games].reverse()
+  const top = nightRecords(played).slice(0, 3)
   const lines = played.slice(-8).map(g => `• ${gameLine(g)}`)
   return [
     `🏸 ${title} · ${dateLabel}`,
