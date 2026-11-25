@@ -6,24 +6,29 @@ import { Avatar } from './Avatar'
 import { useFeedback } from './Feedback'
 import { loadPlayers, PlayerPicker } from './PlayerPicker'
 import { Sheet } from './Sheet'
+import { fmtDate } from '@/lib/format'
 import { person, type Person } from '@/lib/people'
 import { recentMatchups, recentPairs, recentPlayers, shuffled } from '@/lib/stats'
 import { createClient } from '@/lib/supabase/client'
 import type { Game, MyGroup } from '@/lib/types'
 
 type Court = { label: string; players: Person[] }
+/** A court's first n players, padded with empty spots. */
+const fit = (ps: Person[], n: number): (Person | null)[] => [...ps.slice(0, n), ...Array(Math.max(0, n - ps.length)).fill(null)]
 type Win = 'a' | 'b'
 /** A finished game waiting to be saved with the others. */
 type Queued = { slots: Person[]; win: Win; sa: number | null; sb: number | null }
 /** A logged game to change (edit), or players to start from (duplicate). */
-export type GameDraft = { id?: string; a: Person[]; b: Person[]; winner?: Win; score_a?: number | null; score_b?: number | null }
+export type GameDraft = { id?: string; a: Person[]; b: Person[]; winner?: Win; score_a?: number | null; score_b?: number | null; match_id?: string | null }
+/** From recent_matches: what a result can be tagged to. */
+type TagMatch = { id: string; title: string; starts_at: string; timezone: string; live: boolean; suggested: boolean }
 
 /**
  * "Log results": two pairs, tap the winners. Add several games, then save them all at once.
  * With `courts` (from a match) the players are fixed per court; without, pick any 4 from your players,
  * or tap a recent matchup or pair. `edit` changes one logged game; `prefill` starts with its players.
  */
-export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, initialCourt = 0, groups = [], defaultGroup, recent, people, edit, prefill, pool }: {
+export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, initialCourt = 0, groups = [], defaultGroup, recent, people, edit, prefill, pool, size }: {
   open: boolean; onClose: () => void; matchId?: string; matchTitle?: string; courts?: Court[]; initialCourt?: number
   /** Without a match: the game goes in one of these groups, and players come from it. */
   groups?: MyGroup[]; defaultGroup?: string | null
@@ -32,6 +37,8 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
   edit?: GameDraft | null; prefill?: GameDraft | null
   /** In a match: everyone confirmed. Any of them can be swapped in, whatever their court. */
   pool?: Person[]
+  /** In a match: players per court (2 singles, 4 doubles). A court can have extras or empty spots. */
+  size?: number
 }) {
   const router = useRouter()
   const { flash } = useFeedback()
@@ -47,6 +54,11 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
   const canPick = free || !!edit || !!pool?.length
   const [group, setGroup] = useState<string | null>(defaultGroup ?? groups[0]?.id ?? null)
   const [loaded, setLoaded] = useState<{ group: string | null; games: Game[]; people: Record<string, string> } | null>(null)
+  // Which match the result belongs to. undefined = not chosen yet (new games take the suggested one).
+  const [tag, setTag] = useState<string | null | undefined>(undefined)
+  const [tags, setTags] = useState<{ group: string | null; list: TagMatch[] } | null>(null)
+  const tagging = (free && !edit?.id) || !!edit?.id
+  const origTag = edit?.id ? (edit.match_id !== undefined ? edit.match_id : matchId ?? null) : undefined
 
   // Reset whenever it opens for something else.
   const [lastKey, setLastKey] = useState('')
@@ -57,11 +69,12 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
     const start = edit ?? prefill
     const s1 = start ? start.a.length === 1 : singles
     setSingles(s1)
-    setSlots(start ? [...start.a, ...start.b] : courts?.[initialCourt]?.players ?? (s1 ? [null, null] : [null, null, null, null]))
+    setSlots(start ? [...start.a, ...start.b] : courts ? fit(courts[initialCourt]?.players ?? [], size ?? 4) : (s1 ? [null, null] : [null, null, null, null]))
     setWin(edit?.winner ?? null)
     setScore({ a: edit?.score_a != null ? String(edit.score_a) : '', b: edit?.score_b != null ? String(edit.score_b) : '' })
     setQueue([])
     setPicking(null)
+    setTag(edit?.id ? (edit.match_id !== undefined ? edit.match_id : matchId ?? null) : undefined)
     if (open && defaultGroup && defaultGroup !== group) setGroup(defaultGroup)
   }
 
@@ -73,6 +86,16 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
       setLoaded({ group, games: d?.games ?? [], people: d?.people ?? {} })
     }, () => {})
   }, [open, free, recent, group, loaded])
+  // Matches to tag to, per group.
+  useEffect(() => {
+    if (!open || !tagging || !group || (tags && tags.group === group)) return
+    Promise.resolve(createClient().rpc('recent_matches', { p_group: group })).then(({ data }) => {
+      setTags({ group, list: (data as TagMatch[] | null) ?? [] })
+    }, () => {})
+  }, [open, tagging, group, tags])
+  const tagList = tags?.group === group ? tags.list : []
+  const chosen = tag !== undefined ? tag : (tagList.find(t => t.suggested)?.id ?? null)
+  const chosenTitle = chosen ? (tagList.find(t => t.id === chosen)?.title ?? matchTitle) : undefined
   const games = recent ?? (loaded?.group === group ? loaded.games : [])
   const names = people ?? loaded?.people ?? {}
   const who = (id: string) => person(id, names[id] ?? '?')
@@ -123,12 +146,16 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
     const { error } = edit?.id
       ? await db.rpc('edit_game', { p_game: edit.id, ...Object.fromEntries(Object.entries(ids(all[0])).map(([k, v]) => [`p_${k}`, v])), p_winner: all[0].win, p_score_a: all[0].sa, p_score_b: all[0].sb })
       : await db.rpc('log_games', {
-        p_match: matchId ?? null, p_group: matchId ? null : group,
+        p_match: free ? chosen : matchId ?? null, p_group: (free ? chosen : matchId) ? null : group,
         p_games: all.map(x => ({ ...ids(x), winner: x.win, score_a: x.sa, score_b: x.sb })),
       })
+    // Moved to another match (or untagged).
+    const moved = !error && edit?.id && chosen !== origTag
+      ? (await db.rpc('tag_game', { p_game: edit.id, p_match: chosen })).error : null
     setBusy(false)
-    if (error) return flash(error.message)
-    flash(edit?.id ? 'Result updated · leaderboard updated' : all.length > 1 ? `${all.length} games saved · leaderboard updated` : `${describe(all[0])} · leaderboard updated`)
+    if (error || moved) return flash((error ?? moved)!.message)
+    if (!edit?.id && free && chosenTitle) flash(`${all.length > 1 ? `${all.length} games` : describe(all[0])} · saved to ${chosenTitle}`)
+    else flash(edit?.id ? 'Result updated · leaderboard updated' : all.length > 1 ? `${all.length} games saved · leaderboard updated` : `${describe(all[0])} · leaderboard updated`)
     setQueue([])
     onClose()
     router.refresh()
@@ -215,11 +242,12 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
   const matchups = quick ? recentMatchups(games) : []
   const pairs = quick ? recentPairs(games) : []
   const chip = { flex: 'none', height: 34, padding: '0 12px', borderRadius: 99, border: 'none', background: 'rgba(255,255,255,.75)', boxShadow: '0 0 0 1px #E2E0DA', fontSize: 13, fontWeight: 700, color: '#111111', whiteSpace: 'nowrap' } as const
+  const chipOn = { background: '#111111', color: '#fff', boxShadow: 'none' } as const
   const row = { display: 'flex', gap: 8, overflowX: 'auto', margin: '0 -20px', padding: '2px 20px 4px', scrollbarWidth: 'none' } as const
   const total = queue.length + (ready ? 1 : 0)
 
   return (
-    <Sheet open={open} onClose={onClose} title={edit?.id ? 'Edit result' : 'Log results'} subtitle={matchTitle ?? 'Friendly game'}>
+    <Sheet open={open} onClose={onClose} title={edit?.id ? 'Edit result' : 'Log results'} subtitle={(tagging ? chosenTitle : matchTitle) ?? 'Friendly game'}>
       {courts && courts.length > 1 && !edit?.id && (
         <div className="seg">
           {courts.map((c, i) => (
@@ -233,9 +261,26 @@ export function LogResultSheet({ open, onClose, matchId, matchTitle, courts, ini
       )}
       {free && !edit?.id && groups.length > 1 && (
         <select className="field" aria-label="Group" value={group ?? ''} style={{ height: 44 }}
-          onChange={e => { setGroup(e.target.value); setQueue([]); fill(singles ? [null, null] : [null, null, null, null]) }}>
+          onChange={e => { setGroup(e.target.value); setQueue([]); setTag(undefined); fill(singles ? [null, null] : [null, null, null, null]) }}>
           {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
         </select>
+      )}
+      {tagging && group && (tagList.length > 0 || chosen) && (
+        <div className="stack" style={{ gap: 6 }}>
+          <span className="eyebrow">Match</span>
+          <div style={row}>
+            {chosen && !tagList.some(t => t.id === chosen) && (
+              <button type="button" style={{ ...chip, ...chipOn }}>{chosenTitle ?? 'This match'}</button>
+            )}
+            {tagList.map(t => (
+              <button key={t.id} type="button" aria-pressed={chosen === t.id} onClick={() => setTag(t.id)} style={chosen === t.id ? { ...chip, ...chipOn } : chip}>
+                {t.live ? <span style={{ color: chosen === t.id ? '#9FE3BD' : '#128A5C' }}>● Live · </span> : <span style={{ fontWeight: 600, opacity: .7 }}>{fmtDate(t.starts_at, t.timezone)} · </span>}
+                {t.title.length > 22 ? t.title.slice(0, 21) + '…' : t.title}
+              </button>
+            ))}
+            <button type="button" aria-pressed={chosen === null} onClick={() => setTag(null)} style={chosen === null ? { ...chip, ...chipOn } : chip}>No match</button>
+          </div>
+        </div>
       )}
       {free && !edit?.id && (
         <div className="seg">

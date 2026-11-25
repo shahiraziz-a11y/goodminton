@@ -74,7 +74,7 @@ reset role;
 select id as mg from public.games where match_id = :'mid' \gset
 select pg_temp.as_user('org'); set role authenticated;
 select public.edit_game(:'mg', pg_temp.uid('ann'), pg_temp.uid('cat'), pg_temp.uid('ben'), pg_temp.uid('org'), 'b');
-select pg_temp.check(pg_temp.fails(format('select public.edit_game(%L, %L, %L, %L, %L, ''a'')', :'mg', pg_temp.uid('ann'), pg_temp.uid('dan'), pg_temp.uid('ben'), pg_temp.uid('org'))) like '%confirmed in this match%', 'match game: waitlisted dan can''t be put in');
+select pg_temp.check(pg_temp.fails(format('select public.edit_game(%L, %L, %L, %L, %L, ''a'')', :'mg', pg_temp.uid('ann'), pg_temp.uid('out'), pg_temp.uid('ben'), pg_temp.uid('org'))) like '%this match or its group%', 'match game: someone outside the group can''t be put in');
 reset role;
 select pg_temp.check((select a2 = pg_temp.uid('cat') and winner = 'b' from public.games where id = :'mg'), 'organiser fixed the match game');
 select pg_temp.check(not has_function_privilege('anon', 'public.edit_game(uuid, uuid, uuid, uuid, uuid, text, int, int)', 'execute')
