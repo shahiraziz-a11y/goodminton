@@ -30,6 +30,14 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
   const [adding, setAdding] = useState(false)
   const [mySpot, setMySpot] = useState(false)
   const [logCourt, setLogCourt] = useState<number | null>(null)
+  // The clock, so "+ Log result" appears when the match starts even if the page was opened earlier.
+  const [clock, setClock] = useState(0)
+  useEffect(() => {
+    const tick = () => setClock(Date.now())
+    tick()
+    const t = setInterval(tick, 30_000)
+    return () => clearInterval(t)
+  }, [])
   const [editGame, setEditGame] = useState<GameDraft | null>(null)
 
   // Keep the count live while the page is open.
@@ -176,7 +184,9 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
     )
   }
 
-  const canLog = started && courts.some(c => c.players.length === per)
+  // Any 2 or 4 confirmed players can be logged (faces can be swapped across courts), extras included.
+  const begun = started || m.past || (clock > 0 && clock >= new Date(m.starts_at).getTime() - 15 * 60e3)
+  const canLog = begun && m.players.filter(isVisible).length >= (singles ? 2 : 4)
   const members = [...m.players.filter(isVisible).map(p => p.id), ...(m.waitlist ?? []).map(p => p.id)]
 
   const tr = canSee ? transfersOf(m.split_ids ?? m.players.filter(isVisible).map(p => p.id), m.expenses ?? [], m.settlements ?? []) : null
@@ -216,10 +226,10 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
           <span className="display" style={{ fontSize: 14, fontWeight: 700 }}>{m.confirmed_count > m.size ? `Full · +${m.confirmed_count - m.size} extra` : `${m.confirmed_count}/${m.size} confirmed`}</span>
           <span style={{ fontSize: 13, color: '#6B6B66', fontWeight: 600 }}>{wc ? `${wc} waiting` : 'No waitlist'}</span>
         </div>
-        {canSee && (canLog || !started || canAdd) && (
+        {canSee && (canLog || !begun || canAdd) && (
           <div className="action-bar">
-            {canLog && <button className="btn" onClick={() => setLogCourt(Math.max(0, courts.findIndex(c => c.players.length === per)))}>+ Log result</button>}
-            {!started && <Link className="btn" href={`/m/${m.slug}/share`}>Share match link</Link>}
+            {canLog && <button className="btn" onClick={() => setLogCourt(Math.max(0, courts.findIndex(c => c.players.length > 0)))}>+ Log result</button>}
+            {!begun && <Link className="btn" href={`/m/${m.slug}/share`}>Share match link</Link>}
             {canAdd && <button className="btn-2" onClick={() => setAdding(true)}>+ Add player</button>}
           </div>
         )}
@@ -483,7 +493,7 @@ export function MatchScreen({ m, link, started }: { m: MatchView; link: string; 
       )}
       {canSee && (
         <LogResultSheet open={logCourt !== null || !!editGame} onClose={() => { setLogCourt(null); setEditGame(null) }} matchId={m.id} matchTitle={m.title} initialCourt={logCourt ?? 0}
-          courts={courts.map((c, i) => ({ label: `Court ${i + 1}`, players: c.players }))} edit={editGame} defaultGroup={m.group?.id}
+          courts={courts.map((c, i) => ({ label: `Court ${i + 1}`, players: c.players }))} size={per} edit={editGame} defaultGroup={m.group?.id}
           pool={m.players.filter(isVisible).map(p => person(p.id, p.full_name))} />
       )}
     </Frame>

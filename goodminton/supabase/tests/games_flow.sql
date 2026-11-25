@@ -106,9 +106,10 @@ select pg_temp.check(pg_temp.fails(format('select public.set_court_order(%L, %L:
 -- Logging results from the match.
 select pg_temp.as_user('ann');
 select public.log_game(:'mid', :'org', :'dan', :'ann', :'cat', 'b') as g1 \gset
-select pg_temp.check(pg_temp.fails(format('select public.log_game(%L, %L, %L, %L, %L, %L)', :'mid', :'org', :'dan', :'ann', :'ben', 'a')) like '%confirmed%', 'match game needs confirmed players');
+-- 0029: a tag is a label, so anyone in the match's group may play in or log a match game.
+select public.delete_game(public.log_game(:'mid', :'org', :'dan', :'ann', :'ben', 'a'));
 select pg_temp.as_user('ben');
-select pg_temp.check(pg_temp.fails(format('select public.log_game(%L, %L, %L, %L, %L, %L)', :'mid', :'org', :'dan', :'ann', :'cat', 'a')) like '%Only players%', 'waitlist cannot log');
+select public.delete_game(public.log_game(:'mid', :'org', :'dan', :'ann', :'cat', 'a'));
 
 -- Home cards: latest winners, not started; court numbers only for confirmed players.
 select x as card from jsonb_array_elements(public.my_matches()) x where x ->> 'slug' = :'slug' \gset
@@ -122,7 +123,7 @@ select pg_temp.check((:'card'::jsonb ->> 'courts') = 'Court 4', 'confirmed see c
 select pg_temp.as_user('org');
 select public.log_game(null, :'org', :'raj', :'ben', :'eve', 'a') as g2 \gset
 select pg_temp.check(pg_temp.fails(format('select public.log_game(null, %L, %L, %L, %L, %L)', :'org', :'raj', :'ben', :'stranger', 'a')) like '%must be in the group%', 'no strangers in home games');
-select pg_temp.check(pg_temp.fails(format('select public.log_game(null, %L, %L, %L, %L, %L)', :'org', :'org', :'ben', :'eve', 'a')) like '%players_check%', 'four different players');
+select pg_temp.check(pg_temp.fails(format('select public.log_game(null, %L, %L, %L, %L, %L)', :'org', :'org', :'ben', :'eve', 'a')) like '%court twice%', 'four different players');
 
 -- Leaderboard visibility.
 select public.get_leaderboard() as lb \gset

@@ -74,7 +74,7 @@ export function Leaderboard({ meId, meName, data, groups = [], insights }: { meI
   const recent = showAll ? data.games : data.games.slice(0, 8)
   const toDraft = (g: Game, withResult: boolean): GameDraft => ({
     id: withResult ? g.id : undefined, a: g.a.map(who), b: g.b.map(who),
-    ...(withResult ? { winner: g.winner, score_a: g.score_a, score_b: g.score_b } : {}),
+    ...(withResult ? { winner: g.winner, score_a: g.score_a, score_b: g.score_b, match_id: g.match_id ?? null } : {}),
   })
 
   async function remove(id: string) {
@@ -274,6 +274,7 @@ export function Leaderboard({ meId, meName, data, groups = [], insights }: { meI
                           <button className="chip-btn" style={{ height: 32, fontSize: 12 }} onClick={() => { setMenu(null); setDraft({ prefill: toDraft(g, false) }); setLogging(true) }}>Duplicate</button>
                           {g.created_by === meId && <>
                             <button className="chip-btn" style={{ height: 32, fontSize: 12 }} onClick={() => { setMenu(null); setDraft({ edit: toDraft(g, true) }); setLogging(true) }}>Edit</button>
+                            <button className="chip-btn" style={{ height: 32, fontSize: 12 }} onClick={() => { setMenu(null); setDraft({ edit: toDraft(g, true) }); setLogging(true) }}>{g.match_title ? 'Change match' : 'Tag to match'}</button>
                             <button className="chip-btn" style={{ height: 32, fontSize: 12, color: '#C2410C' }} onClick={() => { setMenu(null); remove(g.id) }}>Delete</button>
                           </>}
                         </div>

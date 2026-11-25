@@ -130,6 +130,7 @@ export type PlayerOption = { id: string; full_name: string; is_guest: boolean; a
 export type Game = {
   id: string
   played_on: string
+  match_id?: string | null
   match_title: string | null
   created_by: string
   /** 1 player (singles) or 2 (doubles) per side. */
